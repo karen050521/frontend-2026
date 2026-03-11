@@ -1,0 +1,51 @@
+/* Estilos específicos de la barra de búsqueda */
+
+.relative {
+  box-shadow: var(--shadow-sm);
+  border-radius: 0.625rem;
+  transition: all 0.3s ease;
+}
+
+.relative:focus-within {
+  box-shadow: var(--shadow-md);
+}
+
+input:focus {
+  animation: focusPulse 0.3s ease;
+}
+
+@keyframes focusPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.005);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Mejorar contraste y visibilidad en modo oscuro */
+[data-theme="dark"] .theme-input {
+  background-color: rgba(82, 82, 82, 0.6);
+  border-color: #737373;
+  color: #fafafa;
+}
+
+[data-theme="dark"] .theme-input:focus {
+  background-color: rgba(82, 82, 82, 0.9);
+  border-color: var(--primary-400);
+}
+
+[data-theme="dark"] .theme-input::placeholder {
+  color: #d4d4d4;
+}
+
+[data-theme="dark"] .theme-icon-button {
+  color: #e5e5e5;
+}
+
+[data-theme="dark"] svg {
+  color: #e5e5e5;
+}

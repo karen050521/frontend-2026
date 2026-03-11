@@ -1,0 +1,18 @@
+[data-theme="dark"] .bg-pink-50 {
+  background: rgba(236, 72, 153, 0.1);
+}
+
+/* Mejorar la animación de hover en las tarjetas */
+.theme-card {
+  will-change: transform;
+}
+
+/* Asegurar que el texto sea legible */
+h1, h2, h3 {
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+p {
+  line-height: 1.7;
+}

@@ -1,0 +1,150 @@
+<header class="theme-nav sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <!-- Menú hamburguesa + Logo -->
+      <div class="flex items-center gap-3 min-w-[200px]">
+        <button 
+          (click)="onMenuToggle()"
+          class="theme-icon-button"
+          aria-label="Abrir menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        
+        <h1 class="text-xl md:text-2xl font-bold theme-text-primary">
+          <span class="text-pink-500">
+            KALA
+          </span>
+        </h1>
+      </div>
+
+      <!-- Barra de búsqueda central (desktop) -->
+      <div class="hidden md:flex flex-1 justify-center px-8 max-w-2xl">
+        <app-search-bar (search)="onSearch($event)"></app-search-bar>
+      </div>
+
+      <!-- Acciones de la derecha -->
+      <div class="flex items-center gap-2 min-w-[200px] justify-end">
+        <!-- Toggle tema -->
+        <button 
+          (click)="onThemeToggle()"
+          class="theme-icon-button"
+          aria-label="Cambiar tema">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+
+        <!-- Avatar usuario con menú desplegable -->
+        <div class="relative">
+          <button 
+            (click)="toggleUserMenu()"
+            class="theme-icon-button"
+            aria-label="Menú de usuario">
+            @if (isAuthenticated()) {
+              <!-- Foto del usuario logueado -->
+              <img 
+                [src]="currentUser()?.photoUrl" 
+                [alt]="currentUser()?.name"
+                class="w-8 h-8 rounded-full object-cover border-2 border-pink-500">
+            } @else {
+              <!-- Icono de usuario no autenticado -->
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            }
+          </button>
+
+          <!-- Menú desplegable de usuario -->
+          @if (isUserMenuOpen()) {
+            <div class="absolute right-0 mt-2 w-64 theme-card fade-in z-50">
+              @if (isAuthenticated()) {
+                <!-- Usuario autenticado -->
+                <div class="p-4 border-b theme-divider">
+                  <div class="flex items-center gap-3">
+                    <img 
+                      [src]="currentUser()?.photoUrl" 
+                      [alt]="currentUser()?.name"
+                      class="w-12 h-12 rounded-full object-cover border-2 border-pink-500">
+                    <div class="flex-1 min-w-0">
+                      <p class="font-semibold theme-text-primary truncate">{{ currentUser()?.name }}</p>
+                      <p class="text-sm theme-text-secondary truncate">{{ currentUser()?.email }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-2">
+                  <button 
+                    (click)="closeUserMenu()"
+                    class="w-full text-left px-4 py-2 theme-nav-item rounded-lg">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                      </svg>
+                      <span>Mi Perfil</span>
+                    </div>
+                  </button>
+                  <button 
+                    (click)="closeUserMenu()"
+                    class="w-full text-left px-4 py-2 theme-nav-item rounded-lg">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span>Configuración</span>
+                    </div>
+                  </button>
+                  <hr class="my-2 theme-divider">
+                  <button 
+                    (click)="onLogout()"
+                    class="w-full text-left px-4 py-2 theme-nav-item rounded-lg text-red-500 hover:bg-red-50">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                      </svg>
+                      <span>Cerrar Sesión</span>
+                    </div>
+                  </button>
+                </div>
+              } @else {
+                <!-- Usuario no autenticado -->
+                <div class="p-4">
+                  <p class="theme-text-secondary text-sm mb-4">Inicia sesión para acceder a todas las funciones</p>
+                  <button 
+                    (click)="onLogin()"
+                    class="w-full theme-button">
+                    Iniciar Sesión
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menú móvil con búsqueda -->
+  @if (isMobileMenuOpen()) {
+    <div class="md:hidden border-t border-color theme-divider fade-in">
+      <div class="px-4 py-3">
+        <!-- Búsqueda móvil -->
+        <div class="mb-3">
+          <app-search-bar (search)="onSearch($event)"></app-search-bar>
+        </div>
+        <!-- Links de navegación -->
+        <div class="space-y-1">
+          <a href="#" class="theme-nav-item active block">Listancia</a>
+          <a href="#" class="theme-nav-item block">Roles</a>
+          <a href="#" class="theme-nav-item block">UserRole</a>
+        </div>
+      </div>
+    </div>
+  }
+</header>

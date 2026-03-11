@@ -1,0 +1,42 @@
+/* Estilos específicos del header */
+/* El header usa las variables CSS del sistema de temas */
+
+header {
+  backdrop-filter: blur(12px);
+}
+
+/* Ajustar barra de búsqueda en header */
+header app-search-bar {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  header app-search-bar {
+    max-width: 600px;
+  }
+}
+
+/* Estilos para el menú desplegable de usuario */
+.user-menu-dropdown {
+  min-width: 240px;
+  box-shadow: var(--shadow-xl);
+}
+
+/* Animación para la foto del usuario */
+.user-avatar {
+  transition: all 0.3s ease;
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.3);
+}
+
+/* Estilo para el botón de cerrar sesión en dark mode */
+[data-theme="dark"] .text-red-500 {
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .hover\:bg-red-50:hover {
+  background-color: rgba(248, 113, 113, 0.1) !important;
+}

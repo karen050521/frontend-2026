@@ -1,0 +1,18 @@
+aside {
+  box-shadow: var(--shadow-md);
+}
+
+/* Estilos adicionales para el scroll */
+nav {
+  scrollbar-width: thin;
+}
+
+/* Animación para el overlay */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

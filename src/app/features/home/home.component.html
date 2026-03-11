@@ -1,0 +1,79 @@
+<div class="space-y-12">
+  <!-- Hero Section -->
+  <section class="text-center py-8 fade-in">
+    <h1 class="text-3xl md:text-5xl font-bold theme-text-primary mb-6 leading-tight">
+      Bienvenidas a 
+      <span class="text-pink-500 font-extrabold">
+        KALA Buses
+      </span>
+    </h1>
+    <p class="text-base md:text-lg theme-text-secondary max-w-2xl mx-auto mb-8 px-4">
+      Una aplicación diseñada con elegancia, seguridad y las mejores prácticas de desarrollo
+    </p>
+    
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <button class="theme-button w-full sm:w-auto">
+        Comenzar
+      </button>
+      <button class="theme-button-outline w-full sm:w-auto">
+        Saber más
+      </button>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    @for (feature of features; track feature.title) {
+      <div class="theme-card p-6 hover:scale-[1.02] transition-all duration-300 flex flex-col">
+        <div class="w-14 h-14 rounded-xl bg-pink-500 flex items-center justify-center mb-4 shadow-lg">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="feature.icon"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold theme-text-primary mb-3">
+          {{ feature.title }}
+        </h3>
+        <p class="theme-text-secondary text-sm leading-relaxed flex-grow">
+          {{ feature.description }}
+        </p>
+      </div>
+    }
+  </section>
+
+  <!-- Stats Section -->
+  <section class="theme-card p-8 md:p-12">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12 text-center">
+      <div class="flex flex-col items-center justify-center">
+        <div class="text-5xl md:text-6xl font-bold text-pink-500 mb-3">
+          99.9%
+        </div>
+        <div class="theme-text-secondary font-medium text-sm uppercase tracking-wide">Uptime</div>
+      </div>
+      <div class="flex flex-col items-center justify-center">
+        <div class="text-5xl md:text-6xl font-bold text-pink-500 mb-3">
+          &lt;50ms
+        </div>
+        <div class="theme-text-secondary font-medium text-sm uppercase tracking-wide">Respuesta</div>
+      </div>
+      <div class="flex flex-col items-center justify-center">
+        <div class="text-5xl md:text-6xl font-bold text-pink-500 mb-3">
+          24/7
+        </div>
+        <div class="theme-text-secondary font-medium text-sm uppercase tracking-wide">Soporte</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section class="theme-card p-10 md:p-16 text-center bg-pink-50">
+    <h2 class="text-3xl md:text-4xl font-bold theme-text-primary mb-6">
+      ¿Lista para comenzar?
+    </h2>
+    <p class="theme-text-secondary text-base md:text-lg mb-8 max-w-2xl mx-auto px-4">
+      Explora todas las funcionalidades y descubre cómo podemos ayudarte
+    </p>
+    <button class="theme-button text-base px-8 py-3">
+      Crear cuenta gratis
+    </button>
+  </section>
+</div>

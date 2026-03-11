@@ -1,0 +1,64 @@
+@if (isOpen()) {
+  <div class="modal-backdrop" (click)="handleBackdropClick($event)">
+    <div 
+      class="modal-container"
+      [class]="getSizeClass() + ' ' + getTypeClass()"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="title() ? 'modal-title' : null">
+      
+      <!-- Header -->
+      <div class="modal-header">
+        @if (title()) {
+          <h2 id="modal-title" class="modal-title">{{ title() }}</h2>
+        }
+        @if (showCloseButton()) {
+          <button 
+            type="button"
+            class="modal-close-btn"
+            (click)="close()"
+            aria-label="Cerrar modal">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-width="2" 
+              stroke-linecap="round" 
+              stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        }
+      </div>
+      
+      <!-- Body -->
+      <div class="modal-body">
+        <ng-content></ng-content>
+      </div>
+      
+      <!-- Footer -->
+      @if (showFooter()) {
+        <div class="modal-footer">
+          @if (showCancelButton()) {
+            <button 
+              type="button"
+              class="modal-btn modal-btn-cancel"
+              (click)="cancel()">
+              {{ cancelText() }}
+            </button>
+          }
+          <button 
+            type="button"
+            class="modal-btn modal-btn-confirm"
+            (click)="confirm()">
+            {{ confirmText() }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -1,0 +1,290 @@
+<div class="roles-container">
+  <!-- Header -->
+  <div class="roles-header">
+    <div>
+      <h1 class="roles-title">Gestión de Roles</h1>
+      <p class="roles-subtitle">Administra los roles del sistema</p>
+    </div>
+    <button 
+      class="btn-create"
+      (click)="openCreateModal()"
+      [disabled]="roleService.loading()">
+      <svg 
+        class="icon" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24">
+        <path 
+          stroke-linecap="round" 
+          stroke-linejoin="round" 
+          stroke-width="2" 
+          d="M12 4v16m8-8H4"/>
+      </svg>
+      Crear Rol
+    </button>
+  </div>
+  
+  <!-- Loading State -->
+  @if (roleService.loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Cargando roles...</p>
+    </div>
+  }
+  
+  <!-- Error State -->
+  @else if (roleService.error()) {
+    <div class="error-container">
+      <div class="error-icon">
+        <svg 
+          class="icon-large" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24">
+          <path 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            stroke-width="2" 
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Error al cargar roles</h3>
+      <p class="error-message">{{ roleService.error() }}</p>
+      <button class="btn-retry" (click)="retryLoad()">
+        Reintentar
+      </button>
+    </div>
+  }
+  
+  <!-- Empty State -->
+  @else if (roleService.roles() && roleService.roles().length === 0) {
+    <div class="empty-container">
+      <div class="empty-icon">
+        <svg 
+          class="icon-large" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24">
+          <path 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            stroke-width="2" 
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No hay roles creados</h3>
+      <p class="empty-message">Comienza creando tu primer rol</p>
+      <button class="btn-primary" (click)="openCreateModal()">
+        Crear primer rol
+      </button>
+    </div>
+  }
+  
+  <!-- Roles Grid -->
+  @else {
+    <div class="roles-grid">
+      @for (role of roleService.roles(); track role.id) {
+        <div class="role-card">
+          <div class="role-card-header">
+            <div class="role-icon">
+              <svg 
+                class="icon" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24">
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="2" 
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <div class="flex gap-2">
+              <button 
+                class="btn-edit"
+                (click)="openEditModal(role)"
+                title="Editar rol">
+                <svg 
+                  class="icon-sm" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24">
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </button>
+              <button 
+                class="btn-delete"
+                (click)="handleDeleteRole(role)"
+                title="Eliminar rol">
+              <svg 
+                class="icon-sm" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24">
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="2" 
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+            </div>
+          </div>
+          
+          <h3 class="role-name">{{ role.name }}</h3>
+          <p class="role-description">{{ role.description }}</p>
+          
+          @if (role.createdAt) {
+            <div class="role-footer">
+              <span class="role-date">
+                Creado: {{ role.createdAt | date:'short' }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modal para Crear Rol -->
+<app-modal 
+  [isOpen]="showCreateModal()" 
+  [title]="'Crear Nuevo Rol'"
+  [size]="'md'"
+  [showFooter]="false"
+  (onClose)="closeCreateModal()">
+  
+  <form [formGroup]="roleForm" (ngSubmit)="handleCreateRole()" class="role-form">
+    <!-- Campo Nombre -->
+    <div class="form-group">
+      <label for="name" class="form-label">
+        Nombre del Rol
+        <span class="required">*</span>
+      </label>
+      <input 
+        id="name"
+        type="text" 
+        formControlName="name"
+        class="form-input"
+        [class.input-error]="isFieldInvalid('name')"
+        placeholder="Ej: Administrador, Usuario, Editor">
+      @if (isFieldInvalid('name')) {
+        <span class="error-message">{{ getErrorMessage('name') }}</span>
+      }
+    </div>
+    
+    <!-- Campo Descripción -->
+    <div class="form-group">
+      <label for="description" class="form-label">
+        Descripción
+        <span class="required">*</span>
+      </label>
+      <textarea 
+        id="description"
+        formControlName="description"
+        class="form-textarea"
+        [class.input-error]="isFieldInvalid('description')"
+        rows="4"
+        placeholder="Describe las responsabilidades y permisos de este rol..."></textarea>
+      @if (isFieldInvalid('description')) {
+        <span class="error-message">{{ getErrorMessage('description') }}</span>
+      }
+    </div>
+    
+    <!-- Botones -->
+    <div class="form-actions">
+      <button 
+        type="button"
+        class="btn-cancel"
+        (click)="closeCreateModal()"
+        [disabled]="roleService.loading()">
+        Cancelar
+      </button>
+      <button 
+        type="submit"
+        class="btn-submit"
+        [disabled]="roleService.loading()">
+        @if (roleService.loading()) {
+          <span class="spinner-sm"></span>
+          Guardando...
+        } @else {
+          Guardar Rol
+        }
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal para Editar Rol -->
+<app-modal 
+  [isOpen]="showEditModal()" 
+  [title]="'Editar Rol'"
+  [size]="'md'"
+  [showFooter]="false"
+  (onClose)="closeEditModal()">
+  
+  <form [formGroup]="roleForm" (ngSubmit)="handleEditRole()" class="role-form">
+    <!-- Campo Nombre -->
+    <div class="form-group">
+      <label for="edit-name" class="form-label">
+        Nombre del Rol
+        <span class="required">*</span>
+      </label>
+      <input 
+        id="edit-name"
+        type="text" 
+        formControlName="name"
+        class="form-input"
+        [class.input-error]="isFieldInvalid('name')"
+        placeholder="Ej: Administrador, Usuario, Editor">
+      @if (isFieldInvalid('name')) {
+        <span class="error-message">{{ getErrorMessage('name') }}</span>
+      }
+    </div>
+    
+    <!-- Campo Descripción -->
+    <div class="form-group">
+      <label for="edit-description" class="form-label">
+        Descripción
+        <span class="required">*</span>
+      </label>
+      <textarea 
+        id="edit-description"
+        formControlName="description"
+        class="form-textarea"
+        [class.input-error]="isFieldInvalid('description')"
+        rows="4"
+        placeholder="Describe las responsabilidades y permisos de este rol..."></textarea>
+      @if (isFieldInvalid('description')) {
+        <span class="error-message">{{ getErrorMessage('description') }}</span>
+      }
+    </div>
+    
+    <!-- Botones -->
+    <div class="form-actions">
+      <button 
+        type="button"
+        class="btn-cancel"
+        (click)="closeEditModal()"
+        [disabled]="roleService.loading()">
+        Cancelar
+      </button>
+      <button 
+        type="submit"
+        class="btn-submit"
+        [disabled]="roleService.loading()">
+        @if (roleService.loading()) {
+          <span class="spinner-sm"></span>
+          Actualizando...
+        } @else {
+          Actualizar Rol
+        }
+      </button>
+    </div>
+  </form>
+</app-modal>

@@ -17,7 +17,7 @@ export const routes: Routes = [
   },
   {
     path: 'roles',
-    loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent)
+    loadComponent: () => import('./features/roles/roles.component').then(m => m.RolesComponent)
   },
   {
     path: 'user-role',

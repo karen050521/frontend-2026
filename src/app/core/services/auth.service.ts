@@ -1,4 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { apiConfig } from '../config/api.config';
 
 /**
  * Interfaz del usuario autenticado
@@ -11,46 +13,74 @@ export interface User {
 }
 
 /**
+ * Interfaz para respuesta de login
+ */
+export interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+/**
  * AuthService - Servicio de autenticación
- * 
+ *
  * Principios SOLID aplicados:
  * - Single Responsibility: Solo gestiona el estado de autenticación
  * - Open/Closed: Extensible para diferentes métodos de autenticación
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   // Estado del usuario actual
   private readonly _currentUser = signal<User | null>(null);
-  
+
   // Señales públicas de solo lectura
   public readonly currentUser = this._currentUser.asReadonly();
   public readonly isAuthenticated = computed(() => this._currentUser() !== null);
 
-  constructor() {
+  constructor(private http: HttpClient) {
     // Cargar usuario desde localStorage si existe
     this.loadUserFromStorage();
   }
 
   /**
-   * Simula el inicio de sesión (en producción, esto sería una llamada HTTP)
+   * Inicia sesión con email y contraseña
    */
   login(email: string, password: string): Promise<User> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const user: User = {
-          id: '1',
-          name: 'María González',
-          email: email,
-          photoUrl: 'https://ui-avatars.com/api/?name=Maria+Gonzalez&background=ec4899&color=fff'
-        };
-        
-        this._currentUser.set(user);
-        this.saveUserToStorage(user);
-        resolve(user);
-      }, 1000);
-    });
+    return this.http
+      .post<LoginResponse>(`${apiConfig.baseUrl}${apiConfig.endpoints.auth}/login`, {
+        email,
+        password,
+      })
+      .toPromise()
+      .then((response) => {
+        if (response) {
+          const user = response.user;
+          // Guardar token en localStorage
+          localStorage.setItem('authToken', response.token);
+          this._currentUser.set(user);
+          this.saveUserToStorage(user);
+          return user;
+        }
+        throw new Error('Respuesta inválida del servidor');
+      });
+  }
+
+  /**
+   * Registra un nuevo usuario
+   */
+  register(name: string, email: string, password: string): Promise<User> {
+    return this.http
+      .post<User>(`${apiConfig.baseUrl}${apiConfig.endpoints.auth}/register`, {
+        name,
+        email,
+        password,
+      })
+      .toPromise()
+      .then((user) => {
+        if (!user) throw new Error('Respuesta inválida del servidor');
+        return user as User;
+      });
   }
 
   /**

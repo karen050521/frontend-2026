@@ -1,0 +1,76 @@
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="theme-card w-full max-w-md p-8">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold theme-text-primary mb-2">Iniciar Sesión</h2>
+      <p class="theme-text-secondary">Accede a tu cuenta</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+      <!-- Email -->
+      <div>
+        <label for="email" class="block text-sm font-medium theme-text-primary mb-2">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="theme-input"
+          placeholder="tu@email.com"
+          [class.border-red-500]="
+            loginForm.get('email')?.invalid && loginForm.get('email')?.touched
+          "
+        />
+        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <p class="text-red-500 text-sm mt-1">Email válido es requerido</p>
+        }
+      </div>
+
+      <!-- Contraseña -->
+      <div>
+        <label for="password" class="block text-sm font-medium theme-text-primary mb-2"
+          >Contraseña</label
+        >
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="theme-input"
+          placeholder="Tu contraseña"
+          [class.border-red-500]="
+            loginForm.get('password')?.invalid && loginForm.get('password')?.touched
+          "
+        />
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <p class="text-red-500 text-sm mt-1">Contraseña es requerida</p>
+        }
+      </div>
+
+      <!-- Mensaje de error -->
+      @if (errorMessage) {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {{ errorMessage }}
+        </div>
+      }
+
+      <!-- Botón de login -->
+      <button
+        type="submit"
+        class="theme-button w-full"
+        [disabled]="loginForm.invalid || isLoading"
+        [class.opacity-50]="loginForm.invalid || isLoading"
+      >
+        @if (isLoading) {
+          <span>Cargando...</span>
+        } @else {
+          <span>Iniciar Sesión</span>
+        }
+      </button>
+    </form>
+
+    <div class="text-center mt-6">
+      <p class="theme-text-secondary">
+        ¿No tienes cuenta?
+        <a href="/register" class="text-pink-500 hover:text-pink-600 font-medium">Regístrate</a>
+      </p>
+    </div>
+  </div>
+</div>

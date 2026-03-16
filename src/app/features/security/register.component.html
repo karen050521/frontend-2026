@@ -1,0 +1,195 @@
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="theme-card w-full max-w-md p-8">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold theme-text-primary mb-2">Crear Cuenta</h2>
+      <p class="theme-text-secondary">Regístrate para acceder al sistema</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-6">
+      <!-- Nombre -->
+      <div>
+        <label for="nombre" class="block text-sm font-medium theme-text-primary mb-2">Nombre</label>
+        <input
+          type="text"
+          id="nombre"
+          formControlName="nombre"
+          class="theme-input"
+          placeholder="Ingresa tu nombre"
+          [class.border-red-500]="
+            registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched
+          "
+        />
+        @if (registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched) {
+          <p class="text-red-500 text-sm mt-1">
+            Nombre es requerido y debe tener al menos 2 caracteres
+          </p>
+        }
+      </div>
+
+      <!-- Apellido -->
+      <div>
+        <label for="apellido" class="block text-sm font-medium theme-text-primary mb-2"
+          >Apellido</label
+        >
+        <input
+          type="text"
+          id="apellido"
+          formControlName="apellido"
+          class="theme-input"
+          placeholder="Ingresa tu apellido"
+          [class.border-red-500]="
+            registerForm.get('apellido')?.invalid && registerForm.get('apellido')?.touched
+          "
+        />
+        @if (registerForm.get('apellido')?.invalid && registerForm.get('apellido')?.touched) {
+          <p class="text-red-500 text-sm mt-1">
+            Apellido es requerido y debe tener al menos 2 caracteres
+          </p>
+        }
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label for="email" class="block text-sm font-medium theme-text-primary mb-2">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="theme-input"
+          placeholder="tu@email.com"
+          [class.border-red-500]="
+            registerForm.get('email')?.invalid && registerForm.get('email')?.touched
+          "
+        />
+        @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+          <p class="text-red-500 text-sm mt-1">Email válido es requerido</p>
+        }
+      </div>
+
+      <!-- Contraseña -->
+      <div>
+        <label for="password" class="block text-sm font-medium theme-text-primary mb-2"
+          >Contraseña</label
+        >
+        <div class="relative">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
+            class="theme-input pr-12"
+            placeholder="Contraseña segura"
+            (input)="updatePasswordStrength()"
+            [class.border-red-500]="
+              registerForm.get('password')?.invalid && registerForm.get('password')?.touched
+            "
+          />
+
+          <button
+            type="button"
+            class="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-pink-500"
+            (click)="togglePasswordVisibility()"
+            aria-label="Mostrar u ocultar contraseña"
+          >
+            <svg
+              *ngIf="!showPassword"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+              />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <svg
+              *ngIf="showPassword"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M17.94 17.94A10.98 10.98 0 0 1 12 20c-7 0-11-8-11-8a19.7 19.7 0 0 1 4.89-6.88"
+              />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M1 1l22 22" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9.53 9.53a3 3 0 0 0 4.24 4.24"
+              />
+            </svg>
+          </button>
+        </div>
+
+        @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+          <p class="text-red-500 text-sm mt-1">
+            La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter
+            especial
+          </p>
+        }
+        @if (passwordStrength) {
+          <p class="text-sm mt-1 {{ getStrengthColor() }}">Fortaleza: {{ passwordStrength }}</p>
+        }
+      </div>
+
+      <!-- Confirmar Contraseña -->
+      <div>
+        <label for="confirmPassword" class="block text-sm font-medium theme-text-primary mb-2"
+          >Confirmar Contraseña</label
+        >
+        <input
+          type="password"
+          id="confirmPassword"
+          formControlName="confirmPassword"
+          class="theme-input"
+          placeholder="Repite tu contraseña"
+          [class.border-red-500]="
+            registerForm.get('confirmPassword')?.invalid &&
+            registerForm.get('confirmPassword')?.touched
+          "
+        />
+        @if (
+          registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched
+        ) {
+          <p class="text-red-500 text-sm mt-1">Las contraseñas no coinciden</p>
+        }
+      </div>
+
+      <!-- Botón de registro -->
+      <button
+        type="submit"
+        class="theme-button w-full"
+        [disabled]="registerForm.invalid || isLoading"
+        [class.opacity-50]="registerForm.invalid || isLoading"
+      >
+        @if (isLoading) {
+          <span>Cargando...</span>
+        } @else {
+          <span>Registrarse</span>
+        }
+      </button>
+
+      @if (errorMessage) {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-4">
+          {{ errorMessage }}
+        </div>
+      }
+    </form>
+
+    <div class="text-center mt-6">
+      <p class="theme-text-secondary">
+        ¿Ya tienes cuenta?
+        <a href="/login" class="text-pink-500 hover:text-pink-600 font-medium">Inicia sesión</a>
+      </p>
+    </div>
+  </div>
+</div>

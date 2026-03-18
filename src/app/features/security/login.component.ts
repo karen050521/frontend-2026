@@ -37,7 +37,7 @@ export class LoginComponent {
         .login(email, password)
         .then((user) => {
           this.isLoading = false;
-          this.router.navigate(['/']);
+          this.router.navigate(['/home']);
         })
         .catch((error) => {
           this.isLoading = false;

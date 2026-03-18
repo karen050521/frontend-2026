@@ -48,7 +48,7 @@ export class AuthService {
    */
   login(email: string, password: string): Promise<User> {
     return this.http
-      .post<LoginResponse>(`${apiConfig.baseUrl}${apiConfig.endpoints.auth}/login`, {
+      .post<LoginResponse>(`${apiConfig.baseUrl}/api/public/auth/login`, {
         email,
         password,
       })
@@ -71,7 +71,7 @@ export class AuthService {
    */
   register(name: string, email: string, password: string): Promise<User> {
     return this.http
-      .post<User>(`${apiConfig.baseUrl}${apiConfig.endpoints.auth}/register`, {
+      .post<User>(`${apiConfig.baseUrl}/api/public/auth/register`, {
         name,
         email,
         password,
@@ -89,6 +89,7 @@ export class AuthService {
   logout(): void {
     this._currentUser.set(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
   }
 
   /**

@@ -1,11 +1,12 @@
 import { Component, signal, output, inject, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { SearchBarComponent } from '../search-bar/search-bar.component';
 import { AuthService } from '../../../core/services/auth.service';
 
 /**
  * HeaderComponent - Componente de encabezado reutilizable
- * 
+ *
  * Principios SOLID aplicados:
  * - Single Responsibility: Solo gestiona la barra de navegación superior
  * - Dependency Inversion: Emite eventos en lugar de gestionar lógica de negocio
@@ -16,22 +17,23 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, SearchBarComponent],
   templateUrl: './header.component.html',
-  styleUrl: './header.component.css'
+  styleUrl: './header.component.css',
 })
 export class HeaderComponent {
   // Servicios
   private readonly authService = inject(AuthService);
-  
+  private readonly router = inject(Router);
+
   // Estado del menú móvil
   protected readonly isMobileMenuOpen = signal(false);
-  
+
   // Estado del menú de usuario
   protected readonly isUserMenuOpen = signal(false);
-  
+
   // Exponer señales del servicio de auth
   protected readonly currentUser = this.authService.currentUser;
   protected readonly isAuthenticated = this.authService.isAuthenticated;
-  
+
   // Eventos para comunicación con el padre
   public readonly menuToggle = output<void>();
   public readonly themeToggle = output<void>();
@@ -41,7 +43,7 @@ export class HeaderComponent {
    * Alterna el estado del menú móvil
    */
   protected toggleMobileMenu(): void {
-    this.isMobileMenuOpen.update(value => !value);
+    this.isMobileMenuOpen.update((value) => !value);
   }
 
   /**
@@ -69,7 +71,7 @@ export class HeaderComponent {
    * Alterna el menú de usuario
    */
   protected toggleUserMenu(): void {
-    this.isUserMenuOpen.update(value => !value);
+    this.isUserMenuOpen.update((value) => !value);
   }
 
   /**
@@ -86,7 +88,7 @@ export class HeaderComponent {
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     const clickedInside = target.closest('.relative');
-    
+
     if (!clickedInside && this.isUserMenuOpen()) {
       this.closeUserMenu();
     }
@@ -107,5 +109,6 @@ export class HeaderComponent {
   protected onLogout(): void {
     this.authService.logout();
     this.closeUserMenu();
+    this.router.navigate(['/login']);
   }
 }

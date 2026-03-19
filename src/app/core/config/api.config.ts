@@ -17,7 +17,9 @@ export const apiConfig = {
   endpoints: {
     roles: '/roles',
     users: '/users',
-    auth: '/auth'
+    auth: '/auth',
+    permissions: '/permissions',
+    'role-permission': '/role-permission'
   }
 };
 

@@ -39,6 +39,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'permissions',
+    loadComponent: () => import('./features/permissions/manage-permissions.component').then((m) => m.ManagePermissionsComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: '403',
     loadComponent: () =>
       import('./shared/components/access-denied/access-denied.component').then(

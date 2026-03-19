@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RoleService } from '../../core/services/role.service';
 import { Role, CreateRoleDto } from '../../core/models/role.model';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { PermissionsModalComponent } from '../../shared/components/permissions-modal/permissions-modal.component';
 import { ModalService } from '../../core/services/modal.service';
 
 /**
@@ -17,7 +18,7 @@ import { ModalService } from '../../core/services/modal.service';
 @Component({
   selector: 'app-roles',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ModalComponent, PermissionsModalComponent],
   templateUrl: './roles.component.html',
   styleUrl: './roles.component.css'
 })
@@ -25,9 +26,11 @@ export class RolesComponent implements OnInit {
   // Estado de los modales
   protected readonly showCreateModal = signal(false);
   protected readonly showEditModal = signal(false);
+  protected readonly showPermissionsModal = signal(false);
   
-  // Rol seleccionado para edición
+  // Rol seleccionado para edición o asignación de permisos
   protected selectedRole: Role | null = null;
+  protected selectedRoleForPermissions = signal<Role | null>(null);
   
   // Formulario reactivo
   protected roleForm: FormGroup;
@@ -220,6 +223,22 @@ export class RolesComponent implements OnInit {
         this.markFormGroupTouched(control);
       }
     });
+  }
+  
+  /**
+   * Abre el modal para asignar permisos a un rol
+   */
+  protected openPermissionsModal(role: Role): void {
+    this.selectedRoleForPermissions.set(role);
+    this.showPermissionsModal.set(true);
+  }
+  
+  /**
+   * Cierra el modal de asignación de permisos
+   */
+  protected closePermissionsModal(): void {
+    this.showPermissionsModal.set(false);
+    this.selectedRoleForPermissions.set(null);
   }
   
   /**

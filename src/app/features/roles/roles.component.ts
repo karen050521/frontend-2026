@@ -57,7 +57,6 @@ export class RolesComponent implements OnInit {
   private loadRoles(): void {
     this.roleService.getRoles().subscribe({
       error: (error) => {
-        console.error('Error al cargar roles:', error);
       }
     });
   }
@@ -123,7 +122,6 @@ export class RolesComponent implements OnInit {
         });
       },
       error: async (error) => {
-        console.error('Error al crear rol:', error);
         await this.modalService.openError({
           title: 'Error al crear rol',
           message: 'No se pudo crear el rol. Por favor, intenta nuevamente.',
@@ -143,7 +141,6 @@ export class RolesComponent implements OnInit {
     }
     
     if (!this.selectedRole?.id) {
-      console.error('No hay rol seleccionado para editar');
       return;
     }
     
@@ -162,7 +159,6 @@ export class RolesComponent implements OnInit {
         });
       },
       error: async (error) => {
-        console.error('Error al actualizar rol:', error);
         await this.modalService.openError({
           title: 'Error al actualizar rol',
           message: 'No se pudo actualizar el rol. Por favor, intenta nuevamente.',
@@ -193,7 +189,6 @@ export class RolesComponent implements OnInit {
           });
         },
         error: async (error) => {
-          console.error('Error al eliminar rol:', error);
           await this.modalService.openError({
             title: 'Error al eliminar',
             message: 'No se pudo eliminar el rol. Por favor, intenta nuevamente.'

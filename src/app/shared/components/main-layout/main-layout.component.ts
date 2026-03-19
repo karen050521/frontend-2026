@@ -48,7 +48,6 @@ export class MainLayoutComponent {
    * Maneja eventos de búsqueda
    */
   protected handleSearch(query: string): void {
-    console.log('Buscando:', query);
     // Aquí puedes implementar la lógica de búsqueda
   }
 }

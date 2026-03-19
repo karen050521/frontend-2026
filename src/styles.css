@@ -56,6 +56,20 @@
     
     --accent-color: var(--primary-500);
     --accent-hover: var(--primary-600);
+
+    /* Alias de color para componentes */
+    --color-bg: var(--bg-primary);
+    --color-surface: var(--bg-secondary);
+    --color-border: var(--border-color);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-primary: var(--accent-color);
+    --color-primary-hover: var(--accent-hover);
+    --color-hover: var(--bg-hover);
+    --color-error: #dc2626;
+    --color-error-bg: #fee2e2;
+    --color-error-border: #feca5d;
+    --color-error-text: #7f1d1d;
   }
 
   /* Tema oscuro */
@@ -79,6 +93,20 @@
     
     --accent-color: var(--primary-400);
     --accent-hover: var(--primary-300);
+
+    /* Alias de color para componentes */
+    --color-bg: var(--bg-primary);
+    --color-surface: var(--bg-secondary);
+    --color-border: var(--border-color);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-primary: var(--accent-color);
+    --color-primary-hover: var(--accent-hover);
+    --color-hover: var(--bg-hover);
+    --color-error: #ef4444;
+    --color-error-bg: #7f1d1d;
+    --color-error-border: #991b1b;
+    --color-error-text: #fecaca;
   }
 
   body {

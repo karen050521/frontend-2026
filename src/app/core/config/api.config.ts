@@ -19,7 +19,8 @@ export const apiConfig = {
     users: '/users',
     auth: '/auth',
     permissions: '/permissions',
-    'role-permission': '/role-permission'
+    'role-permission': '/role-permission',
+    'user-role': '/user-role'
   }
 };
 

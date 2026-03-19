@@ -1,0 +1,87 @@
+<div class="modal-overlay" (click)="close()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <h2 class="modal-title">Asignar Roles</h2>
+      <button class="btn-close" (click)="close()" [disabled]="isSaving" aria-label="Cerrar modal">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- User Info -->
+    @if (user) {
+      <div class="user-info-section">
+        <div class="user-avatar">
+          <img 
+            [src]="getUserAvatarUrl()"
+            [alt]="user.email"
+            class="avatar-image">
+        </div>
+        <div class="user-details">
+          <h3 class="user-email">{{ user.email }}</h3>
+          <p class="user-id">ID: {{ user.id }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Roles List -->
+    <div class="roles-section">
+      <h3 class="section-title">Selecciona los roles para este usuario</h3>
+      
+      <div class="roles-container">
+        @for (role of roles; track role.id) {
+          <div class="role-card">
+            <label class="role-checkbox-wrapper">
+              <input 
+                type="checkbox" 
+                class="role-checkbox"
+                [checked]="isRoleSelected(role.id || '')"
+                (click)="toggleRole(role.id || '')"
+                [disabled]="isSaving"
+                role="checkbox"
+                [attr.aria-checked]="isRoleSelected(role.id || '')">
+              <span class="checkmark"></span>
+            </label>
+            
+            <div class="role-info">
+              <h4 class="role-name">{{ role.name }}</h4>
+              <p class="role-description">{{ role.description }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (roles.length === 0) {
+        <div class="empty-roles">
+          <p>No hay roles disponibles</p>
+        </div>
+      }
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-footer">
+      <button 
+        class="btn btn-secondary"
+        (click)="close()"
+        [disabled]="isSaving">
+        Cancelar
+      </button>
+      <button 
+        class="btn btn-primary"
+        (click)="save()"
+        [disabled]="isSaving">
+        @if (isSaving) {
+          <span class="loading-spinner"></span>
+          Guardando...
+        } @else {
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Guardar Cambios
+        }
+      </button>
+    </div>
+  </div>
+</div>

@@ -57,7 +57,6 @@ export class HomeComponent {
    * Maneja la confirmación del modal
    */
   protected handleConfirm(): void {
-    console.log('Acción confirmada');
     this.showModal.set(false);
   }
   
@@ -65,7 +64,6 @@ export class HomeComponent {
    * Maneja la cancelación del modal
    */
   protected handleCancel(): void {
-    console.log('Acción cancelada');
     this.showModal.set(false);
   }
   
@@ -78,7 +76,6 @@ export class HomeComponent {
       message: 'Los cambios se han guardado correctamente.',
       confirmText: 'Entendido'
     });
-    console.log('Modal de info cerrado');
   }
   
   /**
@@ -116,14 +113,12 @@ export class HomeComponent {
     });
     
     if (confirmed) {
-      console.log('Usuario confirmó la eliminación');
       // Aquí iría la lógica de eliminación
       await this.modalService.openInfo({
         title: 'Eliminado',
         message: 'El elemento ha sido eliminado exitosamente.'
       });
     } else {
-      console.log('Usuario canceló la eliminación');
     }
   }
 }

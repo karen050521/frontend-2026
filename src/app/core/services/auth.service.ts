@@ -109,7 +109,6 @@ export class AuthService {
         const user = JSON.parse(userJson) as User;
         this._currentUser.set(user);
       } catch (error) {
-        console.error('Error al cargar usuario desde localStorage', error);
         localStorage.removeItem('currentUser');
       }
     }

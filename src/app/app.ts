@@ -24,7 +24,6 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     // El servicio de tema se inicializa automáticamente
-    console.log('Tema actual:', this.themeService.currentTheme());
   }
 
   /**

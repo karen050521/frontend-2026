@@ -56,7 +56,6 @@ export class RolePermissionService {
       }),
       catchError(error => {
         // Si el endpoint no existe, retornar array vacío
-        console.warn('No se pudieron obtener los permisos actuales del rol:', error);
         this.loadingState.set(false);
         return new Observable<RolePermission[]>(subscriber => {
           subscriber.next([]);

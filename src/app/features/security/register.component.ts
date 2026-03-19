@@ -109,7 +109,6 @@ export class RegisterComponent {
             error?.error?.message ||
             error?.message ||
             'Ocurrió un error al registrar. Intenta nuevamente.';
-          console.error(error);
         });
     }
   }

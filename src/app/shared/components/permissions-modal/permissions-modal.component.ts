@@ -459,8 +459,6 @@ export class PermissionsModalComponent {
               this.originalAssignedPermissions.clear();
               this.rolePermissionMap.clear();
               
-              console.log('RolePermissions respuesta del backend:', rolePerms);
-              
               rolePerms.forEach(rp => {
                 // El backend retorna: { id, role, permission }
                 // Extraer permissionId desde la estructura anidada
@@ -475,21 +473,13 @@ export class PermissionsModalComponent {
                   if (rolePermissionId) {
                     this.rolePermissionMap.set(permissionId, rolePermissionId);
                   }
-                  
-                  console.log('Permiso asignado encontrado:', { permissionId, rolePermissionId });
                 }
-              });
-              
-              console.log('Estado después de cargar:', {
-                assigned: Array.from(this.assignedPermissions),
-                map: Object.fromEntries(this.rolePermissionMap)
               });
               
               this.groupPermissions(permissions);
               this.loading.set(false);
             },
             error: (error) => {
-              console.warn('No se pudieron cargar los permisos actuales del rol. Continuando sin ellos...', error);
               // Continuar sin los permisos actuales
               this.groupPermissions(permissions);
               this.loading.set(false);
@@ -501,7 +491,6 @@ export class PermissionsModalComponent {
         }
       },
       error: (error) => {
-        console.error('Error al cargar permisos disponibles:', error);
         this.hasLoadError.set(true);
         this.loading.set(false);
       }
@@ -598,11 +587,6 @@ export class PermissionsModalComponent {
     const permissionsToRemove = Array.from(this.originalAssignedPermissions)
       .filter(id => !this.assignedPermissions.has(id));
     
-    console.log('Guardando cambios de permisos:', {
-      toAdd: permissionsToAdd,
-      toRemove: permissionsToRemove
-    });
-    
     // Execute operations
     let completed = 0;
     let errors = 0;
@@ -616,7 +600,6 @@ export class PermissionsModalComponent {
     
     const checkCompletion = () => {
       completed++;
-      console.log(`Operación completada: ${completed}/${total}`);
       
       if (completed === total) {
         this.saving.set(false);
@@ -627,7 +610,6 @@ export class PermissionsModalComponent {
           this.onClose.emit();
         } else {
           // Hubo errores - recargar permisos actuales
-          console.error(`${errors} errores occurred while saving permissions`);
           this.loadPermissions();
         }
       }
@@ -638,11 +620,9 @@ export class PermissionsModalComponent {
       permissionsToAdd.forEach(permId => {
         this.rolePermissionService.assignPermissionToRole(roleId, permId).subscribe({
           next: (response) => {
-            console.log('Permiso asignado exitosamente:', permId, response);
             checkCompletion();
           },
           error: (error) => {
-            console.error('Error al asignar permiso:', permId, error);
             errors++;
             checkCompletion();
           }
@@ -658,17 +638,14 @@ export class PermissionsModalComponent {
         if (rolePermissionId) {
           this.rolePermissionService.removePermissionFromRole(rolePermissionId).subscribe({
             next: (response) => {
-              console.log('Permiso removido exitosamente:', permId, response);
               checkCompletion();
             },
             error: (error) => {
-              console.error('Error al remover permiso:', permId, error);
               errors++;
               checkCompletion();
             }
           });
         } else {
-          console.warn('No se encontró rolePermissionId para:', permId);
           checkCompletion();
         }
       });

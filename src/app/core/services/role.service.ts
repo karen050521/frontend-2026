@@ -137,7 +137,6 @@ export class RoleService {
       errorMessage = `Error: ${error.error.message}`;
     } else {
       // Error del lado del servidor
-      console.error('Error HTTP completo:', error);
       
       // Si la respuesta es HTML (como index.html), significa que el proxy no funcionó
       if (typeof error.error === 'string' && error.error.includes('<!doctype')) {
@@ -156,7 +155,6 @@ export class RoleService {
     this.errorState.set(errorMessage);
     this.loadingState.set(false);
     
-    console.error('Error en RoleService:', errorMessage);
     return throwError(() => new Error(errorMessage));
   }
   

@@ -50,7 +50,6 @@ export class ManagePermissionsComponent implements OnInit {
   private loadPermissions(): void {
     this.permissionService.getPermissions().subscribe({
       error: (error) => {
-        console.error('Error al cargar permisos:', error);
       }
     });
   }
@@ -106,11 +105,9 @@ export class ManagePermissionsComponent implements OnInit {
     
     this.permissionService.createPermission(permissionData).subscribe({
       next: (newPermission) => {
-        console.log('Permiso creado:', newPermission);
         this.closeCreateModal();
       },
       error: (error) => {
-        console.error('Error al crear permiso:', error);
       }
     });
   }
@@ -129,17 +126,15 @@ export class ManagePermissionsComponent implements OnInit {
       this.permissionForm.value
     ).subscribe({
       next: (updatedPermission) => {
-        console.log('Permiso actualizado:', updatedPermission);
         this.closeEditModal();
       },
       error: (error) => {
-        console.error('Error al actualizar permiso:', error);
       }
     });
   }
-  
+
   /**
-   * Maneja la eliminación de un permiso
+   * Maneja la eliminaciónde un permiso
    */
   protected handleDeletePermission(permission: Permission): void {
     if (!permission.id) return;
@@ -151,10 +146,8 @@ export class ManagePermissionsComponent implements OnInit {
     if (confirmed) {
       this.permissionService.deletePermission(permission.id).subscribe({
         next: () => {
-          console.log('Permiso eliminado');
         },
         error: (error) => {
-          console.error('Error al eliminar permiso:', error);
         }
       });
     }

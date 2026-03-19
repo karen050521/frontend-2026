@@ -1,0 +1,131 @@
+<div class="user-role-container">
+  <!-- Header -->
+  <div class="user-role-header">
+    <div>
+      <h1 class="user-role-title">Gestión de Roles de Usuarios</h1>
+      <p class="user-role-subtitle">Asigna roles a cada usuario del sistema</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (userServiceInst.loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Cargando usuarios...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @else if (userServiceInst.error()) {
+    <div class="error-container">
+      <div class="error-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Error al cargar usuarios</h3>
+      <p class="error-message">{{ userServiceInst.error() }}</p>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @else if (userServiceInst.users() && userServiceInst.users().length === 0) {
+    <div class="empty-container">
+      <div class="empty-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 20H9a6 6 0 016-6H9a6 6 0 016 6zm0-12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No hay usuarios en el sistema</h3>
+      <p class="empty-message">Los usuarios aparecerán aquí cuando se creen</p>
+    </div>
+  }
+
+  <!-- Users Table -->
+  @else {
+    <div class="users-table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th class="col-photo">Foto</th>
+            <th class="col-user">Usuario</th>
+            <th class="col-roles">Roles</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of userServiceInst.users(); track user.id) {
+            <tr class="user-row">
+              <!-- Foto -->
+              <td class="col-photo">
+                <div class="user-avatar">
+                  <img 
+                    [src]="getUserPhotoUrl(user)"
+                    [alt]="user.email"
+                    class="avatar-image">
+                </div>
+              </td>
+
+              <!-- Usuario (Email) -->
+              <td class="col-user">
+                <div class="user-info">
+                  <span class="user-email">{{ user.email }}</span>
+                  <span class="user-id">{{ user.id }}</span>
+                </div>
+              </td>
+
+              <!-- Roles Column - Muestra badges de roles asignados -->
+              <td class="col-roles">
+                <div class="roles-display">
+                  @if (getRolesCount(user.id || '') > 0) {
+                    <div class="roles-list-inline">
+                      @for (userRole of userRolesMap().get(user.id || '') || []; track userRole.id) {
+                        @if (userRole.role) {
+                          <div class="role-badge-inline">
+                            <span class="role-name">{{ userRole.role.name }}</span>
+                            <button 
+                              class="btn-remove-role"
+                              (click)="removeRoleDirectly(user.id || '', userRole.id || '')"
+                              title="Remover este rol"
+                              [disabled]="isSaving()">
+                              ✕
+                            </button>
+                          </div>
+                        }
+                      }
+                    </div>
+                  } @else {
+                    <div class="roles-empty">Sin roles asignados</div>
+                  }
+                  
+                  <button 
+                    class="btn-add-role"
+                    (click)="openRolesModal(user)"
+                    title="Agregar o editar roles">
+                    <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal de Asignación de Roles -->
+  @if (selectedUser()) {
+    <app-assign-roles-modal 
+      [user]="selectedUser()"
+      [roles]="roleServiceInst.roles()"
+      [selectedRoleIds]="selectedRoles()"
+      [isSaving]="isSaving()"
+      (onClose)="closeRolesModal()"
+      (onSave)="saveRolesFromModal($event)">
+    </app-assign-roles-modal>
+  }
+
+  <!-- Toast Container -->
+  <app-toast-container></app-toast-container>
+</div>

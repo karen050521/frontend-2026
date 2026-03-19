@@ -45,7 +45,6 @@ export class PermissionService {
           .filter(p => p && p.url && p.method)
           .filter(p => p.url.trim() !== '');
         
-        console.log('Permisos cargados:', validPermissions);
         this.permissionsState.set(validPermissions);
         this.loadingState.set(false);
       }),

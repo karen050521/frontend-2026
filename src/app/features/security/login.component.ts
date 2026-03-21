@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { RecaptchaService } from '../../core/services/recaptcha.service';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -19,6 +20,7 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private recaptchaService: RecaptchaService,
     private router: Router,
   ) {
     this.loginForm = this.fb.group({
@@ -27,22 +29,35 @@ export class LoginComponent {
     });
   }
 
-  onSubmit() {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = '';
-      const { email, password } = this.loginForm.value;
+async onSubmit() {
+  if (this.loginForm.valid) {
+    this.isLoading = true;
+    this.errorMessage = '';
+    const { email, password } = this.loginForm.value;
 
-      this.authService
-        .login(email, password)
-        .then((user) => {
-          this.isLoading = false;
-          this.router.navigate(['/home']);
-        })
-        .catch((error) => {
-          this.isLoading = false;
-          this.errorMessage = 'Email o contraseña incorrectos';
-        });
+    try {
+      // Ejecutar reCAPTCHA
+      const recaptchaToken = await this.recaptchaService.execute('login');
+      console.log("TOKEN GENERADO:", recaptchaToken);
+
+      if (!recaptchaToken) {
+        throw new Error('reCAPTCHA token vacío');
+      }
+
+      // Enviar login con token
+      await this.authService.login(email, password, recaptchaToken);
+
+      this.isLoading = false;
+      this.router.navigate(['/home']);
+    } catch (error: any) {
+      this.isLoading = false;
+
+      if (error.message?.includes('reCAPTCHA')) {
+        this.errorMessage = 'Error al verificar reCAPTCHA. Inténtalo de nuevo.';
+      } else {
+        this.errorMessage = 'Email o contraseña incorrectos';
+      }
     }
   }
+}
 }

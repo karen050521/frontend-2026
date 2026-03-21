@@ -1,6 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { apiConfig } from '../config/api.config';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Interfaz del usuario autenticado
@@ -44,26 +45,25 @@ export class AuthService {
   }
 
   /**
-   * Inicia sesión con email y contraseña
+   * Inicia sesión con email, contraseña y token de reCAPTCHA
    */
-  login(email: string, password: string): Promise<User> {
-    return this.http
-      .post<LoginResponse>(`${apiConfig.baseUrl}/api/public/auth/login`, {
+  login(email: string, password: string, recaptchaToken: string): Promise<User> {
+    return firstValueFrom(
+      this.http.post<LoginResponse>(`${apiConfig.baseUrl}/api/public/auth/login`, {
         email,
         password,
-      })
-      .toPromise()
-      .then((response) => {
-        if (response) {
-          const user = response.user;
-          // Guardar token en localStorage
-          localStorage.setItem('authToken', response.token);
-          this._currentUser.set(user);
-          this.saveUserToStorage(user);
-          return user;
-        }
-        throw new Error('Respuesta inválida del servidor');
-      });
+        recaptchaToken,
+      }),
+    ).then((response) => {
+      if (response) {
+        const user = response.user;
+        localStorage.setItem('authToken', response.token);
+        this._currentUser.set(user);
+        this.saveUserToStorage(user);
+        return user;
+      }
+      throw new Error('Respuesta inválida del servidor');
+    });
   }
 
   /**
@@ -118,6 +118,6 @@ export class AuthService {
    * Simula el login automático (para pruebas)
    */
   autoLogin(): void {
-    this.login('maria@example.com', 'password123');
+    this.login('maria@example.com', 'password123', '');
   }
 }

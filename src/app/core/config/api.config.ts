@@ -10,6 +10,10 @@ export const apiConfig = {
    */
   baseUrl: 'http://localhost:8181',
   
+  /**
+   * Clave del sitio de Google reCAPTCHA v3
+   */
+  recaptchaSiteKey: '6Lcw15EsAAAAAOA4SWBXU3UVK-5_myjCAxd-6TRk', // Reemplaza con tu clave del sitio
   
   /**
    * Endpoints específicos

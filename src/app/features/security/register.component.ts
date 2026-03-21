@@ -85,33 +85,32 @@ export class RegisterComponent {
     else this.passwordStrength = 'fuerte';
   }
 
-  onSubmit() {
-    if (this.registerForm.valid) {
-      this.isLoading = true;
-      const { nombre, apellido, email, password } = this.registerForm.value;
+onSubmit() {
+  if (this.registerForm.valid) {
+    this.isLoading = true;
+    this.errorMessage = '';
 
-      const name = `${nombre} ${apellido}`.trim();
+    const { nombre, apellido, email, password } = this.registerForm.value;
+    const name = `${nombre} ${apellido}`.trim();
 
-      this.authService
-        .register(name, email, password)
-        .then(() => {
-          // Al registrarse con éxito, se hace login automático y se redirige al home
-          return this.authService.login(email, password);
-        })
-        .then(() => {
-          this.isLoading = false;
-          this.router.navigate(['/home']);
-        })
-        .catch((error) => {
-          this.isLoading = false;
-          // Mostrar error amigable (por ejemplo: email ya existe)
-          this.errorMessage =
-            error?.error?.message ||
-            error?.message ||
-            'Ocurrió un error al registrar. Intenta nuevamente.';
-        });
-    }
+    this.authService
+      .register(name, email, password)
+      .then(() => {
+        this.isLoading = false;
+
+        // ✅ Redirige al login en lugar de hacer login automático
+        this.router.navigate(['/login']);
+      })
+      .catch((error) => {
+        this.isLoading = false;
+
+        this.errorMessage =
+          error?.error?.message ||
+          error?.message ||
+          'Ocurrió un error al registrar. Intenta nuevamente.';
+      });
   }
+}
 
   getStrengthColor(): string {
     switch (this.passwordStrength) {

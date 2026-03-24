@@ -19,12 +19,12 @@ export const apiConfig = {
    * Endpoints específicos
    */
   endpoints: {
-    roles: '/roles',
-    users: '/users',
+    roles: '/api/private/roles',
+    users: '/api/private/users',
     auth: '/auth',
-    permissions: '/permissions',
-    'role-permission': '/role-permission',
-    'user-role': '/user-role'
+    permissions: '/api/private/permissions',
+    'role-permission': '/api/private/role-permission',
+    'user-role': '/api/private/user-role'
   }
 };
 

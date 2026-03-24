@@ -5,6 +5,13 @@
       <p class="theme-text-secondary">Accede a tu cuenta</p>
     </div>
 
+    <!-- Mensaje de éxito -->
+    @if (successMessage) {
+      <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+        {{ successMessage }}
+      </div>
+    }
+
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
       <!-- Email -->
       <div>

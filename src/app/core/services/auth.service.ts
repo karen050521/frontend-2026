@@ -2,6 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { apiConfig } from '../config/api.config';
 import { firstValueFrom } from 'rxjs';
+import { jwtDecode } from 'jwt-decode';
 
 /**
  * Interfaz del usuario autenticado
@@ -19,6 +20,16 @@ export interface User {
 export interface LoginResponse {
   user: User;
   token: string;
+}
+
+/**
+ * Interfaz para el payload del JWT
+ */
+interface JwtPayload {
+  exp: number;
+  iat: number;
+  sub: string;
+  [key: string]: any;
 }
 
 /**
@@ -93,6 +104,52 @@ export class AuthService {
   }
 
   /**
+   * Obtiene el token JWT del localStorage
+   */
+  getToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+
+  /**
+   * Valida si el token es válido y no ha expirado
+   */
+  isTokenValid(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      const decoded: JwtPayload = jwtDecode(token);
+      const currentTime = Math.floor(Date.now() / 1000);
+      return decoded.exp > currentTime;
+    } catch (error) {
+      // Token inválido o malformado
+      return false;
+    }
+  }
+
+/**
+ * Obtiene el rol del usuario desde el token JWT
+ */
+getUserRole(): string {
+  const token = this.getToken();
+  if (!token) return '';
+
+  try {
+    const { role } = jwtDecode<JwtPayload>(token);
+    return role || '';
+  } catch {
+    return '';
+  }
+}
+
+  /**
+   * Verifica si el usuario está autenticado y el token es válido
+   */
+  isAuthenticatedAndValid(): boolean {
+    return this.isAuthenticated() && this.isTokenValid();
+  }
+
+  /**
    * Guarda el usuario en localStorage
    */
   private saveUserToStorage(user: User): void {
@@ -100,17 +157,23 @@ export class AuthService {
   }
 
   /**
-   * Carga el usuario desde localStorage
+   * Carga el usuario desde localStorage si el token es válido
    */
   private loadUserFromStorage(): void {
     const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
+    const token = this.getToken();
+
+    if (userJson && token && this.isTokenValid()) {
       try {
         const user = JSON.parse(userJson) as User;
         this._currentUser.set(user);
       } catch (error) {
-        localStorage.removeItem('currentUser');
+        // Limpiar datos corruptos
+        this.logout();
       }
+    } else if (userJson || token) {
+      // Datos inconsistentes o token inválido, limpiar
+      this.logout();
     }
   }
 

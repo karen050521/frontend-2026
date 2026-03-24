@@ -33,7 +33,7 @@ export class ManagePermissionsComponent implements OnInit {
         Validators.required,
         Validators.minLength(1),
         Validators.maxLength(255),
-        Validators.pattern(/^\/[\w\-\/{},]*$/)
+        Validators.pattern(/^\/[\w\-\/{},?=&]*$/)
       ]],
       method: ['GET', Validators.required],
       model: ['', [Validators.maxLength(255)]]

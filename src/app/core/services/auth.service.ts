@@ -18,8 +18,19 @@ export interface User {
  * Interfaz para respuesta de login
  */
 export interface LoginResponse {
-  user: User;
-  token: string;
+  success: boolean | string;
+  message: string;
+  sessionId?: string;
+}
+
+/**
+ * Interfaz para respuesta de verify-2fa
+ */
+export interface Verify2FAResponse {
+  success: boolean | string;
+  message: string;
+  token?: string;
+  user?: User;
 }
 
 /**
@@ -43,6 +54,9 @@ interface JwtPayload {
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly verificationStorageKey = 'isLoginVerificationCompleted';
+  private readonly sessionIdStorageKey = 'sessionId';
+
   // Estado del usuario actual
   private readonly _currentUser = signal<User | null>(null);
 
@@ -58,7 +72,7 @@ export class AuthService {
   /**
    * Inicia sesión con email, contraseña y token de reCAPTCHA
    */
-  login(email: string, password: string, recaptchaToken: string): Promise<User> {
+  login(email: string, password: string, recaptchaToken: string): Promise<LoginResponse> {
     return firstValueFrom(
       this.http.post<LoginResponse>(`${apiConfig.baseUrl}/api/public/auth/login`, {
         email,
@@ -66,15 +80,71 @@ export class AuthService {
         recaptchaToken,
       }),
     ).then((response) => {
-      if (response) {
-        const user = response.user;
-        localStorage.setItem('authToken', response.token);
-        this._currentUser.set(user);
-        this.saveUserToStorage(user);
-        return user;
+      if (response && this.isSuccessResponse(response.success) && response.sessionId) {
+        // Limpiar autenticación previa e iniciar sesión pendiente de 2FA
+        this.clearAuthenticatedSession();
+        localStorage.setItem(this.sessionIdStorageKey, response.sessionId);
+        this.setVerificationCompleted(false);
+        return response;
       }
-      throw new Error('Respuesta inválida del servidor');
+
+      throw new Error(response?.message || 'No se pudo iniciar el flujo de verificación.');
     });
+  }
+
+  /**
+   * Verifica el código de autenticación posterior al login
+   */
+  verifyLoginCode(code: string): Promise<Verify2FAResponse> {
+    const sessionId = localStorage.getItem(this.sessionIdStorageKey);
+    if (!sessionId) {
+      throw new Error('No hay una sesión pendiente para verificar. Inicia sesión nuevamente.');
+    }
+
+    return firstValueFrom(
+      this.http.post<void>(`${apiConfig.baseUrl}/api/public/auth/verify-2fa`, {
+        sessionId,
+        code2FA: code,
+      }),
+    ).then((response: any) => {
+      const typedResponse = response as Verify2FAResponse;
+
+      if (!typedResponse || !this.isSuccessResponse(typedResponse.success)) {
+        throw new Error(typedResponse?.message || 'No se pudo verificar el código.');
+      }
+
+      if (!typedResponse.token) {
+        throw new Error('La respuesta de verificación no incluyó token.');
+      }
+
+      this.completeAuthenticatedSession(typedResponse.token, typedResponse.user);
+      this.setVerificationCompleted(true);
+      localStorage.removeItem(this.sessionIdStorageKey);
+
+      return typedResponse;
+    });
+  }
+
+  /**
+   * Indica si existe una sesión pendiente de verificación 2FA
+   */
+  hasPendingTwoFactorVerification(): boolean {
+    return !!localStorage.getItem(this.sessionIdStorageKey);
+  }
+
+  /**
+   * Obtiene el sessionId pendiente de verificación
+   */
+  getPendingSessionId(): string | null {
+    return localStorage.getItem(this.sessionIdStorageKey);
+  }
+
+  /**
+   * Cancela el flujo pendiente de verificación 2FA
+   */
+  clearPendingTwoFactorVerification(): void {
+    localStorage.removeItem(this.sessionIdStorageKey);
+    this.setVerificationCompleted(false);
   }
 
   /**
@@ -98,9 +168,23 @@ export class AuthService {
    * Cierra la sesión del usuario
    */
   logout(): void {
-    this._currentUser.set(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('authToken');
+    this.clearAuthenticatedSession();
+    localStorage.removeItem(this.verificationStorageKey);
+    localStorage.removeItem(this.sessionIdStorageKey);
+  }
+
+  /**
+   * Indica si la verificación adicional del login está completada
+   */
+  isVerificationCompleted(): boolean {
+    return localStorage.getItem(this.verificationStorageKey) === 'true';
+  }
+
+  /**
+   * Persiste el estado de verificación adicional del login
+   */
+  setVerificationCompleted(isCompleted: boolean): void {
+    localStorage.setItem(this.verificationStorageKey, String(isCompleted));
   }
 
   /**
@@ -127,20 +211,20 @@ export class AuthService {
     }
   }
 
-/**
- * Obtiene el rol del usuario desde el token JWT
- */
-getUserRole(): string {
-  const token = this.getToken();
-  if (!token) return '';
+  /**
+   * Obtiene el rol del usuario desde el token JWT
+   */
+  getUserRole(): string {
+    const token = this.getToken();
+    if (!token) return '';
 
-  try {
-    const { role } = jwtDecode<JwtPayload>(token);
-    return role || '';
-  } catch {
-    return '';
+    try {
+      const { role } = jwtDecode<JwtPayload>(token);
+      return role || '';
+    } catch {
+      return '';
+    }
   }
-}
 
   /**
    * Verifica si el usuario está autenticado y el token es válido
@@ -167,6 +251,11 @@ getUserRole(): string {
       try {
         const user = JSON.parse(userJson) as User;
         this._currentUser.set(user);
+
+        // Compatibilidad con sesiones previas al flujo de verificación
+        if (localStorage.getItem(this.verificationStorageKey) === null) {
+          this.setVerificationCompleted(true);
+        }
       } catch (error) {
         // Limpiar datos corruptos
         this.logout();
@@ -182,5 +271,56 @@ getUserRole(): string {
    */
   autoLogin(): void {
     this.login('maria@example.com', 'password123', '');
+  }
+
+  /**
+   * Determina si el backend indicó éxito usando boolean o string
+   */
+  private isSuccessResponse(success: boolean | string | undefined): boolean {
+    return success === true || success === 'true';
+  }
+
+  /**
+   * Finaliza sesión autenticada persistiendo token y usuario
+   */
+  private completeAuthenticatedSession(token: string, user?: User): void {
+    localStorage.setItem('authToken', token);
+
+    const sessionUser = user || this.buildUserFromToken(token);
+    this._currentUser.set(sessionUser);
+    this.saveUserToStorage(sessionUser);
+  }
+
+  /**
+   * Limpia token y usuario autenticado sin tocar sessionId pendiente
+   */
+  private clearAuthenticatedSession(): void {
+    this._currentUser.set(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+  }
+
+  /**
+   * Construye un usuario básico a partir del token cuando el backend no lo envía
+   */
+  private buildUserFromToken(token: string): User {
+    const decoded = jwtDecode<JwtPayload>(token) as JwtPayload & {
+      id?: string;
+      userId?: string;
+      name?: string;
+      fullName?: string;
+      username?: string;
+      email?: string;
+      photoUrl?: string;
+    };
+
+    const email = decoded.email || decoded.sub || '';
+
+    return {
+      id: decoded.id || decoded.userId || decoded.sub || email || 'unknown',
+      name: decoded.name || decoded.fullName || decoded.username || email || 'Usuario',
+      email,
+      photoUrl: decoded.photoUrl,
+    };
   }
 }

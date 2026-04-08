@@ -81,3 +81,60 @@
     </div>
   </div>
 </div>
+
+<app-modal
+  [isOpen]="isVerificationModalOpen"
+  [title]="'Verificación de seguridad'"
+  [type]="'confirm'"
+  [showFooter]="false"
+  [showCloseButton]="false"
+  [closeOnBackdrop]="false"
+  [size]="'sm'"
+>
+  <p class="theme-text-secondary mb-4">
+    Ingresa el código de verificación enviado para completar tu inicio de sesión.
+  </p>
+
+  <form [formGroup]="verificationForm" (ngSubmit)="submitVerificationCode()" class="space-y-4">
+    <div>
+      <label for="verificationCode" class="block text-sm font-medium theme-text-primary mb-2">
+        Código de verificación
+      </label>
+      <input
+        id="verificationCode"
+        type="text"
+        maxlength="6"
+        formControlName="code"
+        class="theme-input"
+        placeholder="Ej: 123456"
+      />
+      @if (verificationForm.get('code')?.invalid && verificationForm.get('code')?.touched) {
+        <p class="text-red-500 text-sm mt-1">Debes ingresar un código de 6 dígitos.</p>
+      }
+    </div>
+
+    @if (verificationErrorMessage) {
+      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        {{ verificationErrorMessage }}
+      </div>
+    }
+
+    <div class="verification-modal-actions">
+      <button type="button" class="theme-button-secondary" (click)="cancelVerification()">
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="theme-button"
+        [disabled]="verificationForm.invalid || isVerifyingCode"
+        [class.opacity-50]="verificationForm.invalid || isVerifyingCode"
+      >
+        @if (isVerifyingCode) {
+          <span>Verificando...</span>
+        } @else {
+          <span>Verificar código</span>
+        }
+      </button>
+    </div>
+  </form>
+</app-modal>

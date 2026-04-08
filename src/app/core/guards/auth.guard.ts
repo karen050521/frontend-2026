@@ -39,7 +39,18 @@ export class AuthGuard implements CanActivate {
       return false;
     }
 
-    // 🔴 2. Validar roles (múltiples)
+    // 🔴 2. Validar verificación de código posterior al login
+    if (!this.authService.isVerificationCompleted()) {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          message: 'Debes verificar tu código antes de continuar.',
+        },
+      });
+
+      return false;
+    }
+
+    // 🔴 3. Validar roles (múltiples)
     const requiredRoles = route.data['roles'];
 
     if (requiredRoles && requiredRoles.length > 0) {

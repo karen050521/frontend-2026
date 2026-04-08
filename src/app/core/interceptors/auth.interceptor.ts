@@ -20,9 +20,14 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
 
   // 🔹 Rutas públicas que no deben llevar token
-  const publicUrls = ['/auth/login', '/auth/register', '/auth/recover-password'];
+  const publicUrls = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/recover-password',
+    '/auth/verify-2fa',
+  ];
 
-  if (publicUrls.some(url => req.url.includes(url))) {
+  if (publicUrls.some((url) => req.url.includes(url))) {
     return next(req);
   }
 

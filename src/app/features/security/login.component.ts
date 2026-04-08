@@ -4,18 +4,23 @@ import { AuthService } from '../../core/services/auth.service';
 import { RecaptchaService } from '../../core/services/recaptcha.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ModalComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
 export class LoginComponent implements OnInit {
   loginForm: FormGroup;
+  verificationForm: FormGroup;
   isLoading: boolean = false;
+  isVerifyingCode: boolean = false;
+  isVerificationModalOpen: boolean = false;
   errorMessage: string = '';
+  verificationErrorMessage: string = '';
   successMessage: string = '';
   returnUrl: string = '/home';
 
@@ -30,6 +35,10 @@ export class LoginComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+
+    this.verificationForm = this.fb.group({
+      code: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]],
+    });
   }
 
   ngOnInit(): void {
@@ -42,6 +51,11 @@ export class LoginComponent implements OnInit {
         this.successMessage = params['message'];
       }
     });
+
+    // Si hay sesión pendiente de 2FA, mantener modal abierto incluso tras recarga
+    if (this.authService.hasPendingTwoFactorVerification()) {
+      this.isVerificationModalOpen = true;
+    }
   }
 
   async onSubmit() {
@@ -61,21 +75,54 @@ export class LoginComponent implements OnInit {
         }
 
         // Enviar login con token
-        await this.authService.login(email, password, recaptchaToken);
+        const loginResponse = await this.authService.login(email, password, recaptchaToken);
 
         this.isLoading = false;
-
-        // Redirigir al returnUrl o a home por defecto
-        this.router.navigate([this.returnUrl]);
+        this.successMessage = loginResponse.message || '';
+        this.verificationErrorMessage = '';
+        this.verificationForm.reset();
+        this.isVerificationModalOpen = true;
       } catch (error: any) {
         this.isLoading = false;
 
         if (error.message?.includes('reCAPTCHA')) {
           this.errorMessage = 'Error al verificar reCAPTCHA. Inténtalo de nuevo.';
         } else {
-          this.errorMessage = 'Email o contraseña incorrectos';
+          this.errorMessage =
+            error?.error?.message || error?.message || 'Email o contraseña incorrectos';
         }
       }
     }
+  }
+
+  async submitVerificationCode(): Promise<void> {
+    if (this.verificationForm.invalid) {
+      this.verificationForm.markAllAsTouched();
+      return;
+    }
+
+    this.isVerifyingCode = true;
+    this.verificationErrorMessage = '';
+
+    const code = this.verificationForm.get('code')?.value;
+    try {
+      await this.authService.verifyLoginCode(code);
+      this.isVerificationModalOpen = false;
+      this.router.navigate([this.returnUrl]);
+    } catch (error: any) {
+      this.verificationErrorMessage =
+        error?.error?.message ||
+        error?.message ||
+        'Código inválido o expirado. Inténtalo nuevamente.';
+    } finally {
+      this.isVerifyingCode = false;
+    }
+  }
+
+  cancelVerification(): void {
+    this.isVerificationModalOpen = false;
+    this.authService.logout();
+    this.verificationForm.reset();
+    this.verificationErrorMessage = '';
   }
 }

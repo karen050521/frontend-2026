@@ -9,6 +9,8 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+// Importar Firebase para inicializarlo automáticamente
+import { firebaseApp, firebaseAuth } from './core/config/firebase.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [

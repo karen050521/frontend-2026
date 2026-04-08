@@ -1,0 +1,253 @@
+import { Injectable, signal } from '@angular/core';
+import {
+  signInWithPopup,
+  signOut,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  OAuthProvider,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { HttpClient } from '@angular/common/http';
+import { firebaseAuth } from '../config/firebase.config';
+import { apiConfig } from '../config/api.config';
+import { AuthService, User, LoginResponse } from './auth.service';
+import { firstValueFrom } from 'rxjs';
+
+/**
+ * Interface para solicitud de login OAuth al backend
+ */
+interface OAuthLoginRequest {
+  email: string;
+  name: string;
+  photoUrl?: string;
+  provider: 'google' | 'github' | 'microsoft';
+  firebaseToken: string;
+}
+
+/**
+ * FirebaseAuthService - Integra OAuth de Firebase con el backend
+ * Sincroniza automáticamente con AuthService
+ */
+@Injectable({
+  providedIn: 'root',
+})
+export class FirebaseAuthService {
+  private readonly _isLoading = signal(false);
+  private readonly _error = signal<string | null>(null);
+
+  public readonly isLoading = this._isLoading.asReadonly();
+  public readonly error = this._error.asReadonly();
+
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
+
+  /**
+   * Login con Google OAuth
+   * Sincroniza con el backend para obtener token de sesión
+   */
+  async loginWithGoogle(): Promise<User> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      const credential = await signInWithPopup(firebaseAuth, provider);
+      const user = this.mapFirebaseUserToUser(credential.user, 'google');
+      const firebaseToken = await credential.user.getIdToken();
+
+      // Sincronizar con backend
+      await this.syncOAuthWithBackend(user, firebaseToken, 'google');
+
+      return user;
+    } catch (error: any) {
+      const errorMessage = this.getErrorMessage(error);
+      this._error.set(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  /**
+   * Login con GitHub OAuth
+   * Sincroniza con el backend para obtener token de sesión
+   */
+  async loginWithGithub(): Promise<User> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      const provider = new GithubAuthProvider();
+      provider.addScope('user:email');
+
+      const credential = await signInWithPopup(firebaseAuth, provider);
+      const user = this.mapFirebaseUserToUser(credential.user, 'github');
+      const firebaseToken = await credential.user.getIdToken();
+
+      // Sincronizar con backend
+      await this.syncOAuthWithBackend(user, firebaseToken, 'github');
+
+      return user;
+    } catch (error: any) {
+      const errorMessage = this.getErrorMessage(error);
+      this._error.set(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  /**
+   * Login con Microsoft OAuth
+   * Sincroniza con el backend para obtener token de sesión
+   */
+  async loginWithMicrosoft(): Promise<User> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      const provider = new OAuthProvider('microsoft.com');
+      provider.addScope('mail.read');
+      provider.setCustomParameters({
+        tenant: 'common',
+      });
+
+      const credential = await signInWithPopup(firebaseAuth, provider);
+      const user = this.mapFirebaseUserToUser(credential.user, 'microsoft');
+      const firebaseToken = await credential.user.getIdToken();
+
+      // Sincronizar con backend
+      await this.syncOAuthWithBackend(user, firebaseToken, 'microsoft');
+
+      return user;
+    } catch (error: any) {
+      const errorMessage = this.getErrorMessage(error);
+      this._error.set(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  /**
+   * Sincroniza OAuth con el backend
+   * Envía los datos del usuario OAuth y obtiene token de sesión
+   */
+  private async syncOAuthWithBackend(
+    user: User,
+    firebaseToken: string,
+    provider: 'google' | 'github' | 'microsoft'
+  ): Promise<void> {
+    try {
+      const request: OAuthLoginRequest = {
+        email: user.email,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        provider,
+        firebaseToken,
+      };
+
+      console.log('🔐 Enviando OAuth al backend:', { 
+        provider, 
+        email: user.email,
+        name: user.name 
+      });
+
+      // Enviar datos al backend end obtener token de sesión
+      const response = await firstValueFrom(
+        this.http.post<LoginResponse>(
+          `${apiConfig.baseUrl}/api/public/auth/oauth-login`,
+          request
+        )
+      );
+
+      console.log('✅ Backend respondió:', { token: response.token?.substring(0, 20) + '...' });
+
+      if (response && response.token) {
+        // Guardar token de sesión igual que en login normal
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+
+        // Sincronizar con AuthService
+        this.authService['_currentUser'].set(response.user);
+      } else {
+        throw new Error('No se recibió token de sesión del servidor');
+      }
+    } catch (error: any) {
+      console.error('❌ Error sincronizando con backend:', error);
+      
+      // Logs adicionales para debugging
+      if (error.error) {
+        console.error('Backend error details:', error.error);
+      }
+      if (error.status) {
+        console.error('HTTP status:', error.status);
+      }
+      if (error.message) {
+        console.error('Error message:', error.message);
+      }
+
+      // Si falla la sincronización con backend, hacer logout de Firebase
+      await signOut(firebaseAuth);
+      throw new Error(
+        `Error al sincronizar con servidor: ${error?.error?.message || error?.message || 'Error desconocido'}`
+      );
+    }
+  }
+
+  /**
+   * Mapea un usuario de Firebase a la interfaz User
+   */
+  private mapFirebaseUserToUser(
+    firebaseUser: FirebaseUser,
+    provider: 'google' | 'github' | 'microsoft'
+  ): User {
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || 'Usuario',
+      photoUrl: firebaseUser.photoURL || undefined,
+    };
+  }
+
+  /**
+   * Obtiene un mensaje de error legible
+   */
+  private getErrorMessage(error: any): string {
+    const code = error?.code;
+
+    switch (code) {
+      case 'auth/popup-closed-by-user':
+        return 'Se cerró la ventana de login. Por favor, intenta de nuevo.';
+      case 'auth/popup-blocked':
+        return 'La ventana emergente fue bloqueada. Verifica tu navegador.';
+      case 'auth/account-exists-with-different-credential':
+        return 'Ya existe una cuenta con este correo usando otro método.';
+      case 'auth/user-cancelled':
+        return 'Cancelaste el login.';
+      default:
+        return error?.message || 'Error en la autenticación. Intenta de nuevo.';
+    }
+  }
+
+  /**
+   * Realiza logout sincronizado: Firebase + Backend (mediante AuthService)
+   */
+  async logout(): Promise<void> {
+    try {
+      // Logout de Firebase
+      await signOut(firebaseAuth);
+      
+      // Logout del AuthService (limpia localStorage y estado)
+      this.authService.logout();
+    } catch (error: any) {
+      this._error.set(this.getErrorMessage(error));
+      throw error;
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { FirebaseAuthService } from '../../core/services/firebase-auth.service';
 import { RecaptchaService } from '../../core/services/recaptcha.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -17,8 +18,12 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   verificationForm: FormGroup;
   isLoading: boolean = false;
+<<<<<<< HEAD
   isVerifyingCode: boolean = false;
   isVerificationModalOpen: boolean = false;
+=======
+  oauthLoading: { [key: string]: boolean } = { google: false, github: false, microsoft: false };
+>>>>>>> ec8e7836504c8a7eb9732097ca406d3de22a51a8
   errorMessage: string = '';
   verificationErrorMessage: string = '';
   successMessage: string = '';
@@ -27,6 +32,7 @@ export class LoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private firebaseAuthService: FirebaseAuthService,
     private recaptchaService: RecaptchaService,
     private router: Router,
     private route: ActivatedRoute,
@@ -58,6 +64,9 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  /**
+   * Login tradicional con email y contraseña
+   */
   async onSubmit() {
     if (this.loginForm.valid) {
       this.isLoading = true;
@@ -95,6 +104,7 @@ export class LoginComponent implements OnInit {
     }
   }
 
+<<<<<<< HEAD
   async submitVerificationCode(): Promise<void> {
     if (this.verificationForm.invalid) {
       this.verificationForm.markAllAsTouched();
@@ -124,5 +134,68 @@ export class LoginComponent implements OnInit {
     this.authService.logout();
     this.verificationForm.reset();
     this.verificationErrorMessage = '';
+=======
+  /**
+   * Login con Google
+   */
+  async loginWithGoogle() {
+    this.oauthLoading['google'] = true;
+    this.errorMessage = '';
+
+    try {
+      await this.firebaseAuthService.loginWithGoogle();
+      // El usuario se sincroniza automáticamente con AuthService
+      // Redirigir después del login exitoso
+      setTimeout(() => {
+        this.router.navigate([this.returnUrl]);
+      }, 500);
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Error al autenticarse con Google';
+    } finally {
+      this.oauthLoading['google'] = false;
+    }
+  }
+
+  /**
+   * Login con GitHub
+   */
+  async loginWithGithub() {
+    this.oauthLoading['github'] = true;
+    this.errorMessage = '';
+
+    try {
+      await this.firebaseAuthService.loginWithGithub();
+      // El usuario se sincroniza automáticamente con AuthService
+      // Redirigir después del login exitoso
+      setTimeout(() => {
+        this.router.navigate([this.returnUrl]);
+      }, 500);
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Error al autenticarse con GitHub';
+    } finally {
+      this.oauthLoading['github'] = false;
+    }
+  }
+
+  /**
+   * Login con Microsoft
+   */
+  async loginWithMicrosoft() {
+    this.oauthLoading['microsoft'] = true;
+    this.errorMessage = '';
+
+    try {
+      await this.firebaseAuthService.loginWithMicrosoft();
+      // El usuario se sincroniza automáticamente con AuthService
+      // Redirigir después del login exitoso
+      setTimeout(() => {
+        this.router.navigate([this.returnUrl]);
+      }, 500);
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Error al autenticarse con Microsoft';
+    } finally {
+      this.oauthLoading['microsoft'] = false;
+    }
+>>>>>>> ec8e7836504c8a7eb9732097ca406d3de22a51a8
   }
 }

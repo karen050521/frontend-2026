@@ -25,6 +25,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/auth/register',
     '/auth/recover-password',
     '/auth/verify-2fa',
+    '/auth/cancel-2fa',
   ];
 
   if (publicUrls.some((url) => req.url.includes(url))) {
@@ -62,6 +63,11 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   // Manejar la respuesta y errores
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
+      // En verify-2fa el componente maneja intentos restantes/agotados.
+      if (req.url.includes('/auth/verify-2fa')) {
+        return throwError(() => error);
+      }
+
       handleHttpError(error, authService, router);
       return throwError(() => error);
     }),

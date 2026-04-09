@@ -21,6 +21,8 @@ export interface LoginResponse {
   success: boolean | string;
   message: string;
   sessionId?: string;
+  expiresAt?: number | string;
+  expiresInSeconds?: number;
 }
 
 /**
@@ -56,6 +58,9 @@ interface JwtPayload {
 export class AuthService {
   private readonly verificationStorageKey = 'isLoginVerificationCompleted';
   private readonly sessionIdStorageKey = 'sessionId';
+  private readonly twoFactorExpiresAtStorageKey = '2faExpiresAt';
+  private readonly twoFactorAttemptsStorageKey = '2faAttemptsRemaining';
+  private readonly twoFactorEmailStorageKey = '2faEmail';
 
   // Estado del usuario actual
   private readonly _currentUser = signal<User | null>(null);
@@ -84,6 +89,9 @@ export class AuthService {
         // Limpiar autenticación previa e iniciar sesión pendiente de 2FA
         this.clearAuthenticatedSession();
         localStorage.setItem(this.sessionIdStorageKey, response.sessionId);
+        localStorage.setItem(this.twoFactorEmailStorageKey, email);
+        this.setTwoFactorExpiresAt(this.resolveTwoFactorExpiresAt(response));
+        localStorage.removeItem(this.twoFactorAttemptsStorageKey);
         this.setVerificationCompleted(false);
         return response;
       }
@@ -120,9 +128,31 @@ export class AuthService {
       this.completeAuthenticatedSession(typedResponse.token, typedResponse.user);
       this.setVerificationCompleted(true);
       localStorage.removeItem(this.sessionIdStorageKey);
+      localStorage.removeItem(this.twoFactorAttemptsStorageKey);
+      localStorage.removeItem(this.twoFactorExpiresAtStorageKey);
 
       return typedResponse;
     });
+  }
+
+  /**
+   * Cancela en backend la sesión pendiente de 2FA (best effort)
+   */
+  async cancelPendingTwoFactorSession(): Promise<void> {
+    const sessionId = this.getPendingSessionId();
+    if (!sessionId) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.http.post<void>(`${apiConfig.baseUrl}/api/public/auth/cancel-2fa`, {
+          sessionId,
+        }),
+      );
+    } catch {
+      // Best effort: no bloquea el flujo local si falla
+    }
   }
 
   /**
@@ -143,7 +173,50 @@ export class AuthService {
    * Cancela el flujo pendiente de verificación 2FA
    */
   clearPendingTwoFactorVerification(): void {
-    localStorage.removeItem(this.sessionIdStorageKey);
+    this.clearTwoFactorState();
+    this.setVerificationCompleted(false);
+  }
+
+  /**
+   * Guarda intentos restantes de 2FA para mostrarlos en UI
+   */
+  setTwoFactorAttemptsRemaining(attempts: number): void {
+    localStorage.setItem(this.twoFactorAttemptsStorageKey, String(attempts));
+  }
+
+  /**
+   * Guarda fecha de expiración de 2FA en ms epoch
+   */
+  setTwoFactorExpiresAt(expiresAtMs: number): void {
+    localStorage.setItem(this.twoFactorExpiresAtStorageKey, String(expiresAtMs));
+  }
+
+  /**
+   * Obtiene fecha de expiración de 2FA en ms epoch
+   */
+  getTwoFactorExpiresAt(): number | null {
+    const rawValue = localStorage.getItem(this.twoFactorExpiresAtStorageKey);
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  /**
+   * Obtiene email asociado al flujo pendiente de 2FA
+   */
+  getPendingTwoFactorEmail(): string | null {
+    return localStorage.getItem(this.twoFactorEmailStorageKey);
+  }
+
+  /**
+   * Limpia estado local de 2FA y sesión temporal
+   */
+  clearTwoFactorStateAndSession(): void {
+    this.clearTwoFactorState();
+    this.clearAuthenticatedSession();
     this.setVerificationCompleted(false);
   }
 
@@ -170,7 +243,7 @@ export class AuthService {
   logout(): void {
     this.clearAuthenticatedSession();
     localStorage.removeItem(this.verificationStorageKey);
-    localStorage.removeItem(this.sessionIdStorageKey);
+    this.clearTwoFactorState();
   }
 
   /**
@@ -298,6 +371,34 @@ export class AuthService {
     this._currentUser.set(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
+  }
+
+  /**
+   * Limpia únicamente llaves locales del flujo 2FA
+   */
+  private clearTwoFactorState(): void {
+    localStorage.removeItem(this.sessionIdStorageKey);
+    localStorage.removeItem(this.twoFactorExpiresAtStorageKey);
+    localStorage.removeItem(this.twoFactorAttemptsStorageKey);
+    localStorage.removeItem(this.twoFactorEmailStorageKey);
+  }
+
+  /**
+   * Determina expiración 2FA basada en respuesta backend o fallback de 5 minutos
+   */
+  private resolveTwoFactorExpiresAt(response: LoginResponse): number {
+    if (response.expiresAt !== undefined && response.expiresAt !== null) {
+      const numericExpiresAt = Number(response.expiresAt);
+      if (Number.isFinite(numericExpiresAt)) {
+        return numericExpiresAt > 1_000_000_000_000 ? numericExpiresAt : numericExpiresAt * 1000;
+      }
+    }
+
+    if (response.expiresInSeconds && Number.isFinite(response.expiresInSeconds)) {
+      return Date.now() + response.expiresInSeconds * 1000;
+    }
+
+    return Date.now() + 5 * 60 * 1000;
   }
 
   /**

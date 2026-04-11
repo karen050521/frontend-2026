@@ -10,7 +10,7 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { firebaseAuth } from '../config/firebase.config';
 import { apiConfig } from '../config/api.config';
-import { AuthService, User, LoginResponse } from './auth.service';
+import { AuthService, User } from './auth.service';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -22,6 +22,11 @@ interface OAuthLoginRequest {
   photoUrl?: string;
   provider: 'google' | 'github' | 'microsoft';
   firebaseToken: string;
+}
+
+interface OAuthLoginResponse {
+  token: string;
+  user: User;
 }
 
 /**
@@ -40,7 +45,7 @@ export class FirebaseAuthService {
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
   ) {}
 
   /**
@@ -141,7 +146,7 @@ export class FirebaseAuthService {
   private async syncOAuthWithBackend(
     user: User,
     firebaseToken: string,
-    provider: 'google' | 'github' | 'microsoft'
+    provider: 'google' | 'github' | 'microsoft',
   ): Promise<void> {
     try {
       const request: OAuthLoginRequest = {
@@ -152,18 +157,18 @@ export class FirebaseAuthService {
         firebaseToken,
       };
 
-      console.log('🔐 Enviando OAuth al backend:', { 
-        provider, 
+      console.log('🔐 Enviando OAuth al backend:', {
+        provider,
         email: user.email,
-        name: user.name 
+        name: user.name,
       });
 
       // Enviar datos al backend end obtener token de sesión
       const response = await firstValueFrom(
-        this.http.post<LoginResponse>(
+        this.http.post<OAuthLoginResponse>(
           `${apiConfig.baseUrl}/api/public/auth/oauth-login`,
-          request
-        )
+          request,
+        ),
       );
 
       console.log('✅ Backend respondió:', { token: response.token?.substring(0, 20) + '...' });
@@ -180,7 +185,7 @@ export class FirebaseAuthService {
       }
     } catch (error: any) {
       console.error('❌ Error sincronizando con backend:', error);
-      
+
       // Logs adicionales para debugging
       if (error.error) {
         console.error('Backend error details:', error.error);
@@ -195,7 +200,7 @@ export class FirebaseAuthService {
       // Si falla la sincronización con backend, hacer logout de Firebase
       await signOut(firebaseAuth);
       throw new Error(
-        `Error al sincronizar con servidor: ${error?.error?.message || error?.message || 'Error desconocido'}`
+        `Error al sincronizar con servidor: ${error?.error?.message || error?.message || 'Error desconocido'}`,
       );
     }
   }
@@ -205,7 +210,7 @@ export class FirebaseAuthService {
    */
   private mapFirebaseUserToUser(
     firebaseUser: FirebaseUser,
-    provider: 'google' | 'github' | 'microsoft'
+    provider: 'google' | 'github' | 'microsoft',
   ): User {
     return {
       id: firebaseUser.uid,
@@ -242,7 +247,7 @@ export class FirebaseAuthService {
     try {
       // Logout de Firebase
       await signOut(firebaseAuth);
-      
+
       // Logout del AuthService (limpia localStorage y estado)
       this.authService.logout();
     } catch (error: any) {

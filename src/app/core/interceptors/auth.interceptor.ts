@@ -20,9 +20,15 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
 
   // 🔹 Rutas públicas que no deben llevar token
-  const publicUrls = ['/auth/login', '/auth/register', '/auth/recover-password'];
+  const publicUrls = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/recover-password',
+    '/auth/verify-2fa',
+    '/auth/cancel-2fa',
+  ];
 
-  if (publicUrls.some(url => req.url.includes(url))) {
+  if (publicUrls.some((url) => req.url.includes(url))) {
     return next(req);
   }
 
@@ -57,6 +63,11 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   // Manejar la respuesta y errores
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
+      // En verify-2fa el componente maneja intentos restantes/agotados.
+      if (req.url.includes('/auth/verify-2fa')) {
+        return throwError(() => error);
+      }
+
       handleHttpError(error, authService, router);
       return throwError(() => error);
     }),

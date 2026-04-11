@@ -147,4 +147,11 @@ export class LoginComponent implements OnInit {
       this.oauthLoading['microsoft'] = false;
     }
   }
+
+  /**
+   * Redirige a la página de recuperación de contraseña
+   */
+  goToForgotPassword(): void {
+    this.router.navigate(['/forgot-password']);
+  }
 }

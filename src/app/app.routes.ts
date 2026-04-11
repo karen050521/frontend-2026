@@ -44,6 +44,16 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/security/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/security/reset-password.component').then((m) => m.ResetPasswordComponent),
+  },
+  {
     path: '403',
     loadComponent: () =>
       import('./shared/components/access-denied/access-denied.component').then(

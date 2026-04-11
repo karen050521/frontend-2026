@@ -1,20 +1,23 @@
 /**
  * Configuración de la API
- * Centraliza las URLs del backend
+ * Importa valores desde environments para no exponer secrets
  */
+
+import { environment } from '../../../environments/environment';
 
 export const apiConfig = {
   /**
    * URL base de la API del backend
-   * Apunta directamente al backend con CORS habilitado
+   * Se importa desde environments
    */
-  baseUrl: 'http://localhost:8181',
-  
+  baseUrl: environment.apiBaseUrl,
+
   /**
    * Clave del sitio de Google reCAPTCHA v3
+   * Se importa desde environments
    */
-  recaptchaSiteKey: '6Lcw15EsAAAAAOA4SWBXU3UVK-5_myjCAxd-6TRk', // Reemplaza con tu clave del sitio
-  
+  recaptchaSiteKey: environment.recaptchaSiteKey,
+
   /**
    * Endpoints específicos
    */
@@ -24,55 +27,45 @@ export const apiConfig = {
     auth: '/auth',
     permissions: '/api/private/permissions',
     'role-permission': '/api/private/role-permission',
-    'user-role': '/api/private/user-role'
-  }
+    'user-role': '/api/private/user-role',
+  },
 };
+
 /**
- * Configuración de Firebase  
+ * Configuración de Firebase
+ * Se importa desde environments
  */
-export const firebaseConfig = {
-  apiKey: "AIzaSyAxBGYgrfSRodxi9T6KSl72cpU05tlRrN8",
-  authDomain: "angular-frontend-c0bb4.firebaseapp.com",
-  projectId: "angular-frontend-c0bb4",
-  storageBucket: "angular-frontend-c0bb4.firebasestorage.app",
-  messagingSenderId: "908212817474",
-  appId: "1:908212817474:web:a2cfbd37124254f65f27db"
-};
+export const firebaseConfig = environment.firebase;
 
 /**
  * Configuración de OAuth Providers
  * URLs de callback para cada proveedor
  */
 export const oauthConfig = {
-  // URL base de la aplicación en desarrollo local
-  developmentUrl: 'http://localhost:4200',
-  
-  // URL de Firebase (producción y development)
-  // **ESTA ES LA URL QUE USAS EN GITHUB, GOOGLE Y MICROSOFT**
-  firebaseCallbackUrl: `https://${firebaseConfig.authDomain}/__/auth/handler`,
-  
+  // URL base de la aplicación
+  developmentUrl: environment.oauth.developmentUrl,
+
+  // URL de Firebase para callbacks
+  firebaseCallbackUrl: environment.oauth.firebaseCallbackUrl,
+
   // Configuración por proveedor
   providers: {
     google: {
       name: 'Google',
-      // En Google Console, usa esta URL de callback:
-      callbackUrl: `https://${firebaseConfig.authDomain}/__/auth/handler`
+      callbackUrl: environment.oauth.firebaseCallbackUrl,
     },
     github: {
       name: 'GitHub',
-      // En GitHub OAuth App, usa esta URL de callback:
-      callbackUrl: `https://${firebaseConfig.authDomain}/__/auth/handler`,
-      // Datos para el formulario de GitHub:
+      callbackUrl: environment.oauth.firebaseCallbackUrl,
       appName: 'Angular Frontend',
-      homepageUrl: 'http://localhost:4200',
-      applicationDescription: 'Angular Frontend with Role-Based Access Control'
+      homepageUrl: environment.oauth.developmentUrl,
+      applicationDescription: 'Angular Frontend with Role-Based Access Control',
     },
     microsoft: {
       name: 'Microsoft',
-      // En Microsoft Azure App Registrations, usa esta URL de callback:
-      callbackUrl: `https://${firebaseConfig.authDomain}/__/auth/handler`
-    }
-  }
+      callbackUrl: environment.oauth.firebaseCallbackUrl,
+    },
+  },
 };
 
 /**
@@ -83,3 +76,4 @@ export const oauthConfig = {
 export function getApiUrl(endpoint: keyof typeof apiConfig.endpoints): string {
   return `${apiConfig.baseUrl}${apiConfig.endpoints[endpoint]}`;
 }
+

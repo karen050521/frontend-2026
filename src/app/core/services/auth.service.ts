@@ -11,7 +11,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  photoUrl?: string;
+  photoUrl?: string | null;
 }
 
 /**
@@ -247,6 +247,14 @@ export class AuthService {
   }
 
   /**
+   * Registra sesión autenticada proveniente de OAuth
+   */
+  completeOAuthSession(token: string, user: User): void {
+    this.completeAuthenticatedSession(token, user);
+    this.setVerificationCompleted(true);
+  }
+
+  /**
    * Indica si la verificación adicional del login está completada
    */
   isVerificationCompleted(): boolean {
@@ -421,7 +429,7 @@ export class AuthService {
       id: decoded.id || decoded.userId || decoded.sub || email || 'unknown',
       name: decoded.name || decoded.fullName || decoded.username || email || 'Usuario',
       email,
-      photoUrl: decoded.photoUrl,
+      photoUrl: decoded.photoUrl || null,
     };
   }
 }

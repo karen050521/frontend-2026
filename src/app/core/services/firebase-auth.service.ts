@@ -21,12 +21,11 @@ interface OAuthLoginRequest {
   name: string;
   photoUrl?: string;
   provider: 'google' | 'github' | 'microsoft';
-  firebaseToken: string;
 }
 
 interface OAuthLoginResponse {
   token: string;
-  user: User;
+  user: User & { photoUrl?: string | null };
 }
 
 /**
@@ -63,10 +62,9 @@ export class FirebaseAuthService {
 
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'google');
-      const firebaseToken = await credential.user.getIdToken();
 
       // Sincronizar con backend
-      await this.syncOAuthWithBackend(user, firebaseToken, 'google');
+      await this.syncOAuthWithBackend(user, 'google');
 
       return user;
     } catch (error: any) {
@@ -92,10 +90,9 @@ export class FirebaseAuthService {
 
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'github');
-      const firebaseToken = await credential.user.getIdToken();
 
       // Sincronizar con backend
-      await this.syncOAuthWithBackend(user, firebaseToken, 'github');
+      await this.syncOAuthWithBackend(user, 'github');
 
       return user;
     } catch (error: any) {
@@ -124,10 +121,9 @@ export class FirebaseAuthService {
 
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'microsoft');
-      const firebaseToken = await credential.user.getIdToken();
 
       // Sincronizar con backend
-      await this.syncOAuthWithBackend(user, firebaseToken, 'microsoft');
+      await this.syncOAuthWithBackend(user, 'microsoft');
 
       return user;
     } catch (error: any) {
@@ -145,16 +141,14 @@ export class FirebaseAuthService {
    */
   private async syncOAuthWithBackend(
     user: User,
-    firebaseToken: string,
     provider: 'google' | 'github' | 'microsoft',
   ): Promise<void> {
     try {
       const request: OAuthLoginRequest = {
         email: user.email,
         name: user.name,
-        photoUrl: user.photoUrl,
+        photoUrl: user.photoUrl || undefined,
         provider,
-        firebaseToken,
       };
 
       console.log('🔐 Enviando OAuth al backend:', {
@@ -174,12 +168,13 @@ export class FirebaseAuthService {
       console.log('✅ Backend respondió:', { token: response.token?.substring(0, 20) + '...' });
 
       if (response && response.token) {
-        // Guardar token de sesión igual que en login normal
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
+        const sessionUser: User = {
+          ...response.user,
+          photoUrl: response.user.photoUrl || null,
+        };
 
-        // Sincronizar con AuthService
-        this.authService['_currentUser'].set(response.user);
+        // Sincronizar sesión con AuthService para mantener persistencia consistente
+        this.authService.completeOAuthSession(response.token, sessionUser);
       } else {
         throw new Error('No se recibió token de sesión del servidor');
       }
@@ -216,7 +211,7 @@ export class FirebaseAuthService {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || 'Usuario',
-      photoUrl: firebaseUser.photoURL || undefined,
+      photoUrl: firebaseUser.photoURL || null,
     };
   }
 

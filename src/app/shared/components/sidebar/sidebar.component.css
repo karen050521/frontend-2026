@@ -16,3 +16,7 @@ nav {
     opacity: 1;
   }
 }
+
+.sidebar-user-footer .theme-card {
+  background-color: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+}

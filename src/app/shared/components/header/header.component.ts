@@ -1,4 +1,4 @@
-import { Component, signal, output, inject, effect, HostListener } from '@angular/core';
+import { Component, signal, output, inject, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { SearchBarComponent } from '../search-bar/search-bar.component';
@@ -33,6 +33,11 @@ export class HeaderComponent {
   // Exponer señales del servicio de auth
   protected readonly currentUser = this.authService.currentUser;
   protected readonly isAuthenticated = this.authService.isAuthenticated;
+  protected readonly defaultAvatarUrl = 'assets/default-avatar.svg';
+  protected readonly avatarUrl = computed(() => {
+    const photoUrl = this.currentUser()?.photoUrl;
+    return photoUrl && photoUrl.trim().length > 0 ? photoUrl : this.defaultAvatarUrl;
+  });
 
   // Eventos para comunicación con el padre
   public readonly menuToggle = output<void>();
@@ -110,5 +115,24 @@ export class HeaderComponent {
     this.authService.logout();
     this.closeUserMenu();
     this.router.navigate(['/login']);
+  }
+
+  /**
+   * Resuelve avatar del usuario con fallback seguro
+   */
+  protected getAvatarUrl(): string {
+    return this.avatarUrl();
+  }
+
+  /**
+   * Si la imagen remota falla, usa avatar local por defecto
+   */
+  protected onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img.src.includes(this.defaultAvatarUrl)) {
+      return;
+    }
+
+    img.src = this.defaultAvatarUrl;
   }
 }

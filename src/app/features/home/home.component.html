@@ -8,7 +8,7 @@
       </span>
     </h1>
     <p class="text-base md:text-lg theme-text-secondary max-w-2xl mx-auto mb-8 px-4">
-      Una aplicación diseñada con elegancia, seguridad y las mejores prácticas de desarrollo
+      KALA Buses es una plataforma integral de gestión y reserva de transporte. Ofrecemos soluciones modernas, seguras y confiables para facilitar tus viajes
     </p>
     
     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -38,6 +38,42 @@
         </p>
       </div>
     }
+  </section>
+
+  <!-- Why Choose Us Section -->
+  <section>
+    <h2 class="text-3xl md:text-4xl font-bold theme-text-primary mb-12 text-center">
+      ¿Por qué elegirnos?
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      @for (feature of features; track feature.title) {
+        <div class="theme-card p-8 flex flex-col">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="feature.icon"/>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold theme-text-primary">
+              {{ feature.title }}
+            </h3>
+          </div>
+          <p class="theme-text-secondary text-sm mb-6 leading-relaxed">
+            {{ feature.description }}
+          </p>
+          <div class="space-y-3">
+            @for (detail of feature.details; track detail) {
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-pink-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="theme-text-secondary text-sm">{{ detail }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
   </section>
 
   <!-- Stats Section -->
@@ -75,60 +111,6 @@
     <button class="theme-button text-base px-8 py-3">
       Crear cuenta gratis
     </button>
-  </section>
-  
-  <!-- Modal Examples Section -->
-  <section class="theme-card p-8 md:p-12">
-    <h2 class="text-2xl md:text-3xl font-bold theme-text-primary mb-6 text-center">
-      Ejemplos de Modales
-    </h2>
-    <p class="theme-text-secondary text-center mb-8">
-      Componente modal reutilizable con múltiples variantes
-    </p>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- Modal básico -->
-      <button 
-        (click)="showBasicModal()"
-        class="p-4 border-2 border-pink-500 text-pink-600 rounded-lg hover:bg-pink-50 font-medium transition-all">
-        📋 Modal Básico
-      </button>
-      
-      <!-- Modal con servicio - Info -->
-      <button 
-        (click)="showInfoModal()"
-        class="p-4 border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition-all">
-        ℹ️ Modal Info
-      </button>
-      
-      <!-- Modal con servicio - Warning -->
-      <button 
-        (click)="showWarningModal()"
-        class="p-4 border-2 border-yellow-500 text-yellow-600 rounded-lg hover:bg-yellow-50 font-medium transition-all">
-        ⚠️ Modal Advertencia
-      </button>
-      
-      <!-- Modal con servicio - Error -->
-      <button 
-        (click)="showErrorModal()"
-        class="p-4 border-2 border-red-500 text-red-600 rounded-lg hover:bg-red-50 font-medium transition-all">
-        ❌ Modal Error
-      </button>
-      
-      <!-- Modal con servicio - Confirm -->
-      <button 
-        (click)="showConfirmModal()"
-        class="p-4 border-2 border-green-500 text-green-600 rounded-lg hover:bg-green-50 font-medium transition-all">
-        ✅ Modal Confirmación
-      </button>
-      
-      <!-- Modal con formulario -->
-      <button 
-        (click)="showFormModalExample()"
-        class="p-4 border-2 border-purple-500 text-purple-600 rounded-lg hover:bg-purple-50 font-medium transition-all">
-        📝 Modal Formulario
-      </button>
-    </div>
   </section>
 </div>
 

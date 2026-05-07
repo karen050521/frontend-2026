@@ -1,17 +1,19 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { FirebaseAuthService } from '../../core/services/firebase-auth.service';
 import { RecaptchaService } from '../../core/services/recaptcha.service';
 import { ToastService } from '../../core/services/toast.service';
+import { UserRoleService, RoleRef } from '../../core/services/user-role.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { SelectRoleModalComponent } from '../../shared/components/select-role-modal/select-role-modal.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ModalComponent, SelectRoleModalComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
@@ -21,11 +23,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   isLoading: boolean = false;
   isVerifyingCode: boolean = false;
   isVerificationModalOpen: boolean = false;
+  isRoleSelectionModalOpen = signal<boolean>(false);
+  userRoles = signal<RoleRef[]>([]);
+  isSelectingRole = signal<boolean>(false);
   oauthLoading: { [key: string]: boolean } = { google: false, github: false, microsoft: false };
   errorMessage: string = '';
   verificationErrorMessage: string = '';
   successMessage: string = '';
-  returnUrl: string = '/home';
+  returnUrl: string = '/dashboard';
   maskedVerificationEmail: string = '';
   twoFactorTimeLeftLabel: string = '05:00';
   private twoFactorTimerId: ReturnType<typeof setInterval> | null = null;
@@ -36,6 +41,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private firebaseAuthService: FirebaseAuthService,
     private recaptchaService: RecaptchaService,
     private toastService: ToastService,
+    private userRoleService: UserRoleService,
     private router: Router,
     private route: ActivatedRoute,
   ) {
@@ -140,7 +146,9 @@ export class LoginComponent implements OnInit, OnDestroy {
       await this.authService.verifyLoginCode(code);
       this.stopTwoFactorTimer();
       this.isVerificationModalOpen = false;
-      this.router.navigate([this.returnUrl]);
+      
+      // Obtener roles del usuario autenticado
+      await this.loadUserRolesAndNavigate();
     } catch (error: any) {
       const backendMessage = error?.error?.message || error?.message || '';
       const attemptsRemaining = Number(error?.error?.attemptsRemaining);
@@ -177,6 +185,73 @@ export class LoginComponent implements OnInit, OnDestroy {
     } finally {
       this.isVerifyingCode = false;
     }
+  }
+
+  /**
+   * Carga los roles del usuario autenticado y navega según corresponda
+   */
+  private async loadUserRolesAndNavigate(): Promise<void> {
+    try {
+      const currentUser = this.authService.currentUser();
+      if (!currentUser || !currentUser.id) {
+        // Sin usuario, navegar directamente
+        this.router.navigate([this.returnUrl]);
+        return;
+      }
+
+      // Obtener roles del usuario
+      this.userRoleService.getUserRoles(currentUser.id).subscribe({
+        next: (userRoles) => {
+          const roles = userRoles.map(ur => ur.role).filter((role): role is RoleRef => !!role);
+          
+          if (roles.length === 0) {
+            // Sin roles, navegar directamente
+            this.router.navigate([this.returnUrl]);
+            return;
+          }
+
+          if (roles.length === 1) {
+            // Un solo rol, navegar directamente
+            this.router.navigate([this.returnUrl]);
+            return;
+          }
+
+          // Múltiples roles: mostrar modal de selección
+          this.userRoles.set(roles);
+          this.isRoleSelectionModalOpen.set(true);
+        },
+        error: (error) => {
+          console.error('Error al obtener roles del usuario:', error);
+          // En caso de error, navegar igualmente
+          this.router.navigate([this.returnUrl]);
+        },
+      });
+    } catch (error) {
+      console.error('Error en loadUserRolesAndNavigate:', error);
+      // En caso de error, navegar igualmente
+      this.router.navigate([this.returnUrl]);
+    }
+  }
+
+  /**
+   * Maneja la selección de rol del modal
+   */
+  onRoleSelected(roleId: string): void {
+    this.isSelectingRole.set(true);
+    // Aquí podrías guardar el rol seleccionado si lo necesitas
+    // Por ahora, simplemente cerramos el modal y navegamos
+    setTimeout(() => {
+      this.isRoleSelectionModalOpen.set(false);
+      this.isSelectingRole.set(false);
+      this.router.navigate([this.returnUrl]);
+    }, 300);
+  }
+
+  /**
+   * Cierra el modal de selección de roles
+   */
+  onRoleSelectionClosed(): void {
+    this.isRoleSelectionModalOpen.set(false);
   }
 
   async cancelVerification(): Promise<void> {

@@ -1,0 +1,110 @@
+<div class="users-container">
+  <!-- Header -->
+  <div class="users-header">
+    <div>
+      <h1 class="users-title">Usuarios</h1>
+      <p class="users-subtitle">Gestiona y consulta los usuarios del sistema</p>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Buscar por email o usuario..."
+      (input)="onSearch($event)"
+    />
+  </div>
+
+  <!-- Loading State -->
+  @if (userServiceInst.loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Cargando usuarios...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @else if (userServiceInst.error()) {
+    <div class="error-container">
+      <div class="error-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Error al cargar usuarios</h3>
+      <p class="error-message">{{ userServiceInst.error() }}</p>
+      <button class="btn-retry" (click)="retryLoad()">
+        Reintentar
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @else if (userServiceInst.users() && userServiceInst.users().length === 0) {
+    <div class="empty-container">
+      <div class="empty-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No hay usuarios registrados</h3>
+      <p class="empty-message">Aún no hay usuarios en el sistema</p>
+    </div>
+  }
+
+  <!-- Users Grid -->
+  @else {
+    <div class="users-grid">
+      @for (user of filteredUsers; track user.id) {
+        <div class="user-card">
+          <!-- Avatar -->
+          <div class="user-avatar">
+            <img
+              [src]="getAvatarUrl(user)"
+              [alt]="user.username || user.email"
+              class="avatar-image"
+            />
+          </div>
+
+          <!-- User Info -->
+          <div class="user-info">
+            <h3 class="user-name">{{ user.username || 'Usuario' }}</h3>
+            <p class="user-email">{{ user.email }}</p>
+            @if (user.createdAt) {
+              <p class="user-joined">
+                Unido: {{ user.createdAt | date: 'short' }}
+              </p>
+            }
+          </div>
+
+          <!-- User Actions -->
+          <div class="user-actions">
+            <button
+              type="button"
+              class="btn-icon"
+              title="Ver detalles"
+              aria-label="Ver detalles del usuario">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- No search results -->
+      @if (searchQuery() && filteredUsers.length === 0) {
+        <div class="no-results">
+          <p class="no-results-text">No se encontraron usuarios que coincidan con tu búsqueda</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<app-toast-container></app-toast-container>

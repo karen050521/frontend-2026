@@ -264,3 +264,21 @@
     </div>
   </form>
 </app-modal>
+
+<!-- Modal de selección de roles -->
+<app-modal
+  [isOpen]="isRoleSelectionModalOpen()"
+  [title]="'Selecciona tu rol'"
+  [type]="'confirm'"
+  [showFooter]="false"
+  [showCloseButton]="false"
+  [closeOnBackdrop]="false"
+  [size]="'sm'"
+>
+  <app-select-role-modal
+    [roles]="userRoles()"
+    [isLoading]="isSelectingRole()"
+    (onSelectRole)="onRoleSelected($event)"
+    (onClose)="onRoleSelectionClosed()">
+  </app-select-role-modal>
+</app-modal>

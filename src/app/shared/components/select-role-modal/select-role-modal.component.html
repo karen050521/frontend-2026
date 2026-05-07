@@ -1,0 +1,63 @@
+<div class="select-role-container">
+  <div class="role-header">
+    <h3 class="role-title">Selecciona tu rol</h3>
+    <p class="role-subtitle">Tienes múltiples roles. Elige cuál deseas usar para acceder.</p>
+  </div>
+
+  <div class="roles-list">
+    @for (role of roles; track role.id) {
+      <button
+        type="button"
+        class="role-option"
+        [class.selected]="selectedRoleId() === role.id"
+        [disabled]="isLoading"
+        (click)="selectRole(role.id)">
+        
+        <div class="role-option-content">
+          <div class="role-info">
+            <div class="role-name-section">
+              <span class="role-name">{{ role.name }}</span>
+              @if (isDefaultRole(role.name)) {
+                <span class="role-badge">Por defecto</span>
+              }
+            </div>
+            <p class="role-description">
+              {{ getRoleDescription(role.name) }}
+            </p>
+          </div>
+          <div class="role-radio">
+            <div class="radio-circle" [class.active]="selectedRoleId() === role.id">
+              @if (selectedRoleId() === role.id) {
+                <svg class="checkmark" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              }
+            </div>
+          </div>
+        </div>
+      </button>
+    }
+  </div>
+
+  <div class="role-footer">
+    <button
+      type="button"
+      class="role-btn role-btn-cancel"
+      [disabled]="isLoading"
+      (click)="close()">
+      Cancelar
+    </button>
+    <button
+      type="button"
+      class="role-btn role-btn-confirm"
+      [disabled]="!selectedRoleId() || isLoading"
+      (click)="confirmSelection()">
+      @if (isLoading) {
+        <span class="loading-spinner"></span>
+        Cargando...
+      } @else {
+        Continuar
+      }
+    </button>
+  </div>
+</div>

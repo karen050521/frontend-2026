@@ -109,6 +109,13 @@ export class HeaderComponent {
   }
 
   /**
+   * Navega al dashboard
+   */
+  protected goToDashboard(): void {
+    this.router.navigate(['/dashboard']);
+  }
+
+  /**
    * Maneja el cierre de sesión
    */
   protected onLogout(): void {

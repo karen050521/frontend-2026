@@ -104,7 +104,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       try {
         // Ejecutar reCAPTCHA
         const recaptchaToken = await this.recaptchaService.execute('login');
-        console.log('TOKEN GENERADO:', recaptchaToken);
 
         if (!recaptchaToken) {
           throw new Error('reCAPTCHA token vacío');

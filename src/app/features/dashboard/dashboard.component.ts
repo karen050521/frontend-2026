@@ -4,6 +4,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ToastContainerComponent } from '../../shared/components/toast-container/toast-container.component';
 import { AllRoutesComponent } from './all-routes/all-routes.component';
+import { BoletosComponent } from '../boletos/boletos.component';
 
 /**
  * DashboardComponent - Dashboard principal para usuarios (consumidores)
@@ -12,13 +13,13 @@ import { AllRoutesComponent } from './all-routes/all-routes.component';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ToastContainerComponent, AllRoutesComponent],
+  imports: [CommonModule, ToastContainerComponent, AllRoutesComponent, BoletosComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
   protected isLoading = signal<boolean>(false);
-  protected activeTab = signal<'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas'>('solicitudes');
+  protected activeTab = signal<'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas' | 'boletos'>('solicitudes');
 
   constructor(
     public authService: AuthService,
@@ -67,6 +68,13 @@ export class DashboardComponent implements OnInit {
    */
   protected verTodasLasRutas(): void {
     this.activeTab.set('todas-las-rutas');
+  }
+
+  /**
+   * Abre la sección de boletos
+   */
+  protected verMisBoletos(): void {
+    this.activeTab.set('boletos');
   }
 
   /**

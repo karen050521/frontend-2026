@@ -35,23 +35,30 @@ export const routes: Routes = [
   },
   {
     path: 'user-role',
-    loadComponent: () => import('./features/user-role/user-role.component').then((m) => m.UserRoleComponent),
+    loadComponent: () =>
+      import('./features/user-role/user-role.component').then((m) => m.UserRoleComponent),
     canActivate: [AuthGuard],
   },
   {
     path: 'permissions',
-    loadComponent: () => import('./features/permissions/manage-permissions.component').then((m) => m.ManagePermissionsComponent),
+    loadComponent: () =>
+      import('./features/permissions/manage-permissions.component').then(
+        (m) => m.ManagePermissionsComponent,
+      ),
     canActivate: [AuthGuard],
   },
   {
     path: 'dashboard',
-    loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
   },
   {
     path: 'forgot-password',
     loadComponent: () =>
-      import('./features/security/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+      import('./features/security/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
   },
   {
     path: 'reset-password',

@@ -1,0 +1,287 @@
+<div class="boletos-container">
+  <!-- Header -->
+  <div class="boletos-header">
+    <div>
+      <h1 class="boletos-title">Mis Boletos</h1>
+      <p class="boletos-subtitle">Gestiona y consulta tus boletos de viaje</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card stat-total">
+      <div class="stat-icon">🎫</div>
+      <div class="stat-content">
+        <p class="stat-label">Total de boletos</p>
+        <p class="stat-value">{{ stats.total }}</p>
+      </div>
+    </div>
+    <div class="stat-card stat-active">
+      <div class="stat-icon">🚌</div>
+      <div class="stat-content">
+        <p class="stat-label">En viaje</p>
+        <p class="stat-value">{{ stats.activos }}</p>
+      </div>
+    </div>
+    <div class="stat-card stat-completed">
+      <div class="stat-icon">✅</div>
+      <div class="stat-content">
+        <p class="stat-label">Completados</p>
+        <p class="stat-value">{{ stats.completados }}</p>
+      </div>
+    </div>
+    <div class="stat-card stat-cancelled">
+      <div class="stat-icon">❌</div>
+      <div class="stat-content">
+        <p class="stat-label">Cancelados</p>
+        <p class="stat-value">{{ stats.cancelados }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <!-- Search Bar -->
+    <div class="search-container">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por origen, destino, conductor o placa..."
+        (input)="onSearch($event)"
+      />
+    </div>
+
+    <!-- Status Filter -->
+    <div class="filter-group">
+      <label class="filter-label">Estado:</label>
+      <div class="filter-buttons">
+        <button
+          *ngFor="let status of ['TODOS', 'ACTIVO', 'COMPLETADO', 'CANCELADO']"
+          class="filter-btn"
+          [class.active]="statusFilter() === status"
+          (click)="onStatusFilterChange(status)"
+        >
+          {{ status === 'TODOS' ? 'Todos' : status === 'ACTIVO' ? 'En viaje' : status === 'COMPLETADO' ? 'Completados' : 'Cancelados' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Sort -->
+    <div class="filter-group">
+      <label class="filter-label">Ordenar:</label>
+      <div class="filter-buttons">
+        <button
+          class="filter-btn"
+          [class.active]="sortBy() === 'recent'"
+          (click)="onSortChange('recent')"
+        >
+          Más recientes
+        </button>
+        <button
+          class="filter-btn"
+          [class.active]="sortBy() === 'oldest'"
+          (click)="onSortChange('oldest')"
+        >
+          Más antiguos
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (boletoServiceInst.loading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Cargando tus boletos...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @else if (boletoServiceInst.error()) {
+    <div class="error-container">
+      <div class="error-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Error al cargar boletos</h3>
+      <p class="error-message">{{ boletoServiceInst.error() }}</p>
+      <button class="btn-retry" (click)="retryLoad()">
+        Reintentar
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @else if (boletoServiceInst.boletos() && boletoServiceInst.boletos().length === 0) {
+    <div class="empty-container">
+      <div class="empty-icon">
+        <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No tienes boletos registrados</h3>
+      <p class="empty-message">Aún no has adquirido ningún boleto de viaje</p>
+    </div>
+  }
+
+  <!-- Boletos List -->
+  @else {
+    @if (filteredBoletos.length > 0) {
+      <div class="boletos-list">
+        @for (boleto of filteredBoletos; track boleto.id) {
+          <div class="boleto-card">
+            <!-- Status Badge -->
+            <div [class]="'status-badge ' + getStatusClass(boleto.status)">
+              <span class="status-icon">{{ getStatusIcon(boleto.status) }}</span>
+              <span class="status-text">{{ getStatusText(boleto.status) }}</span>
+            </div>
+
+            <!-- Main Info -->
+            <div class="boleto-main">
+              <!-- Route Info -->
+              <div class="route-info">
+                <div class="route-point">
+                  <div class="point-marker origin"></div>
+                  <div class="point-content">
+                    <p class="point-label">Origen</p>
+                    <p class="point-value">{{ boleto.travelDetails?.origin || 'No disponible' }}</p>
+                  </div>
+                </div>
+
+                <div class="route-divider">
+                  <div class="divider-line"></div>
+                  <svg class="divider-icon" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/>
+                  </svg>
+                </div>
+
+                <div class="route-point">
+                  <div class="point-marker destination"></div>
+                  <div class="point-content">
+                    <p class="point-label">Destino</p>
+                    <p class="point-value">{{ boleto.travelDetails?.destination || 'No disponible' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details Grid -->
+              <div class="details-grid">
+                <!-- Ticket ID -->
+                <div class="detail-item">
+                  <div class="detail-icon">🎫</div>
+                  <div class="detail-content">
+                    <p class="detail-label">Número de boleto</p>
+                    <p class="detail-value">#{{ boleto.id }}</p>
+                  </div>
+                </div>
+
+                <!-- Driver -->
+                <div class="detail-item">
+                  <div class="detail-icon">👨‍✈️</div>
+                  <div class="detail-content">
+                    <p class="detail-label">Conductor</p>
+                    <p class="detail-value">{{ boleto.travelDetails?.driverName || 'No disponible' }}</p>
+                  </div>
+                </div>
+
+                <!-- Vehicle -->
+                <div class="detail-item">
+                  <div class="detail-icon">🚌</div>
+                  <div class="detail-content">
+                    <p class="detail-label">Placa del vehículo</p>
+                    <p class="detail-value">{{ boleto.travelDetails?.vehiclePlate || 'No disponible' }}</p>
+                  </div>
+                </div>
+
+                <!-- Scheduled Time -->
+                <div class="detail-item">
+                  <div class="detail-icon">🕐</div>
+                  <div class="detail-content">
+                    <p class="detail-label">Salida programada</p>
+                    <p class="detail-value">{{ formatDate(boleto.travelDetails?.scheduledTime) }}</p>
+                  </div>
+                </div>
+
+                <!-- Boarding Time -->
+                <div class="detail-item">
+                  <div class="detail-icon">🚪</div>
+                  <div class="detail-content">
+                    <p class="detail-label">Hora de abordaje</p>
+                    <p class="detail-value">{{ formatDate(boleto.boardingTime) }}</p>
+                  </div>
+                </div>
+
+                <!-- Disembark Time -->
+                @if (boleto.disembarkTime) {
+                  <div class="detail-item">
+                    <div class="detail-icon">👇</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Hora de desembarque</p>
+                      <p class="detail-value">{{ formatDate(boleto.disembarkTime) }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="boleto-actions">
+              @if (boleto.status === 'ACTIVO') {
+                <button
+                  class="btn btn-primary"
+                  (click)="finishTravel(boleto)"
+                  title="Marcar viaje como completado"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Finalizar viaje
+                </button>
+                <button
+                  class="btn btn-danger"
+                  (click)="cancelBoleto(boleto)"
+                  title="Cancelar boleto"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Cancelar
+                </button>
+              }
+              @else if (boleto.status === 'COMPLETADO') {
+                <div class="status-info completed">
+                  <svg fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>Viaje completado</span>
+                </div>
+              }
+              @else if (boleto.status === 'CANCELADO') {
+                <div class="status-info cancelled">
+                  <svg fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  <span>Viaje cancelado</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="no-results-container">
+        <div class="no-results-icon">
+          <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h3 class="no-results-title">No encontramos boletos</h3>
+        <p class="no-results-message">Intenta con otros criterios de búsqueda o filtros</p>
+      </div>
+    }
+  }
+</div>

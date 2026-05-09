@@ -28,6 +28,7 @@ export const apiConfig = {
     permissions: '/api/private/permissions',
     'role-permission': '/api/private/role-permission',
     'user-role': '/api/private/user-role',
+    boletos: '/boletos',
   },
 };
 

@@ -78,6 +78,23 @@
         </svg>
       </div>
     </button>
+
+    <button class="action-card" (click)="verMisBoletos()">
+      <div class="action-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 4v12a2 2 0 01-2 2H2a2 2 0 01-2-2V4a2 2 0 012-2h12a2 2 0 012 2zm-6 6h4m-4 4h4M4 8h4m-4 4h4"/>
+        </svg>
+      </div>
+      <div class="action-content">
+        <h3>Mis Boletos</h3>
+        <p>Gestiona tus boletos de viaje</p>
+      </div>
+      <div class="action-arrow">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+    </button>
   </div>
 
   <!-- Tabs Navigation -->
@@ -118,6 +135,15 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4"/>
         </svg>
         Todas las Rutas
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab() === 'boletos'"
+        (click)="verMisBoletos()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 4v12a2 2 0 01-2 2H2a2 2 0 01-2-2V4a2 2 0 012-2h12a2 2 0 012 2zm-6 6h4m-4 4h4M4 8h4m-4 4h4"/>
+        </svg>
+        Mis Boletos
       </button>
     </div>
   </div>
@@ -189,6 +215,13 @@
     @if (activeTab() === 'todas-las-rutas') {
       <div class="tab-content fade-in">
         <app-all-routes></app-all-routes>
+      </div>
+    }
+
+    <!-- Mis Boletos Tab -->
+    @if (activeTab() === 'boletos') {
+      <div class="tab-content fade-in">
+        <app-boletos></app-boletos>
       </div>
     }
   </div>

@@ -9,6 +9,7 @@ export interface User {
   photo?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  role?: string;
 }
 
 /**

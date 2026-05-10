@@ -1,0 +1,191 @@
+<section class="p-4 md:p-8 space-y-8">
+  <header>
+    <h1 class="text-3xl font-black theme-text-primary tracking-tight">Consola de Administración</h1>
+    <p class="theme-text-secondary">Gestión de flota y recursos operativos.</p>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <div class="lg:col-span-8 theme-card border theme-divider rounded-[2rem] p-8 shadow-xl shadow-pink-500/5">
+      <h2 class="text-pink-500 font-black text-xs uppercase tracking-widest mb-6">Módulo: Registro de Bus</h2>
+      
+      <form [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block text-xs font-bold theme-text-secondary">PLACA
+            <input type="text" formControlName="placa" (input)="normalizePlate($event)" class="theme-input w-full p-3 rounded-xl border mt-1" placeholder="AAA-123" />
+          </label>
+          <label class="block text-xs font-bold theme-text-secondary">MODELO
+            <input type="text" formControlName="modelo" class="theme-input w-full p-3 rounded-xl border mt-1" placeholder="Ej: Mercedes Benz" />
+          </label>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <label class="block text-xs font-bold theme-text-secondary">AÑO
+            <input type="number" formControlName="anio" class="theme-input w-full p-3 rounded-xl border mt-1" />
+          </label>
+          <label class="block text-xs font-bold theme-text-secondary">SENTADOS
+            <input type="number" formControlName="capacidad_sentados" class="theme-input w-full p-3 rounded-xl border mt-1" />
+          </label>
+          <label class="block text-xs font-bold theme-text-secondary">PARADOS
+            <input type="number" formControlName="capacidad_parados" class="theme-input w-full p-3 rounded-xl border mt-1" />
+          </label>
+        </div>
+
+        <div (click)="f.click()" class="border-2 border-dashed theme-divider rounded-2xl p-4 flex flex-col items-center cursor-pointer hover:bg-pink-500/5 transition-all">
+          <input #f type="file" class="hidden" (change)="onFileSelected($event)" accept="image/*" />
+          <span class="text-[10px] font-bold theme-text-secondary uppercase tracking-tighter">
+            {{ selectedFile ? selectedFile.name : '📷 Cargar Fotografía del Vehículo' }}
+          </span>
+        </div>
+
+        <button type="submit" [disabled]="form.invalid || isSaving" class="w-full bg-pink-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+          {{ isSaving ? 'PROCESANDO...' : 'GUARDAR VEHÍCULO' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="lg:col-span-4 h-full">
+      <div class="theme-card border theme-divider rounded-[2rem] p-8 flex flex-col items-center justify-center text-center h-full min-h-[350px]">
+        @if (generatedQr) {
+          <p class="text-[10px] font-black text-pink-500 mb-4 tracking-widest uppercase">QR Generado</p>
+          <div class="bg-white p-4 rounded-3xl shadow-inner border border-gray-100">
+            <img [src]="generatedQr" class="w-40 h-40 object-contain" alt="Código QR" />
+          </div>
+          <p class="mt-4 text-[10px] theme-text-secondary font-bold">IDENTIFICADOR ÚNICO DE FLOTA</p>
+        } @else {
+          <div class="opacity-20 flex flex-col items-center">
+            <div class="w-20 h-20 border-4 border-dashed theme-divider rounded-3xl mb-4 flex items-center justify-center text-2xl">?</div>
+            <p class="text-[10px] font-bold theme-text-secondary uppercase">Esperando Registro</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="lg:col-span-12 theme-card border theme-divider rounded-[2rem] p-6 shadow-sm">
+      <button class="w-full text-left flex items-center justify-between p-3 rounded-2xl hover:bg-pink-500/5 transition-all outline-none" (click)="flotaOpen = !flotaOpen">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-pink-500/10 rounded-xl flex items-center justify-center text-xl">🚌</div>
+          <div>
+            <h3 class="text-lg font-black theme-text-primary mb-0">Flota Registrada</h3>
+            <p class="text-sm theme-text-secondary mb-0">{{ buses.length }} unidades vinculadas a KALA</p>
+          </div>
+        </div>
+        <div class="text-xs text-pink-600 font-black px-5 py-2 bg-pink-500/10 rounded-full uppercase tracking-widest">
+          {{ flotaOpen ? 'Ocultar Lista ↑' : 'Mostrar Detalles ↓' }}
+        </div>
+      </button>
+
+      @if (flotaOpen) {
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-top-4 duration-300">
+          @for (bus of buses; track bus.id) {
+            <div class="p-5 rounded-[2rem] border theme-divider theme-card flex flex-col gap-4 group hover:border-pink-500 transition-all shadow-sm">
+              <div class="flex gap-4 items-center">
+                <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 overflow-hidden border theme-divider flex-shrink-0">
+                  <img *ngIf="bus.foto" [src]="'http://localhost:3000/uploads/' + bus.foto" class="w-full h-full object-cover" alt="Bus">
+                  <div *ngIf="!bus.foto" class="w-full h-full flex items-center justify-center text-[8px] text-gray-400 font-bold uppercase p-1 text-center">Sin Foto</div>
+                </div>
+                
+                <div class="flex-1">
+                  <div class="flex justify-between items-center">
+                    <span class="font-black theme-text-primary text-base">{{ bus.placa }}</span>
+                    <span [class]="'text-[8px] px-2 py-1 rounded-full font-black uppercase tracking-tighter ' + 
+                      (bus.estado === 'operativo' ? 'bg-green-500/10 text-green-600' : 
+                       bus.estado === 'mantenimiento' ? 'bg-yellow-500/10 text-yellow-600' : 
+                       'bg-red-500/10 text-red-600')">
+                      {{ bus.estado.replace('_', ' ') }}
+                    </span>
+                  </div>
+                  <p class="text-[11px] theme-text-secondary font-medium">{{ bus.modelo }} • {{ bus.anio }}</p>
+                </div>
+              </div>
+              <button type="button" (click)="openEstadoModal(bus)" class="w-full py-3 rounded-xl bg-pink-500/5 text-pink-600 text-[10px] font-black uppercase tracking-widest hover:bg-pink-600 hover:text-white transition-all">
+                Gestionar Registro
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="theme-card border theme-divider rounded-3xl p-6 opacity-40 grayscale">
+        <h4 class="text-xs font-black theme-text-secondary uppercase tracking-widest flex items-center gap-2">
+          <span class="text-lg">📍</span> Rutas y Horarios
+        </h4>
+      </div>
+      <div class="theme-card border theme-divider rounded-3xl p-6 opacity-40 grayscale">
+        <h4 class="text-xs font-black theme-text-secondary uppercase tracking-widest flex items-center gap-2">
+          <span class="text-lg">🚏</span> Gestión de Paraderos
+        </h4>
+      </div>
+    </div>
+  </div>
+
+  @if (modalOpen && modalBus) {
+    <div class="fixed inset-0 flex items-center justify-center z-[100] p-4">
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-md" (click)="closeEstadoModal()"></div>
+      
+      <div class="relative w-full max-w-md theme-card border theme-divider rounded-[2.5rem] p-8 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in duration-200">
+        <header class="mb-8 flex justify-between items-start">
+          <div>
+            <h4 class="text-2xl font-black theme-text-primary tracking-tight">Ficha Técnica</h4>
+            <p class="text-xs font-bold text-pink-500 uppercase tracking-widest">Información del Vehículo</p>
+          </div>
+          <button (click)="closeEstadoModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 theme-text-secondary transition-colors font-bold">✕</button>
+        </header>
+
+        <div class="flex gap-6 mb-8 items-center">
+          <div class="w-24 h-24 rounded-3xl overflow-hidden border-2 theme-divider flex-shrink-0 bg-white">
+            <img *ngIf="modalBus.foto" [src]="'http://localhost:3000/uploads/' + modalBus.foto" class="w-full h-full object-cover" alt="Bus">
+            <div *ngIf="!modalBus.foto" class="w-full h-full flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase text-center p-2">Sin Imagen</div>
+          </div>
+          
+          <div class="flex-1 space-y-3">
+            <div>
+              <span class="theme-text-secondary block text-[9px] uppercase font-black tracking-widest">Placa Registrada</span>
+              <span class="theme-text-primary font-black text-xl">{{ modalBus.placa }}</span>
+            </div>
+            <div>
+              <span class="theme-text-secondary block text-[9px] uppercase font-black tracking-widest">Modelo de Fábrica</span>
+              <span class="theme-text-primary font-bold text-sm">{{ modalBus.modelo }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border theme-divider">
+            <span class="theme-text-secondary block text-[8px] uppercase font-black mb-1">Cap. Sentados</span>
+            <span class="theme-text-primary font-black text-lg">💺 {{ modalBus.capacidad_sentados || 0 }}</span>
+          </div>
+          <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border theme-divider">
+            <span class="theme-text-secondary block text-[8px] uppercase font-black mb-1">Cap. Parados</span>
+            <span class="theme-text-primary font-black text-lg">🚶 {{ modalBus.capacidad_parados || 0 }}</span>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="space-y-2">
+            <span class="text-[10px] font-black theme-text-secondary uppercase tracking-widest ml-1">Actualizar Estado Operativo</span>
+            <div class="relative">
+              <select [(ngModel)]="modalState" class="theme-input w-full p-4 rounded-2xl border font-black text-sm focus:border-pink-500 transition-all outline-none appearance-none cursor-pointer">
+                <option value="operativo">🟢 OPERATIVO</option>
+                <option value="mantenimiento">🟡 EN MANTENIMIENTO</option>
+                <option value="fuera_de_servicio">🔴 FUERA DE SERVICIO</option>
+              </select>
+              <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none theme-text-secondary text-xs">▼</div>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button (click)="closeEstadoModal()" class="flex-1 py-4 rounded-2xl border theme-divider theme-text-primary font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+              Cancelar
+            </button>
+            <button (click)="saveEstado()" class="flex-1 py-4 rounded-2xl bg-pink-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-500/30 hover:bg-pink-700 active:scale-95 transition-all">
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>

@@ -34,3 +34,40 @@ export interface UpdateBoletoDto {
   status?: 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
   disembarkTime?: Date | null;
 }
+
+/**
+ * Opciones de bus para formulario de abordaje
+ */
+export interface BusOption {
+  id: number;
+  nombre?: string;
+  placa?: string;
+}
+
+/**
+ * Opciones de paradero para formulario de abordaje
+ */
+export interface ParaderoOption {
+  id: number;
+  nombre?: string;
+  direccion?: string;
+}
+
+/**
+ * DTO para registrar abordaje
+ */
+export interface RegistrarAbordajeDto {
+  bus_id: number;
+  paradero_id: number;
+  metodo_pago_id: number;
+}
+
+/**
+ * Respuesta esperada al registrar abordaje
+ */
+export interface RegistrarAbordajeResponse {
+  message?: string;
+  saldo_restante?: number;
+  saldoRestante?: number;
+  boleto?: Boleto;
+}

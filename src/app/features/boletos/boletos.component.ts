@@ -1,7 +1,15 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { BoletoService } from '../../core/services/boleto.service';
-import { Boleto } from '../../core/models/boleto.model';
+import {
+  Boleto,
+  BusOption,
+  ParaderoOption,
+  RegistrarAbordajeDto,
+  RegistrarAbordajeResponse,
+} from '../../core/models/boleto.model';
 import { ToastService } from '../../core/services/toast.service';
 
 type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
@@ -13,25 +21,67 @@ type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 @Component({
   selector: 'app-boletos',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './boletos.component.html',
-  styleUrl: './boletos.component.css'
+  styleUrl: './boletos.component.css',
 })
 export class BoletosComponent implements OnInit {
+  private readonly tokenStorageKey = 'authToken';
+
   protected boletoService = signal<BoletoService | null>(null);
   protected searchQuery = signal<string>('');
   protected statusFilter = signal<StatusFilter>('TODOS');
   protected sortBy = signal<'recent' | 'oldest'>('recent');
+  protected buses = signal<BusOption[]>([]);
+  protected paraderos = signal<ParaderoOption[]>([]);
+  protected isSubmitting = signal<boolean>(false);
+
+  protected metodosPago = [
+    { id: 1, nombre: 'Tarjeta' },
+    { id: 2, nombre: 'Efectivo' },
+    { id: 3, nombre: 'Billetera digital' },
+  ];
+
+  protected abordajeForm: FormGroup;
 
   constructor(
     public boletoServiceInst: BoletoService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private fb: FormBuilder,
   ) {
     this.boletoService.set(boletoServiceInst);
+
+    this.abordajeForm = this.fb.group({
+      bus_id: [null, Validators.required],
+      paradero_id: [null, Validators.required],
+      metodo_pago_id: [null, Validators.required],
+    });
   }
 
   ngOnInit(): void {
     this.loadBoletos();
+    this.loadFormData();
+  }
+
+  /**
+   * Carga datos base para selects del formulario
+   */
+  private loadFormData(): void {
+    forkJoin({
+      buses: this.boletoServiceInst.getBuses(),
+      paraderos: this.boletoServiceInst.getParaderos(),
+    }).subscribe({
+      next: ({ buses, paraderos }) => {
+        this.buses.set(buses);
+        this.paraderos.set(paraderos);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar buses/paraderos:', error);
+        this.buses.set([]);
+        this.paraderos.set([]);
+        this.toastService.error('No fue posible cargar buses y paraderos');
+      },
+    });
   }
 
   /**
@@ -39,25 +89,26 @@ export class BoletosComponent implements OnInit {
    */
   protected get filteredBoletos() {
     let boletos = this.boletoServiceInst.boletos();
-    
+
     // Filtrar por estado
     const status = this.statusFilter();
     if (status !== 'TODOS') {
-      boletos = boletos.filter(b => b.status === status);
+      boletos = boletos.filter((b) => b.status === status);
     }
-    
+
     // Filtrar por búsqueda
     const query = this.searchQuery().toLowerCase();
     if (query) {
-      boletos = boletos.filter(b => 
-        b.travelDetails?.origin?.toLowerCase().includes(query) ||
-        b.travelDetails?.destination?.toLowerCase().includes(query) ||
-        b.travelDetails?.driverName?.toLowerCase().includes(query) ||
-        b.travelDetails?.vehiclePlate?.toLowerCase().includes(query) ||
-        b.id?.toString().includes(query)
+      boletos = boletos.filter(
+        (b) =>
+          b.travelDetails?.origin?.toLowerCase().includes(query) ||
+          b.travelDetails?.destination?.toLowerCase().includes(query) ||
+          b.travelDetails?.driverName?.toLowerCase().includes(query) ||
+          b.travelDetails?.vehiclePlate?.toLowerCase().includes(query) ||
+          b.id?.toString().includes(query),
       );
     }
-    
+
     // Ordenar
     return boletos.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
@@ -73,15 +124,16 @@ export class BoletosComponent implements OnInit {
     const boletos = this.boletoServiceInst.boletos();
     return {
       total: boletos.length,
-      activos: boletos.filter(b => b.status === 'ACTIVO').length,
-      completados: boletos.filter(b => b.status === 'COMPLETADO').length,
-      cancelados: boletos.filter(b => b.status === 'CANCELADO').length
+      activos: boletos.filter((b) => b.status === 'ACTIVO').length,
+      completados: boletos.filter((b) => b.status === 'COMPLETADO').length,
+      cancelados: boletos.filter((b) => b.status === 'CANCELADO').length,
     };
   }
 
   /**
    * Carga la lista de boletos
    */
+
   private loadBoletos(): void {
     this.boletoServiceInst.getBoletos().subscribe({
       next: (boletos) => {
@@ -89,8 +141,9 @@ export class BoletosComponent implements OnInit {
       },
       error: (error) => {
         console.error('❌ Error al cargar boletos:', error);
+        this.boletoServiceInst.resetBoletosState();
         this.toastService.error('Error al cargar los boletos');
-      }
+      },
     });
   }
 
@@ -121,19 +174,21 @@ export class BoletosComponent implements OnInit {
    */
   protected finishTravel(boleto: Boleto): void {
     if (!boleto.id) return;
-    
-    this.boletoServiceInst.updateBoleto(boleto.id, {
-      status: 'COMPLETADO',
-      disembarkTime: new Date()
-    }).subscribe({
-      next: () => {
-        this.toastService.success('Viaje finalizado correctamente');
-      },
-      error: (error) => {
-        console.error('Error al finalizar viaje:', error);
-        this.toastService.error('Error al finalizar el viaje');
-      }
-    });
+
+    this.boletoServiceInst
+      .updateBoleto(boleto.id, {
+        status: 'COMPLETADO',
+        disembarkTime: new Date(),
+      })
+      .subscribe({
+        next: () => {
+          this.toastService.success('Viaje finalizado correctamente');
+        },
+        error: (error) => {
+          console.error('Error al finalizar viaje:', error);
+          this.toastService.error('Error al finalizar el viaje');
+        },
+      });
   }
 
   /**
@@ -141,27 +196,30 @@ export class BoletosComponent implements OnInit {
    */
   protected cancelBoleto(boleto: Boleto): void {
     if (!boleto.id) return;
-    
+
     if (confirm('¿Estás seguro de que deseas cancelar este boleto?')) {
-      this.boletoServiceInst.updateBoleto(boleto.id, {
-        status: 'CANCELADO'
-      }).subscribe({
-        next: () => {
-          this.toastService.success('Boleto cancelado correctamente');
-        },
-        error: (error) => {
-          console.error('Error al cancelar boleto:', error);
-          this.toastService.error('Error al cancelar el boleto');
-        }
-      });
+      this.boletoServiceInst
+        .updateBoleto(boleto.id, {
+          status: 'CANCELADO',
+        })
+        .subscribe({
+          next: () => {
+            this.toastService.success('Boleto cancelado correctamente');
+          },
+          error: (error) => {
+            console.error('Error al cancelar boleto:', error);
+            this.toastService.error('Error al cancelar el boleto');
+          },
+        });
     }
   }
 
   /**
    * Obtiene la clase de estilo para el estado del boleto
    */
-  protected getStatusClass(status: string): string {
-    return `badge-${status.toLowerCase()}`;
+  protected getStatusClass(status: string | undefined): string {
+    const s = (status || 'DESCONOCIDO').toLowerCase();
+    return `badge-${s}`;
   }
 
   /**
@@ -169,11 +227,12 @@ export class BoletosComponent implements OnInit {
    */
   protected getStatusText(status: string): string {
     const statusMap: Record<string, string> = {
-      'ACTIVO': 'En viaje',
-      'COMPLETADO': 'Finalizado',
-      'CANCELADO': 'Cancelado'
+      ACTIVO: 'En viaje',
+      COMPLETADO: 'Finalizado',
+      CANCELADO: 'Cancelado',
     };
-    return statusMap[status] || status;
+    const key = (status || 'DESCONOCIDO').toUpperCase();
+    return statusMap[key] || status || 'Desconocido';
   }
 
   /**
@@ -181,11 +240,12 @@ export class BoletosComponent implements OnInit {
    */
   protected getStatusIcon(status: string): string {
     const iconMap: Record<string, string> = {
-      'ACTIVO': '🚌',
-      'COMPLETADO': '✓',
-      'CANCELADO': '✕'
+      ACTIVO: '🚌',
+      COMPLETADO: '✓',
+      CANCELADO: '✕',
     };
-    return iconMap[status] || '○';
+    const key = (status || 'DESCONOCIDO').toUpperCase();
+    return iconMap[key] || '○';
   }
 
   /**
@@ -198,7 +258,7 @@ export class BoletosComponent implements OnInit {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -207,5 +267,68 @@ export class BoletosComponent implements OnInit {
    */
   protected retryLoad(): void {
     this.loadBoletos();
+  }
+
+  /**
+   * Registra abordaje enviando token Bearer manualmente
+   */
+  protected submitAbordaje(): void {
+    if (this.abordajeForm.invalid) {
+      this.abordajeForm.markAllAsTouched();
+      return;
+    }
+
+    const token = localStorage.getItem(this.tokenStorageKey);
+    if (!token) {
+      this.toastService.error('No se encontró sesión activa');
+      return;
+    }
+
+    // 1. Bloqueamos el botón inmediatamente
+    this.isSubmitting.set(true);
+
+    const rawValue = this.abordajeForm.value;
+    const payload: RegistrarAbordajeDto = {
+      bus_id: Number(rawValue.bus_id),
+      paradero_id: Number(rawValue.paradero_id),
+      metodo_pago_id: Number(rawValue.metodo_pago_id),
+    };
+
+    // 2. Usamos el servicio (Verifica si es boletoService o boletoServiceInst)
+    this.boletoServiceInst.registrarAbordaje(payload, token).subscribe({
+      next: (response: RegistrarAbordajeResponse) => {
+        // Manejo inteligente del saldo (soporta snake_case y camelCase)
+        const saldoRestante = response?.saldo_restante ?? response?.saldoRestante;
+        const saldoTexto = typeof saldoRestante === 'number' 
+          ? ` - Saldo: $${saldoRestante.toFixed(2)}` 
+          : '';
+
+        this.toastService.success(`¡Abordaje exitoso!${saldoTexto}`);
+        
+        this.abordajeForm.reset();
+        this.loadBoletos(); // Refresca la tabla
+        this.isSubmitting.set(false);
+      },
+      error: (error) => {
+        console.error('❌ Error al registrar abordaje:', error);
+        // Mostramos el mensaje que viene del backend si existe
+        const msg = error.error?.message || 'No se pudo registrar el abordaje';
+        this.toastService.error(msg);
+        this.isSubmitting.set(false);
+      },
+    });
+  }
+
+  protected hasFieldError(fieldName: 'bus_id' | 'paradero_id' | 'metodo_pago_id'): boolean {
+    const field = this.abordajeForm.get(fieldName);
+    return !!field && field.invalid && (field.touched || field.dirty);
+  }
+
+  protected getBusLabel(bus: BusOption): string {
+    return bus.nombre || bus.placa || `Bus ${bus.id}`;
+  }
+
+  protected getParaderoLabel(paradero: ParaderoOption): string {
+    return paradero.nombre || paradero.direccion || `Paradero ${paradero.id}`;
   }
 }

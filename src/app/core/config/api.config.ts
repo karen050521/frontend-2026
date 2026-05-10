@@ -10,7 +10,7 @@ export const apiConfig = {
    * URL base de la API del backend
    * Se importa desde environments
    */
-  baseUrl: environment.apiBaseUrl,
+  baseUrl: environment.apiNestUrl,
 
   /**
    * Clave del sitio de Google reCAPTCHA v3
@@ -20,16 +20,31 @@ export const apiConfig = {
 
   /**
    * Endpoints específicos
+   * Preferir `environment.apiEndpoints` cuando esté disponible
    */
-  endpoints: {
-    roles: '/api/private/roles',
-    users: '/api/private/users',
-    auth: '/auth',
-    permissions: '/api/private/permissions',
-    'role-permission': '/api/private/role-permission',
-    'user-role': '/api/private/user-role',
-    boletos: '/boletos',
-  },
+  endpoints: (function () {
+    const defaultEndpoints = {
+      roles: '/api/private/roles',
+      users: '/api/private/users',
+      auth: '/auth',
+      permissions: '/api/private/permissions',
+      'role-permission': '/api/private/role-permission',
+      'user-role': '/api/private/user-role',
+      boletos: '/boletos',
+      buses: '/buses',
+      paraderos: '/paraderos',
+    } as const;
+
+    // Merge/override with environment provided endpoints if present
+    if (environment && (environment as any).apiEndpoints) {
+      return {
+        ...defaultEndpoints,
+        ...(environment as any).apiEndpoints,
+      } as typeof defaultEndpoints;
+    }
+
+    return defaultEndpoints;
+  })(),
 };
 
 /**
@@ -77,4 +92,3 @@ export const oauthConfig = {
 export function getApiUrl(endpoint: keyof typeof apiConfig.endpoints): string {
   return `${apiConfig.baseUrl}${apiConfig.endpoints[endpoint]}`;
 }
-

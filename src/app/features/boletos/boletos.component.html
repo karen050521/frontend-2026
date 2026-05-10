@@ -7,6 +7,67 @@
     </div>
   </div>
 
+  <!-- Formulario de abordaje -->
+  <section class="abordaje-card">
+    <div class="abordaje-header">
+      <h2 class="abordaje-title">Registrar abordaje</h2>
+      <p class="abordaje-subtitle">Selecciona bus, paradero y método de pago</p>
+    </div>
+
+    <form class="abordaje-form" [formGroup]="abordajeForm" (ngSubmit)="submitAbordaje()">
+      <div class="form-group">
+        <label class="form-label" for="bus_id">Bus</label>
+        <select id="bus_id" class="form-select" formControlName="bus_id">
+          <option [ngValue]="null">Selecciona un bus</option>
+          @for (bus of buses(); track bus.id) {
+            <option [ngValue]="bus.id">{{ getBusLabel(bus) }}</option>
+          }
+        </select>
+        @if (hasFieldError('bus_id')) {
+          <p class="form-error">Debes seleccionar un bus</p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="paradero_id">Paradero</label>
+        <select id="paradero_id" class="form-select" formControlName="paradero_id">
+          <option [ngValue]="null">Selecciona un paradero</option>
+          @for (paradero of paraderos(); track paradero.id) {
+            <option [ngValue]="paradero.id">{{ getParaderoLabel(paradero) }}</option>
+          }
+        </select>
+        @if (hasFieldError('paradero_id')) {
+          <p class="form-error">Debes seleccionar un paradero</p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="metodo_pago_id">Método de pago</label>
+        <select id="metodo_pago_id" class="form-select" formControlName="metodo_pago_id">
+          <option [ngValue]="null">Selecciona un método de pago</option>
+          @for (metodo of metodosPago; track metodo.id) {
+            <option [ngValue]="metodo.id">{{ metodo.nombre }}</option>
+          }
+        </select>
+        @if (hasFieldError('metodo_pago_id')) {
+          <p class="form-error">Debes seleccionar un método de pago</p>
+        }
+      </div>
+
+      <button
+        class="btn-submit-abordaje"
+        type="submit"
+        [disabled]="abordajeForm.invalid || isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          Registrando...
+        } @else {
+          Registrar abordaje
+        }
+      </button>
+    </form>
+  </section>
+
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card stat-total">
@@ -44,7 +105,12 @@
     <!-- Search Bar -->
     <div class="search-container">
       <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
       </svg>
       <input
         type="text"
@@ -64,7 +130,15 @@
           [class.active]="statusFilter() === status"
           (click)="onStatusFilterChange(status)"
         >
-          {{ status === 'TODOS' ? 'Todos' : status === 'ACTIVO' ? 'En viaje' : status === 'COMPLETADO' ? 'Completados' : 'Cancelados' }}
+          {{
+            status === 'TODOS'
+              ? 'Todos'
+              : status === 'ACTIVO'
+                ? 'En viaje'
+                : status === 'COMPLETADO'
+                  ? 'Completados'
+                  : 'Cancelados'
+          }}
         </button>
       </div>
     </div>
@@ -104,14 +178,17 @@
     <div class="error-container">
       <div class="error-icon">
         <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       </div>
       <h3 class="error-title">Error al cargar boletos</h3>
       <p class="error-message">{{ boletoServiceInst.error() }}</p>
-      <button class="btn-retry" (click)="retryLoad()">
-        Reintentar
-      </button>
+      <button class="btn-retry" (click)="retryLoad()">Reintentar</button>
     </div>
   }
 
@@ -120,7 +197,12 @@
     <div class="empty-container">
       <div class="empty-icon">
         <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
       </div>
       <h3 class="empty-title">No tienes boletos registrados</h3>
@@ -142,90 +224,108 @@
 
             <!-- Main Info -->
             <div class="boleto-main">
-              <!-- Route Info -->
-              <div class="route-info">
-                <div class="route-point">
-                  <div class="point-marker origin"></div>
-                  <div class="point-content">
-                    <p class="point-label">Origen</p>
-                    <p class="point-value">{{ boleto.travelDetails?.origin || 'No disponible' }}</p>
-                  </div>
-                </div>
-
-                <div class="route-divider">
-                  <div class="divider-line"></div>
-                  <svg class="divider-icon" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/>
-                  </svg>
-                </div>
-
-                <div class="route-point">
-                  <div class="point-marker destination"></div>
-                  <div class="point-content">
-                    <p class="point-label">Destino</p>
-                    <p class="point-value">{{ boleto.travelDetails?.destination || 'No disponible' }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Details Grid -->
-              <div class="details-grid">
-                <!-- Ticket ID -->
-                <div class="detail-item">
-                  <div class="detail-icon">🎫</div>
-                  <div class="detail-content">
-                    <p class="detail-label">Número de boleto</p>
-                    <p class="detail-value">#{{ boleto.id }}</p>
-                  </div>
-                </div>
-
-                <!-- Driver -->
-                <div class="detail-item">
-                  <div class="detail-icon">👨‍✈️</div>
-                  <div class="detail-content">
-                    <p class="detail-label">Conductor</p>
-                    <p class="detail-value">{{ boleto.travelDetails?.driverName || 'No disponible' }}</p>
-                  </div>
-                </div>
-
-                <!-- Vehicle -->
-                <div class="detail-item">
-                  <div class="detail-icon">🚌</div>
-                  <div class="detail-content">
-                    <p class="detail-label">Placa del vehículo</p>
-                    <p class="detail-value">{{ boleto.travelDetails?.vehiclePlate || 'No disponible' }}</p>
-                  </div>
-                </div>
-
-                <!-- Scheduled Time -->
-                <div class="detail-item">
-                  <div class="detail-icon">🕐</div>
-                  <div class="detail-content">
-                    <p class="detail-label">Salida programada</p>
-                    <p class="detail-value">{{ formatDate(boleto.travelDetails?.scheduledTime) }}</p>
-                  </div>
-                </div>
-
-                <!-- Boarding Time -->
-                <div class="detail-item">
-                  <div class="detail-icon">🚪</div>
-                  <div class="detail-content">
-                    <p class="detail-label">Hora de abordaje</p>
-                    <p class="detail-value">{{ formatDate(boleto.boardingTime) }}</p>
-                  </div>
-                </div>
-
-                <!-- Disembark Time -->
-                @if (boleto.disembarkTime) {
-                  <div class="detail-item">
-                    <div class="detail-icon">👇</div>
-                    <div class="detail-content">
-                      <p class="detail-label">Hora de desembarque</p>
-                      <p class="detail-value">{{ formatDate(boleto.disembarkTime) }}</p>
+              @if (boleto.travelDetails) {
+                <!-- Route Info -->
+                <div class="route-info">
+                  <div class="route-point">
+                    <div class="point-marker origin"></div>
+                    <div class="point-content">
+                      <p class="point-label">Origen</p>
+                      <p class="point-value">
+                        {{ boleto.travelDetails.origin || 'No disponible' }}
+                      </p>
                     </div>
                   </div>
-                }
-              </div>
+
+                  <div class="route-divider">
+                    <div class="divider-line"></div>
+                    <svg class="divider-icon" fill="currentColor" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"
+                      />
+                    </svg>
+                  </div>
+
+                  <div class="route-point">
+                    <div class="point-marker destination"></div>
+                    <div class="point-content">
+                      <p class="point-label">Destino</p>
+                      <p class="point-value">
+                        {{ boleto.travelDetails.destination || 'No disponible' }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="details-grid">
+                  <!-- Ticket ID -->
+                  <div class="detail-item">
+                    <div class="detail-icon">🎫</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Número de boleto</p>
+                      <p class="detail-value">#{{ boleto.id }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Driver -->
+                  <div class="detail-item">
+                    <div class="detail-icon">👨‍✈️</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Conductor</p>
+                      <p class="detail-value">
+                        {{ boleto.travelDetails.driverName || 'No disponible' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Vehicle -->
+                  <div class="detail-item">
+                    <div class="detail-icon">🚌</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Placa del vehículo</p>
+                      <p class="detail-value">
+                        {{ boleto.travelDetails.vehiclePlate || 'No disponible' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Scheduled Time -->
+                  <div class="detail-item">
+                    <div class="detail-icon">🕐</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Salida programada</p>
+                      <p class="detail-value">
+                        {{ formatDate(boleto.travelDetails.scheduledTime) }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Boarding Time -->
+                  <div class="detail-item">
+                    <div class="detail-icon">🚪</div>
+                    <div class="detail-content">
+                      <p class="detail-label">Hora de abordaje</p>
+                      <p class="detail-value">{{ formatDate(boleto.boardingTime) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Disembark Time -->
+                  @if (boleto.disembarkTime) {
+                    <div class="detail-item">
+                      <div class="detail-icon">👇</div>
+                      <div class="detail-content">
+                        <p class="detail-label">Hora de desembarque</p>
+                        <p class="detail-value">{{ formatDate(boleto.disembarkTime) }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="no-travel-details">
+                  <p>Detalles del viaje no disponibles</p>
+                </div>
+              }
             </div>
 
             <!-- Actions -->
@@ -237,7 +337,12 @@
                   title="Marcar viaje como completado"
                 >
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   Finalizar viaje
                 </button>
@@ -247,23 +352,26 @@
                   title="Cancelar boleto"
                 >
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                   Cancelar
                 </button>
-              }
-              @else if (boleto.status === 'COMPLETADO') {
+              } @else if (boleto.status === 'COMPLETADO') {
                 <div class="status-info completed">
                   <svg fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>Viaje completado</span>
                 </div>
-              }
-              @else if (boleto.status === 'CANCELADO') {
+              } @else if (boleto.status === 'CANCELADO') {
                 <div class="status-info cancelled">
                   <svg fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 18L18 6M6 6l12 12"/>
+                    <path d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   <span>Viaje cancelado</span>
                 </div>
@@ -276,7 +384,12 @@
       <div class="no-results-container">
         <div class="no-results-icon">
           <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </div>
         <h3 class="no-results-title">No encontramos boletos</h3>

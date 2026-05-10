@@ -1,7 +1,8 @@
-import { Component, signal, input, output, inject } from '@angular/core';
+import { Component, OnInit, signal, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { jwtDecode } from 'jwt-decode';
 
 /**
  * SidebarComponent - Menú lateral navegable
@@ -25,8 +26,9 @@ export interface MenuItem {
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   // Input para controlar visibilidad
   public readonly isOpen = input<boolean>(false);
@@ -57,15 +59,58 @@ export class SidebarComponent {
       route: '/user-role',
     },
   ]);
+  protected readonly userRole = signal<string>('');
   protected readonly currentUser = this.authService.currentUser;
   protected readonly isAuthenticated = this.authService.isAuthenticated;
   protected readonly defaultAvatarUrl = 'assets/default-avatar.svg';
+
+  ngOnInit(): void {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      this.userRole.set('');
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode<{
+        role?: string;
+        authorities?: Array<{ authority?: string }>;
+        roles?: string[];
+      }>(token);
+      const role = decoded.role || decoded.authorities?.[0]?.authority || decoded.roles?.[0] || '';
+      this.userRole.set(role);
+    } catch {
+      this.userRole.set('');
+    }
+  }
 
   /**
    * Cierra el sidebar
    */
   protected closeSidebar(): void {
     this.close.emit();
+  }
+
+  protected cambiarVista(role: string): void {
+    const normalizedRole = (role || '').trim().toUpperCase();
+
+    if (!normalizedRole) {
+      this.router.navigate(['/home']);
+      return;
+    }
+
+    const routeMap: Record<string, string> = {
+      ADMIN: '/roles',
+      ROLE_ADMIN: '/roles',
+      USER: '/dashboard',
+      CIUDADANO: '/dashboard',
+      PASAJERO: '/dashboard',
+      OPERADOR: '/registro-bus',
+      CONDUCTOR: '/dashboard',
+    };
+
+    const targetRoute = routeMap[normalizedRole] || '/home';
+    this.router.navigate([targetRoute]);
   }
 
   protected getAvatarUrl(): string {

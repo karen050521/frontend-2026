@@ -4,8 +4,25 @@
 export const environment = {
   production: false,
 
-  // Backend API
-  apiBaseUrl: 'http://localhost:8181',
+  apiBaseUrl: 'http://localhost:3000',
+  // Backend de NestJS (Lógica de Negocio)
+  apiNestUrl: 'http://localhost:3000', 
+
+  // Backend de Spring Boot (Seguridad/Auth)
+  apiSpringUrl: 'http://localhost:8181', 
+
+  apiEndpoints: {
+    // Estos van para NestJS
+    boletos: '/boletos',
+    buses: '/bus',
+    paraderos: '/paradero',
+    
+    // Estos van para Spring Boot (Ajusta la ruta si tu Spring usa /api/auth)
+    auth: '/api/public/auth/login', 
+    users: '/api/private/users',
+    roles: '/api/private/roles',
+    permissions: '/api/private/permissions',
+  },
 
   // Google reCAPTCHA v3
   recaptchaSiteKey: '6Lcw15EsAAAAAOA4SWBXU3UVK-5_myjCAxd-6TRk',

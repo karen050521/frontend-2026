@@ -15,15 +15,17 @@ import { BoletosComponent } from '../boletos/boletos.component';
   standalone: true,
   imports: [CommonModule, ToastContainerComponent, AllRoutesComponent, BoletosComponent],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css'
+  styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
   protected isLoading = signal<boolean>(false);
-  protected activeTab = signal<'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas' | 'boletos'>('solicitudes');
+  protected activeTab = signal<
+    'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas' | 'boletos'
+  >('solicitudes');
 
   constructor(
     public authService: AuthService,
-    private toastService: ToastService
+    private toastService: ToastService,
   ) {}
 
   protected get currentUser() {

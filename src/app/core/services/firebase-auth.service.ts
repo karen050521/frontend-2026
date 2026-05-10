@@ -9,12 +9,12 @@ import {
 } from 'firebase/auth';
 import { HttpClient } from '@angular/common/http';
 import { firebaseAuth } from '../config/firebase.config';
-import { apiConfig } from '../config/api.config';
+import { environment } from '../../../environments/environment';
 import { AuthService, User } from './auth.service';
 import { firstValueFrom } from 'rxjs';
 
 /**
- * Interface para solicitud de login OAuth al backend
+ * Interface para solicitud de login OAuth al backend (Spring Boot)
  */
 interface OAuthLoginRequest {
   email: string;
@@ -28,10 +28,6 @@ interface OAuthLoginResponse {
   user: User & { photoUrl?: string | null };
 }
 
-/**
- * FirebaseAuthService - Integra OAuth de Firebase con el backend
- * Sincroniza automáticamente con AuthService
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -49,7 +45,6 @@ export class FirebaseAuthService {
 
   /**
    * Login con Google OAuth
-   * Sincroniza con el backend para obtener token de sesión
    */
   async loginWithGoogle(): Promise<User> {
     this._isLoading.set(true);
@@ -63,7 +58,7 @@ export class FirebaseAuthService {
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'google');
 
-      // Sincronizar con backend
+      // Sincronizar con Spring Boot (Puerto 8181)
       await this.syncOAuthWithBackend(user, 'google');
 
       return user;
@@ -77,8 +72,56 @@ export class FirebaseAuthService {
   }
 
   /**
+   * Sincroniza OAuth con el backend de Spring Boot
+   */
+  private async syncOAuthWithBackend(
+    user: User,
+    provider: 'google' | 'github' | 'microsoft',
+  ): Promise<void> {
+    try {
+      const request: OAuthLoginRequest = {
+        email: user.email,
+        name: user.name,
+        photoUrl: user.photoUrl || undefined,
+        provider,
+      };
+
+      // USAMOS EL PUERTO 8181 DESDE EL ENVIRONMENT
+      const url = `${environment.apiSpringUrl}/api/public/auth/oauth-login`;
+
+      console.log('🔐 Sincronizando con Spring Boot (8181):', url);
+
+      // Enviar datos a Spring Boot para obtener el JWT
+      const response = await firstValueFrom(
+        this.http.post<OAuthLoginResponse>(url, request)
+      );
+
+      console.log('✅ Spring Boot respondió con éxito');
+
+      if (response && response.token) {
+        const sessionUser: User = {
+          ...response.user,
+          photoUrl: response.user.photoUrl || null,
+        };
+
+        // Guardamos el token de Spring para usarlo en NestJS (3000)
+        this.authService.completeOAuthSession(response.token, sessionUser);
+      } else {
+        throw new Error('No se recibió token de sesión del servidor');
+      }
+    } catch (error: any) {
+      console.error('❌ Error sincronizando con Spring Boot:', error);
+
+      // Si falla la sincronización, limpiamos Firebase
+      await signOut(firebaseAuth);
+      
+      const detailedError = error?.error?.message || error?.message || 'Error desconocido';
+      throw new Error(`Error en servidor de seguridad (8181): ${detailedError}`);
+    }
+  }
+
+  /**
    * Login con GitHub OAuth
-   * Sincroniza con el backend para obtener token de sesión
    */
   async loginWithGithub(): Promise<User> {
     this._isLoading.set(true);
@@ -91,7 +134,6 @@ export class FirebaseAuthService {
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'github');
 
-      // Sincronizar con backend
       await this.syncOAuthWithBackend(user, 'github');
 
       return user;
@@ -103,8 +145,7 @@ export class FirebaseAuthService {
       this._isLoading.set(false);
     }
   }
-
-  /**
+/**
    * Login con Microsoft OAuth
    * Sincroniza con el backend para obtener token de sesión
    */
@@ -122,7 +163,7 @@ export class FirebaseAuthService {
       const credential = await signInWithPopup(firebaseAuth, provider);
       const user = this.mapFirebaseUserToUser(credential.user, 'microsoft');
 
-      // Sincronizar con backend
+      // Sincronizar con backend de Spring (8181)
       await this.syncOAuthWithBackend(user, 'microsoft');
 
       return user;
@@ -134,78 +175,12 @@ export class FirebaseAuthService {
       this._isLoading.set(false);
     }
   }
-
-  /**
-   * Sincroniza OAuth con el backend
-   * Envía los datos del usuario OAuth y obtiene token de sesión
-   */
-  private async syncOAuthWithBackend(
-    user: User,
-    provider: 'google' | 'github' | 'microsoft',
-  ): Promise<void> {
-    try {
-      const request: OAuthLoginRequest = {
-        email: user.email,
-        name: user.name,
-        photoUrl: user.photoUrl || undefined,
-        provider,
-      };
-
-      console.log('🔐 Enviando OAuth al backend:', {
-        provider,
-        email: user.email,
-        name: user.name,
-      });
-
-      // Enviar datos al backend end obtener token de sesión
-      const response = await firstValueFrom(
-        this.http.post<OAuthLoginResponse>(
-          `${apiConfig.baseUrl}/api/public/auth/oauth-login`,
-          request,
-        ),
-      );
-
-      console.log('✅ Backend respondió:', { token: response.token?.substring(0, 20) + '...' });
-
-      if (response && response.token) {
-        const sessionUser: User = {
-          ...response.user,
-          photoUrl: response.user.photoUrl || null,
-        };
-
-        // Sincronizar sesión con AuthService para mantener persistencia consistente
-        this.authService.completeOAuthSession(response.token, sessionUser);
-      } else {
-        throw new Error('No se recibió token de sesión del servidor');
-      }
-    } catch (error: any) {
-      console.error('❌ Error sincronizando con backend:', error);
-
-      // Logs adicionales para debugging
-      if (error.error) {
-        console.error('Backend error details:', error.error);
-      }
-      if (error.status) {
-        console.error('HTTP status:', error.status);
-      }
-      if (error.message) {
-        console.error('Error message:', error.message);
-      }
-
-      // Si falla la sincronización con backend, hacer logout de Firebase
-      await signOut(firebaseAuth);
-      throw new Error(
-        `Error al sincronizar con servidor: ${error?.error?.message || error?.message || 'Error desconocido'}`,
-      );
-    }
-  }
-
   /**
    * Mapea un usuario de Firebase a la interfaz User
    */
   private mapFirebaseUserToUser(
     firebaseUser: FirebaseUser,
-    provider: 'google' | 'github' | 'microsoft',
+    provider: string,
   ): User {
     return {
       id: firebaseUser.uid,
@@ -216,38 +191,24 @@ export class FirebaseAuthService {
   }
 
   /**
-   * Obtiene un mensaje de error legible
-   */
-  private getErrorMessage(error: any): string {
-    const code = error?.code;
-
-    switch (code) {
-      case 'auth/popup-closed-by-user':
-        return 'Se cerró la ventana de login. Por favor, intenta de nuevo.';
-      case 'auth/popup-blocked':
-        return 'La ventana emergente fue bloqueada. Verifica tu navegador.';
-      case 'auth/account-exists-with-different-credential':
-        return 'Ya existe una cuenta con este correo usando otro método.';
-      case 'auth/user-cancelled':
-        return 'Cancelaste el login.';
-      default:
-        return error?.message || 'Error en la autenticación. Intenta de nuevo.';
-    }
-  }
-
-  /**
-   * Realiza logout sincronizado: Firebase + Backend (mediante AuthService)
+   * Logout sincronizado
    */
   async logout(): Promise<void> {
     try {
-      // Logout de Firebase
       await signOut(firebaseAuth);
-
-      // Logout del AuthService (limpia localStorage y estado)
       this.authService.logout();
     } catch (error: any) {
       this._error.set(this.getErrorMessage(error));
       throw error;
+    }
+  }
+
+  private getErrorMessage(error: any): string {
+    const code = error?.code;
+    switch (code) {
+      case 'auth/popup-closed-by-user': return 'Cerraste la ventana de login.';
+      case 'auth/popup-blocked': return 'Ventana bloqueada por el navegador.';
+      default: return error?.message || 'Error en autenticación.';
     }
   }
 }

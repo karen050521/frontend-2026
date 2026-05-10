@@ -21,11 +21,14 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
 
   // 🔹 Rutas públicas que no deben llevar token
   const publicUrls = [
+    // legacy short paths
     '/auth/login',
     '/auth/register',
     '/auth/recover-password',
     '/auth/verify-2fa',
     '/auth/cancel-2fa',
+    // explicit Spring Boot / NestJS public auth base
+    '/api/public/auth',
   ];
 
   if (publicUrls.some((url) => req.url.includes(url))) {

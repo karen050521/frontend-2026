@@ -8,6 +8,18 @@ export const routes: Routes = [
     redirectTo: 'register',
     pathMatch: 'full',
   },
+  // VISTA DEL CIUDADANO (La que ya tenías del boleto)
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+    canActivate: [AuthGuard],
+  },
+  // VISTA DEL ADMINISTRADOR (Nueva)
+  {
+    path: 'registro-bus',
+    loadComponent: () => import('./features/buses/bus-registro.component').then((m) => m.BusRegistroComponent),
+    canActivate: [AuthGuard],
+  },
   {
     path: 'home',
     component: HomeComponent,

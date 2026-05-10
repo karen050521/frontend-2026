@@ -1,6 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { apiConfig } from '../config/api.config';
+import { environment } from '../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 
@@ -79,7 +80,7 @@ export class AuthService {
    */
   login(email: string, password: string, recaptchaToken: string): Promise<LoginResponse> {
     return firstValueFrom(
-      this.http.post<LoginResponse>(`${apiConfig.baseUrl}/api/public/auth/login`, {
+      this.http.post<LoginResponse>(`${environment.apiSpringUrl}${environment.apiEndpoints.auth}`, {
         email,
         password,
         recaptchaToken,
@@ -110,7 +111,7 @@ export class AuthService {
     }
 
     return firstValueFrom(
-      this.http.post<void>(`${apiConfig.baseUrl}/api/public/auth/verify-2fa`, {
+      this.http.post<void>(`${environment.apiSpringUrl}/api/public/auth/verify-2fa`, {
         sessionId,
         code2FA: code,
       }),
@@ -146,7 +147,7 @@ export class AuthService {
 
     try {
       await firstValueFrom(
-        this.http.post<void>(`${apiConfig.baseUrl}/api/public/auth/cancel-2fa`, {
+        this.http.post<void>(`${environment.apiSpringUrl}/api/public/auth/cancel-2fa`, {
           sessionId,
         }),
       );

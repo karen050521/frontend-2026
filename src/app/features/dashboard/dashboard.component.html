@@ -3,352 +3,64 @@
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="header-greeting">{{ getSaludo() }}, {{ getNombreUsuario() }}! ðŸ‘‹</h1>
-        <p class="header-subtitle">Â¿A dÃ³nde quieres ir hoy?</p>
+        <h1 class="header-greeting">{{ getSaludo() }}, {{ getNombreUsuario() }}! ??</h1>
+        <p class="header-subtitle">Bienvenido a tu dashboard personalizado</p>
       </div>
     </div>
   </div>
 
-  <!-- Quick Actions / Acciones RÃ¡pidas -->
-  <div class="quick-actions">
-    <button class="action-card action-primary" (click)="iniciarSolicitud()">
-      <div class="action-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
-      </div>
-      <div class="action-content">
-        <h3>Pedir un bus</h3>
-        <p>Solicita un viaje ahora</p>
-      </div>
-      <div class="action-arrow">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
-
-    <button class="action-card" (click)="abrirHistorial()">
-      <div class="action-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <div class="action-content">
-        <h3>Historial</h3>
-        <p>Tus viajes anteriores</p>
-      </div>
-      <div class="action-arrow">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
-
-    <button class="action-card" (click)="abrirFavoritos()">
-      <div class="action-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M5 5a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V5z"
-          />
-        </svg>
-      </div>
-      <div class="action-content">
-        <h3>Rutas Favoritas</h3>
-        <p>Viajes guardados</p>
-      </div>
-      <div class="action-arrow">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
-
-    <button class="action-card" (click)="verTodasLasRutas()">
-      <div class="action-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 6l6 6m0 0l6-6m-6 6v12m0 0l-6-6m6 6l6-6"
-          />
-        </svg>
-      </div>
-      <div class="action-content">
-        <h3>Ver Todas las Rutas</h3>
-        <p>Explora todas las rutas disponibles</p>
-      </div>
-      <div class="action-arrow">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
-
-    <button class="action-card" (click)="verMisBoletos()">
-      <div class="action-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 4v12a2 2 0 01-2 2H2a2 2 0 01-2-2V4a2 2 0 012-2h12a2 2 0 012 2zm-6 6h4m-4 4h4M4 8h4m-4 4h4"
-          />
-        </svg>
-      </div>
-      <div class="action-content">
-        <h3>Mis Boletos</h3>
-        <p>Gestiona tus boletos de viaje</p>
-      </div>
-      <div class="action-arrow">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
+  <!-- Selector Dinámico por Rol -->
+  <div class="role-indicator bg-white dark:bg-gray-800 rounded-lg p-4 shadow mb-6">
+    <p class="text-sm text-gray-600 dark:text-gray-400">Rol Actual:</p>
+    <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ userRole() || "No asignado" }}</p>
   </div>
 
-  <!-- Tabs Navigation -->
-  <div class="tabs-container">
-    <div class="tabs-nav">
-      <button
-        class="tab-button"
-        [class.active]="activeTab() === 'solicitudes'"
-        (click)="irASolicitudes()"
-      >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        Solicitudes Activas
-      </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab() === 'historial'"
-        (click)="abrirHistorial()"
-      >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        Historial
-      </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab() === 'favoritos'"
-        (click)="abrirFavoritos()"
-      >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-          />
-        </svg>
-        Favoritos
-      </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab() === 'todas-las-rutas'"
-        (click)="verTodasLasRutas()"
-      >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4"
-          />
-        </svg>
-        Todas las Rutas
-      </button>
-      <button
-        class="tab-button"
-        [class.active]="activeTab() === 'boletos'"
-        (click)="verMisBoletos()"
-      >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 4v12a2 2 0 01-2 2H2a2 2 0 01-2-2V4a2 2 0 012-2h12a2 2 0 012 2zm-6 6h4m-4 4h4M4 8h4m-4 4h4"
-          />
-        </svg>
-        Mis Boletos
-      </button>
+  <!-- Renderizado Dinámico según Rol -->
+  @if (isCitizen()) {
+    <!-- Dashboard para Ciudadanos/Usuarios -->
+    <app-citizen-dashboard></app-citizen-dashboard>
+  } @else if (isConductor()) {
+    <!-- Dashboard para Conductores -->
+    <app-conductor-dashboard></app-conductor-dashboard>
+  } @else if (isCompanyAdmin()) {
+    <!-- Dashboard para Administradores de Empresa -->
+    <app-company-dashboard></app-company-dashboard>
+  } @else if (isAdmin()) {
+    <!-- Dashboard para Administradores (mostrar Analytics como opción) -->
+    <div class="space-y-6 p-6">
+      <div class="bg-blue-50 dark:bg-blue-900 border-2 border-blue-500 rounded-lg p-6">
+        <h2 class="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+          Bienvenido Administrador
+        </h2>
+        <p class="text-blue-800 dark:text-blue-200 mb-4">
+          Tienes acceso a todas las funcionalidades del sistema. Dirígete al área de administración para gestionar usuarios, roles y permisos.
+        </p>
+        <div class="flex gap-3">
+          <a href="/admin/user-role" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+            Ir a Administración
+          </a>
+          <a href="/analytics" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">
+            Ver Analytics
+          </a>
+        </div>
+      </div>
+      
+      <!-- Opción de Analytics -->
+      <app-analytics-dashboard></app-analytics-dashboard>
     </div>
-  </div>
-
-  <!-- Content Sections -->
-  <div class="content-sections">
-    <!-- Solicitudes Activas Tab -->
-    @if (activeTab() === 'solicitudes') {
-      <div class="tab-content fade-in">
-        <div class="section-header">
-          <h2>Solicitudes Activas</h2>
-          <p class="section-description">Tus viajes en curso</p>
-        </div>
-
-        <div class="empty-state">
-          <div class="empty-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h3>No hay solicitudes activas</h3>
-          <p>Comienza a solicitar un bus para ver tu viaje aquÃ­</p>
-          <button class="btn-primary" (click)="iniciarSolicitud()">Pedir un bus ahora</button>
-        </div>
-      </div>
-    }
-
-    <!-- Historial Tab -->
-    @if (activeTab() === 'historial') {
-      <div class="tab-content fade-in">
-        <div class="section-header">
-          <h2>Historial de Viajes</h2>
-          <p class="section-description">Todos tus viajes anteriores</p>
-        </div>
-
-        <div class="empty-state">
-          <div class="empty-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h3>Sin historial</h3>
-          <p>Tu historial de viajes aparecerÃ¡ aquÃ­</p>
-        </div>
-      </div>
-    }
-
-    <!-- Favoritos Tab -->
-    @if (activeTab() === 'favoritos') {
-      <div class="tab-content fade-in">
-        <div class="section-header">
-          <h2>Rutas Favoritas</h2>
-          <p class="section-description">Tus rutas mÃ¡s frecuentes</p>
-        </div>
-
-        <div class="empty-state">
-          <div class="empty-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-              />
-            </svg>
-          </div>
-          <h3>Sin rutas favoritas</h3>
-          <p>Guarda tus rutas favoritas para acceso rÃ¡pido</p>
-        </div>
-      </div>
-    }
-
-    <!-- Todas las Rutas Tab -->
-    @if (activeTab() === 'todas-las-rutas') {
-      <div class="tab-content fade-in">
-        <app-all-routes></app-all-routes>
-      </div>
-    }
-
-    <!-- Mis Boletos Tab -->
-    @if (activeTab() === 'boletos') {
-      <div class="tab-content fade-in">
-        <app-boletos></app-boletos>
-      </div>
-    }
-  </div>
-
-  <!-- Info Cards -->
-  <div class="info-cards">
-    <div class="info-card">
-      <div class="info-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <div class="info-content">
-        <h4>Centro de Ayuda</h4>
-        <p>Â¿Necesitas ayuda? Consulta nuestras preguntas frecuentes</p>
-      </div>
+  } @else if (isAnalyst()) {
+    <!-- Dashboard para Analistas/Financieros -->
+    <app-analytics-dashboard></app-analytics-dashboard>
+  } @else {
+    <!-- Dashboard por defecto si no coincide ningún rol -->
+    <div class="bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-500 rounded-lg p-6 text-center">
+      <svg class="w-12 h-12 mx-auto text-yellow-600 dark:text-yellow-300 mb-2" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+      </svg>
+      <h2 class="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mb-2">Rol No Configurado</h2>
+      <p class="text-yellow-800 dark:text-yellow-200">
+        Tu rol no ha sido asignado aún. Por favor, contacta con el administrador.
+      </p>
     </div>
-
-    <div class="info-card">
-      <div class="info-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <div class="info-content">
-        <h4>Seguridad</h4>
-        <p>Todos nuestros viajes incluyen protecciÃ³n y seguridad</p>
-      </div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <div class="info-content">
-        <h4>Precios Transparentes</h4>
-        <p>Sin cargos ocultos, lo que ves es lo que pagas</p>
-      </div>
-    </div>
-  </div>
+  }
 </div>
-
-<app-toast-container></app-toast-container>

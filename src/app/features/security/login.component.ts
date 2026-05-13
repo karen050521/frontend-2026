@@ -198,6 +198,11 @@ export class LoginComponent implements OnInit, OnDestroy {
         return;
       }
 
+      const tokenRole = this.authService.getTokenRole();
+      if (tokenRole) {
+        this.authService.setCurrentRole(tokenRole);
+      }
+
       // Obtener roles del usuario
       this.userRoleService.getUserRoles(currentUser.id).subscribe({
         next: (userRoles) => {
@@ -210,7 +215,9 @@ export class LoginComponent implements OnInit, OnDestroy {
           }
 
           if (roles.length === 1) {
-            // Un solo rol, navegar directamente
+            // Un solo rol, persistirlo y navegar directamente
+            const onlyRole = roles[0];
+            this.persistSelectedRole(onlyRole.id || onlyRole.name || '');
             this.router.navigate([this.returnUrl]);
             return;
           }
@@ -221,44 +228,94 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error al obtener roles del usuario:', error);
-          // En caso de error, navegar igualmente
+          // En caso de error, usar el rol del token como fallback para no dejar el dashboard vacío
+          if (tokenRole) {
+            this.authService.setCurrentRole(tokenRole);
+          }
           this.router.navigate([this.returnUrl]);
         },
       });
     } catch (error) {
       console.error('Error en loadUserRolesAndNavigate:', error);
-      // En caso de error, navegar igualmente
+      const tokenRole = this.authService.getTokenRole();
+      if (tokenRole) {
+        this.authService.setCurrentRole(tokenRole);
+      }
       this.router.navigate([this.returnUrl]);
     }
   }
 
   /**
    * Maneja la selección de rol del modal
+   * Redirección DINÁMICA según rol
    */
-onRoleSelected(roleName: string): void {
-  // 1. Guardar el rol en el servicio y localStorage
-  this.authService.setCurrentRole(roleName);
-  
-  const role = roleName.toLowerCase();
-  console.log('Navegando como:', role);
+  onRoleSelected(roleName: string): void {
+    const normalizedRole = this.persistSelectedRole(roleName);
 
-  // 2. Redirección forzada según el rol
-  if (role.includes('admin')) {
-    // Si eres admin, te mando a la lista de roles o permisos
-    this.router.navigate(['/roles']); 
-  } else if (role.includes('conductor') || role.includes('operador')) {
-    this.router.navigate(['/registro-bus']);
-  } else {
-    this.router.navigate(['/dashboard']);
-  }
+    console.log('🔐 Rol seleccionado:', normalizedRole);
 
-  // 3. Cerrar el modal (ajusta si es señal o variable)
-  if (typeof this.isRoleSelectionModalOpen === 'function') {
+    const redirectPath = this.getRedirectPathForRole(normalizedRole);
+
     this.isRoleSelectionModalOpen.set(false);
-  } else {
-    (this.isRoleSelectionModalOpen as any).set(false);
+
+    console.log('📍 Navegando a:', redirectPath);
+    this.router.navigate([redirectPath]);
   }
-}
+
+  /**
+   * Persiste el rol elegido usando el nombre real del rol, no el id del registro.
+   */
+  private persistSelectedRole(roleIdOrName: string): string {
+    const normalizedLookup = roleIdOrName.toLowerCase().trim();
+    const selectedRole = this.userRoles().find((role) => {
+      const roleId = role.id?.toLowerCase().trim();
+      const roleName = role.name?.toLowerCase().trim();
+      return roleId === normalizedLookup || roleName === normalizedLookup;
+    });
+
+    const roleName = (selectedRole?.name || roleIdOrName).toLowerCase().trim();
+    localStorage.setItem('user_role', roleName);
+    this.authService.setCurrentRole(roleName);
+    return roleName;
+  }
+
+  /**
+   * Resuelve la ruta de destino a partir del rol normalizado.
+   */
+  private getRedirectPathForRole(normalizedRole: string): string {
+    if (normalizedRole.includes('administrador de empresa')) {
+      this.toastService.success('✅ Accediendo como Administrador de Empresa');
+      return '/registro-bus';
+    }
+
+    if (normalizedRole.includes('conductor')) {
+      this.toastService.success('✅ Accediendo como Conductor');
+      return '/dashboard';
+    }
+
+    if (normalizedRole.includes('administrador') || normalizedRole === '69b1f1e630276cc75c84424a') {
+      this.toastService.success('✅ Accediendo como Administrador del Sistema');
+      return '/admin/user-role';
+    }
+
+    if (
+      normalizedRole.includes('analista') ||
+      normalizedRole.includes('financiero') ||
+      normalizedRole.includes('gerente') ||
+      normalizedRole.includes('marketing')
+    ) {
+      this.toastService.success('✅ Accediendo a Analytics');
+      return '/analytics';
+    }
+
+    if (normalizedRole.includes('ciudadano')) {
+      this.toastService.success('✅ Accediendo como Ciudadano');
+      return '/dashboard';
+    }
+
+    this.toastService.warning('⚠️ Rol no reconocido. Accediendo a dashboard por defecto');
+    return '/dashboard';
+  }
 
   /**
    * Cierra el modal de selección de roles

@@ -1,0 +1,296 @@
+<div class="space-y-6 p-6">
+  <!-- KPIs Principales -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Ingresos Totales -->
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+      <p class="text-sm opacity-80">Ingresos Totales</p>
+      <h3 class="text-2xl font-bold mt-2">{{ formatCurrency(ingresoTotal()) }}</h3>
+      <p class="text-xs opacity-70 mt-2">Últimos 5 meses</p>
+    </div>
+
+    <!-- Viajes Realizados -->
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+      <p class="text-sm opacity-80">Viajes Realizados</p>
+      <h3 class="text-2xl font-bold mt-2">{{ viajesTotal().toLocaleString() }}</h3>
+      <p class="text-xs opacity-70 mt-2">Últimos 5 meses</p>
+    </div>
+
+    <!-- Usuarios Activos -->
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+      <p class="text-sm opacity-80">Usuarios Activos</p>
+      <h3 class="text-2xl font-bold mt-2">{{ usuariosActivos().toLocaleString() }}</h3>
+      <p class="text-xs opacity-70 mt-2">Este mes</p>
+    </div>
+
+    <!-- Incidentes Resueltos -->
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+      <p class="text-sm opacity-80">Incidentes Resueltos</p>
+      <h3 class="text-2xl font-bold mt-2">{{ incidentesResueltos() }}</h3>
+      <p class="text-xs opacity-70 mt-2">Este trimestre</p>
+    </div>
+  </div>
+
+  <!-- Filtro de Rango de Fecha -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+    <label class="block font-bold mb-2">Período de Análisis</label>
+    <div class="flex gap-2 flex-wrap">
+      @for (periodo of ['semana', 'mes', 'trimestre', 'año']; track periodo) {
+        <button
+          (click)="dateRangeFilter.set(periodo)"
+          [class]="
+            'px-4 py-2 rounded-lg font-bold transition ' +
+            (dateRangeFilter() === periodo
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600')
+          "
+        >
+          {{ periodo.charAt(0).toUpperCase() + periodo.slice(1) }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- HU-014: Reportes de Ingresos -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Gráfico de Ingresos Mensuales -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+          </svg>
+          Ingresos Mensuales (HU-014)
+        </h2>
+        <button
+          (click)="descargarReporteIngresos()"
+          class="text-blue-500 hover:text-blue-700 font-bold flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2z" />
+          </svg>
+          Descargar
+        </button>
+      </div>
+
+      <!-- Placeholder Gráfico de Líneas -->
+      <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
+        <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400">Gráfico de líneas - Ingresos por mes</p>
+      </div>
+
+      <!-- Tabla de Ingresos -->
+      <table class="w-full text-sm">
+        <tbody>
+          @for (item of ingresosMensuales(); track item.mes) {
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <td class="px-3 py-2 font-bold">{{ item.mes }}</td>
+              <td class="px-3 py-2 text-right">{{ formatCurrency(item.ingresos) }}</td>
+              <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ item.viajes }} viajes</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Ingresos por Ruta -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
+        </svg>
+        Ingresos por Ruta
+      </h2>
+
+      <div class="space-y-4">
+        @for (ruta of ingresosPorRuta(); track ruta.ruta) {
+          <div>
+            <div class="flex justify-between mb-1 text-sm">
+              <span class="font-bold">{{ ruta.ruta }}</span>
+              <span class="text-gray-600 dark:text-gray-400">{{ formatCurrency(ruta.ingresos) }}</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                [style.width.%]="ruta.percentage"
+              ></div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ruta.percentage }}% del total</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- HU-015: Demografía -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Género -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+          </svg>
+          Distribución por Género (HU-015)
+        </h2>
+        <button
+          (click)="descargarReporteDemografia()"
+          class="text-blue-500 hover:text-blue-700 font-bold flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2z" />
+          </svg>
+          Descargar
+        </button>
+      </div>
+
+      <!-- Placeholder Gráfico Pastel -->
+      <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
+        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400">Gráfico de pastel - Distribución demográfica</p>
+      </div>
+
+      <div class="space-y-3">
+        @for (demo of [{ label: 'Hombres', valor: demografiaUsuarios().hombres, color: 'bg-blue-500' }, { label: 'Mujeres', valor: demografiaUsuarios().mujeres, color: 'bg-pink-500' }, { label: 'Otros', valor: demografiaUsuarios().otros, color: 'bg-purple-500' }]; track demo.label) {
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-bold text-sm">{{ demo.label }}</span>
+              <span class="text-sm">{{ demo.valor }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+              <div [class]="demo.color + ' h-3 rounded-full'" [style.width.%]="demo.valor"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Rango de Edades -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+        </svg>
+        Rango de Edades
+      </h2>
+
+      <!-- Placeholder Gráfico de Barras -->
+      <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
+        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400">Gráfico de barras - Edad de usuarios</p>
+      </div>
+
+      <div class="space-y-3">
+        @for (edad of rangoEdades(); track edad.rango) {
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-bold text-sm">{{ edad.rango }} años</span>
+              <span class="text-sm">{{ edad.porcentaje }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+              <div class="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full" [style.width.%]="edad.porcentaje"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- HU-016: Tendencias de Incidentes -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Incidentes por Tipo -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+          </svg>
+          Incidentes por Tipo (HU-016)
+        </h2>
+        <button
+          (click)="descargarReporteIncidentes()"
+          class="text-blue-500 hover:text-blue-700 font-bold flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2z" />
+          </svg>
+          Descargar
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        @for (incident of incidentesPorTipo(); track incident.tipo) {
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-sm">{{ incident.tipo }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold">{{ incident.cantidad }}</span>
+                <span [class]="'text-xs font-bold ' + getTrendColor(incident.tendencia)">{{ incident.tendencia }}</span>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+              <div
+                [class]="'h-4 rounded-full ' + getIncidentTypeColor(incident.tipo)"
+                [style.width.%]="getBarHeight(incident.cantidad, 70)"
+              ></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Tendencia de Incidentes por Mes -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
+        </svg>
+        Tendencia Mensual
+      </h2>
+
+      <!-- Placeholder Gráfico de Líneas -->
+      <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
+        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        <p class="text-gray-500 dark:text-gray-400">Gráfico de líneas - Incidentes por mes</p>
+      </div>
+
+      <table class="w-full text-sm">
+        <tbody>
+          @for (item of incidentesPorMes(); track item.mes) {
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <td class="px-3 py-2 font-bold">{{ item.mes }}</td>
+              <td class="px-3 py-2 text-right">{{ item.cantidad }} incidentes</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

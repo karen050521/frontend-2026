@@ -1,19 +1,26 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { ToastContainerComponent } from '../../shared/components/toast-container/toast-container.component';
-import { AllRoutesComponent } from './all-routes/all-routes.component';
-import { BoletosComponent } from '../boletos/boletos.component';
+import { CitizenDashboardComponent } from './citizen-dashboard/citizen-dashboard.component';
+import { ConductorDashboardComponent } from './conductor-dashboard/conductor-dashboard.component';
+import { CompanyDashboardComponent } from './company-dashboard/company-dashboard.component';
+import { AnalyticsDashboardComponent } from './analytics-dashboard/analytics-dashboard.component';
 
 /**
- * DashboardComponent - Dashboard principal para usuarios (consumidores)
- * Vista para solicitar servicios (buses, etc.)
+ * DashboardComponent - Dashboard dinámico según rol
+ * Renderiza diferentes sub-dashboards basado en el rol del usuario
  */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ToastContainerComponent, AllRoutesComponent, BoletosComponent],
+  imports: [
+    CommonModule,
+    CitizenDashboardComponent,
+    ConductorDashboardComponent,
+    CompanyDashboardComponent,
+    AnalyticsDashboardComponent,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -22,6 +29,43 @@ export class DashboardComponent implements OnInit {
   protected activeTab = signal<
     'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas' | 'boletos'
   >('solicitudes');
+
+  // Signal del rol actual
+  protected userRole = computed(() => {
+    const role = this.authService.activeRole() || localStorage.getItem('user_role') || '';
+    return role.toLowerCase().trim();
+  });
+
+  // Señales para cada tipo de rol
+  protected isCitizen = computed(() => {
+    const role = this.userRole();
+    return role.includes('ciudadano') || role === '';
+  });
+
+  protected isConductor = computed(() => {
+    const role = this.userRole();
+    return role.includes('conductor');
+  });
+
+  protected isCompanyAdmin = computed(() => {
+    const role = this.userRole();
+    return role.includes('administrador de empresa') || role.includes('company');
+  });
+
+  protected isAdmin = computed(() => {
+    const role = this.userRole();
+    return role.includes('administrador') || role === '69b1f1e630276cc75c84424a';
+  });
+
+  protected isAnalyst = computed(() => {
+    const role = this.userRole();
+    return (
+      role.includes('analista') ||
+      role.includes('financiero') ||
+      role.includes('gerente') ||
+      role.includes('marketing')
+    );
+  });
 
   constructor(
     public authService: AuthService,
@@ -34,6 +78,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('👤 Dashboard cargado para:', this.currentUser?.name);
+    console.log('🔐 Rol activo:', this.userRole());
   }
 
   /**

@@ -1,0 +1,33 @@
+/* CompanyDashboard Styles */
+:host {
+  display: block;
+}
+
+/* Animaciones */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Tabla responsiva */
+table {
+  border-collapse: collapse;
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 1rem;
+  }
+
+  table {
+    font-size: 0.75rem;
+  }
+}

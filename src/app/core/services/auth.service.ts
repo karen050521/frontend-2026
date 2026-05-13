@@ -78,6 +78,7 @@ export class AuthService {
   constructor(private http: HttpClient) {
     // Cargar usuario desde localStorage si existe
     this.loadUserFromStorage();
+    this.syncActiveRoleFromToken();
     console.log('AuthService Init - Rol en Storage:', localStorage.getItem('user_role'));
   }
 
@@ -90,6 +91,29 @@ setCurrentRole(roleName: string): void {
   localStorage.setItem(this.userRoleStorageKey, role);
   this._activeRole.set(role); // Esto es lo que avisa al Sidebar que debe redibujarse
 }
+
+  /**
+   * Obtiene el rol directamente desde el JWT cuando existe.
+   */
+  getTokenRole(): string | null {
+    const token = this.getToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const decoded: JwtPayload & {
+        role?: string;
+        userRole?: string;
+        roles?: string[];
+      } = jwtDecode(token);
+
+      const tokenRole = decoded.role || decoded.userRole || decoded.roles?.[0];
+      return typeof tokenRole === 'string' && tokenRole.trim() ? tokenRole.toLowerCase().trim() : null;
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * 5. Obtener el rol actual (útil para guardias o lógica puntual)
@@ -404,6 +428,7 @@ setCurrentRole(roleName: string): void {
     const sessionUser = user || this.buildUserFromToken(token);
     this._currentUser.set(sessionUser);
     this.saveUserToStorage(sessionUser);
+    this.syncActiveRoleFromToken(token);
   }
 
   /**
@@ -465,5 +490,30 @@ setCurrentRole(roleName: string): void {
       email,
       photoUrl: decoded.photoUrl || null,
     };
+  }
+
+  /**
+   * Sincroniza el rol activo desde el token para que el dashboard no quede vacío.
+   */
+  private syncActiveRoleFromToken(token?: string): void {
+    const tokenRole = token ? this.extractRoleFromToken(token) : this.getTokenRole();
+    if (tokenRole && !this.getStoredRole()) {
+      this.setCurrentRole(tokenRole);
+    }
+  }
+
+  private extractRoleFromToken(token: string): string | null {
+    try {
+      const decoded: JwtPayload & {
+        role?: string;
+        userRole?: string;
+        roles?: string[];
+      } = jwtDecode(token);
+
+      const tokenRole = decoded.role || decoded.userRole || decoded.roles?.[0];
+      return typeof tokenRole === 'string' && tokenRole.trim() ? tokenRole.toLowerCase().trim() : null;
+    } catch {
+      return null;
+    }
   }
 }

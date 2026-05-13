@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CitizenDashboardComponent } from './citizen-dashboard/citizen-dashboard.component';
@@ -70,6 +71,7 @@ export class DashboardComponent implements OnInit {
   constructor(
     public authService: AuthService,
     private toastService: ToastService,
+    private route: ActivatedRoute,
   ) {}
 
   protected get currentUser() {
@@ -79,6 +81,15 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('👤 Dashboard cargado para:', this.currentUser?.name);
     console.log('🔐 Rol activo:', this.userRole());
+
+    this.route.queryParamMap.subscribe((params) => {
+      const tab = params.get('tab');
+      if (tab === 'boletos') {
+        this.verMisBoletos();
+      } else if (tab === 'todas-las-rutas') {
+        this.verTodasLasRutas();
+      }
+    });
   }
 
   /**

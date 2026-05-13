@@ -27,6 +27,7 @@ type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 })
 export class BoletosComponent implements OnInit {
   private readonly tokenStorageKey = 'authToken';
+  private readonly currentUserStorageKey = 'currentUser';
 
   protected boletoService = signal<BoletoService | null>(null);
   protected searchQuery = signal<string>('');
@@ -90,6 +91,12 @@ export class BoletosComponent implements OnInit {
   protected get filteredBoletos() {
     let boletos = this.boletoServiceInst.boletos();
 
+    // Filtrar por usuario actual: obtener id desde localStorage 'currentUser' o desde token
+    const currentUserId = this.getCurrentUserId();
+    if (currentUserId) {
+      boletos = boletos.filter((b) => this.isBoletoOwnedBy(b, currentUserId));
+    }
+
     // Filtrar por estado
     const status = this.statusFilter();
     if (status !== 'TODOS') {
@@ -135,7 +142,12 @@ export class BoletosComponent implements OnInit {
    */
 
   private loadBoletos(): void {
-    this.boletoServiceInst.getBoletos().subscribe({
+    const currentUserId = this.getCurrentUserId();
+    const boletosRequest = currentUserId
+      ? this.boletoServiceInst.getBoletosByUserId(currentUserId)
+      : this.boletoServiceInst.getBoletos();
+
+    boletosRequest.subscribe({
       next: (boletos) => {
         console.log('✅ Boletos cargados:', boletos.length);
       },
@@ -267,6 +279,58 @@ export class BoletosComponent implements OnInit {
    */
   protected retryLoad(): void {
     this.loadBoletos();
+  }
+
+  /**
+   * Obtiene el id del usuario actual desde localStorage o desde el token JWT
+   */
+  private getCurrentUserId(): number | null {
+    // 1) intentar desde currentUser guardado por AuthService
+    const raw = localStorage.getItem(this.currentUserStorageKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { id?: string | number };
+        const parsedId = Number(parsed?.id);
+        if (Number.isFinite(parsedId)) return parsedId;
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2) fallback: intentar extraer del token (sub, id, userId)
+    const token = localStorage.getItem(this.tokenStorageKey);
+    if (!token) return null;
+
+    try {
+      // use dynamic parse to avoid adding new deps; jwt is JSON-safe base64
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const tokenId = Number(payload?.id || payload?.userId || payload?.sub);
+      return Number.isFinite(tokenId) ? tokenId : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Comprueba varias formas de relación entre boleto y usuario
+   */
+  private isBoletoOwnedBy(boleto: any, userId: number): boolean {
+    if (!boleto) return false;
+    const candidateIds = [
+      boleto.userId,
+      boleto.user?.id,
+      boleto.usuarioId,
+      boleto.user_id,
+      boleto.ownerId,
+      boleto.clientId,
+    ];
+    for (const v of candidateIds) {
+      if (v === undefined || v === null) continue;
+      if (Number(v) === userId) return true;
+    }
+    // También puede haber un campo 'user' con objeto id dentro
+    if (boleto.user && typeof boleto.user === 'string' && Number(boleto.user) === userId) return true;
+    return false;
   }
 
   /**

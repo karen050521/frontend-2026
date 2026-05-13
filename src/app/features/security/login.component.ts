@@ -295,7 +295,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (normalizedRole.includes('administrador') || normalizedRole === '69b1f1e630276cc75c84424a') {
       this.toastService.success('✅ Accediendo como Administrador del Sistema');
-      return '/admin/user-role';
+      return '/user-role';
     }
 
     if (

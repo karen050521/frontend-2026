@@ -235,16 +235,30 @@ export class LoginComponent implements OnInit, OnDestroy {
   /**
    * Maneja la selección de rol del modal
    */
-  onRoleSelected(roleId: string): void {
-    this.isSelectingRole.set(true);
-    // Aquí podrías guardar el rol seleccionado si lo necesitas
-    // Por ahora, simplemente cerramos el modal y navegamos
-    setTimeout(() => {
-      this.isRoleSelectionModalOpen.set(false);
-      this.isSelectingRole.set(false);
-      this.router.navigate([this.returnUrl]);
-    }, 300);
+onRoleSelected(roleName: string): void {
+  // 1. Guardar el rol en el servicio y localStorage
+  this.authService.setCurrentRole(roleName);
+  
+  const role = roleName.toLowerCase();
+  console.log('Navegando como:', role);
+
+  // 2. Redirección forzada según el rol
+  if (role.includes('admin')) {
+    // Si eres admin, te mando a la lista de roles o permisos
+    this.router.navigate(['/roles']); 
+  } else if (role.includes('conductor') || role.includes('operador')) {
+    this.router.navigate(['/registro-bus']);
+  } else {
+    this.router.navigate(['/dashboard']);
   }
+
+  // 3. Cerrar el modal (ajusta si es señal o variable)
+  if (typeof this.isRoleSelectionModalOpen === 'function') {
+    this.isRoleSelectionModalOpen.set(false);
+  } else {
+    (this.isRoleSelectionModalOpen as any).set(false);
+  }
+}
 
   /**
    * Cierra el modal de selección de roles

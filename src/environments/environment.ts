@@ -4,7 +4,7 @@
 export const environment = {
   production: false,
 
-  apiBaseUrl: 'http://localhost:3000',
+  apiBaseUrl: 'http://localhost:8181',
   // Backend de NestJS (Lógica de Negocio)
   apiNestUrl: 'http://localhost:3000', 
 
@@ -16,6 +16,7 @@ export const environment = {
     boletos: '/boletos',
     buses: '/bus',
     paraderos: '/paradero',
+    rutas: '/ruta',
     
     // Estos van para Spring Boot (Ajusta la ruta si tu Spring usa /api/auth)
     auth: '/api/public/auth/login', 

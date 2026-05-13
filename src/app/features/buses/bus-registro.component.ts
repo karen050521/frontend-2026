@@ -51,12 +51,10 @@ export class BusRegistroComponent implements OnInit {
     });
   }
 
-  // ESTA ES LA FUNCIÓN QUE SE TE HABÍA BORRADO:
   obtenerBuses(): void {
     this.busService.listarBuses().subscribe({
       next: (data) => {
-        // Filtramos aquí mismo para ocultar los "fuera de servicio"
-        this.buses = data.filter((bus) => bus.estado !== 'fuera de servicio');
+        this.buses = data.filter((bus) => this.toApiEstado(bus?.estado) !== 'fuera_de_servicio');
       },
       error: () => console.error('Error al cargar la lista de buses'),
     });
@@ -77,7 +75,12 @@ export class BusRegistroComponent implements OnInit {
     }
 
     this.isSaving = true;
-    this.busService.registrarBus(this.form.value, this.selectedFile).subscribe({
+    const payload = {
+      ...this.form.value,
+      estado: this.toBackendEstado(this.form.value?.estado),
+    };
+
+    this.busService.registrarBus(payload, this.selectedFile).subscribe({
       next: (res) => {
         // Mostrar modal de éxito y toast consistente con el proyecto
         this.modalService.openInfo({
@@ -106,7 +109,7 @@ export class BusRegistroComponent implements OnInit {
 
   openEstadoModal(bus: any): void {
     this.modalBus = bus;
-    this.modalState = bus.estado || 'operativo';
+    this.modalState = this.toBackendEstado(bus?.estado);
     this.modalOpen = true;
   }
 
@@ -118,13 +121,10 @@ export class BusRegistroComponent implements OnInit {
   saveEstado(): void {
     if (!this.modalBus) return;
     const id = this.modalBus.id;
-    // Algunos backends validan el valor exacto; convertimos underscores a espacios por seguridad
-    const payloadState = (this.modalState || '').includes('_')
-      ? this.modalState.replace(/_/g, ' ')
-      : this.modalState;
+    const payloadState = this.toBackendEstado(this.modalState);
 
     this.busService.actualizarEstado(id, payloadState).subscribe({
-      next: (res: any) => {
+      next: () => {
         const idx = this.buses.findIndex((b) => b.id === id);
         if (idx >= 0) this.buses[idx].estado = payloadState;
         this.closeEstadoModal();
@@ -140,32 +140,23 @@ export class BusRegistroComponent implements OnInit {
         console.error('Error actualizando estado', err);
         const serverMessage =
           err?.error?.message || err?.message || 'Error al actualizar el estado';
-        // Si el payload con espacios falló y la versión con underscores es diferente, intentamos con la original
-        if (err?.status === 400 && payloadState !== this.modalState) {
-          this.busService.actualizarEstado(id, this.modalState).subscribe({
-            next: (res2: any) => {
-              const idx2 = this.buses.findIndex((b) => b.id === id);
-              if (idx2 >= 0) this.buses[idx2].estado = this.modalState;
-              this.closeEstadoModal();
-              this.modalService
-                .openInfo({
-                  title: 'Estado actualizado',
-                  message: `El estado del bus ${this.buses[idx2]?.placa || this.buses[idx2]?.plate || id} ha sido actualizado correctamente.`,
-                })
-                .then(() => {});
-              this.toastService.success('Estado actualizado correctamente');
-            },
-            error: (err2: any) => {
-              console.error('Segundo intento falló', err2);
-              this.modalService.openError({ title: 'Error', message: serverMessage });
-            },
-          });
-          return;
-        }
-
         this.modalService.openError({ title: 'Error al actualizar', message: serverMessage });
       },
     });
+  }
+
+  private toApiEstado(value: string | null | undefined): string {
+    const normalized = (value || 'operativo').toString().trim().toLowerCase().replace(/\s+/g, '_');
+
+    if (normalized === 'fuera_de_servicio') return normalized;
+    if (normalized === 'mantenimiento') return normalized;
+    return 'operativo';
+  }
+
+  private toBackendEstado(value: string | null | undefined): string {
+    const apiValue = this.toApiEstado(value);
+    if (apiValue === 'fuera_de_servicio') return 'fuera de servicio';
+    return apiValue;
   }
 
   normalizePlate(event: any): void {
@@ -174,3 +165,4 @@ export class BusRegistroComponent implements OnInit {
     this.form.get('placa')?.setValue(val, { emitEvent: false });
   }
 }
+

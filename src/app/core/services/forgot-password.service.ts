@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { apiConfig } from '../config/api.config';
+import { environment } from '../../../environments/environment';
 
 interface ForgotPasswordResponse {
   message: string;
@@ -15,7 +15,7 @@ interface ResetPasswordResponse {
   providedIn: 'root',
 })
 export class ForgotPasswordService {
-  private baseUrl = apiConfig.baseUrl;
+  private baseUrl = environment.apiSpringUrl;
 
   constructor(private http: HttpClient) {}
 

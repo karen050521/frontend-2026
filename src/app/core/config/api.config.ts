@@ -10,7 +10,12 @@ export const apiConfig = {
    * URL base de la API del backend
    * Se importa desde environments
    */
-  baseUrl: environment.apiNestUrl,
+  baseUrl: environment.apiBaseUrl,
+
+  /**
+   * URL base del backend Spring Boot
+   */
+  springBaseUrl: environment.apiSpringUrl,
 
   /**
    * Clave del sitio de Google reCAPTCHA v3
@@ -24,9 +29,9 @@ export const apiConfig = {
    */
   endpoints: (function () {
     const defaultEndpoints = {
-      roles: '/api/private/roles',
+      auth: '/api/public/auth/login',
       users: '/api/private/users',
-      auth: '/auth',
+      roles: '/api/private/roles',
       permissions: '/api/private/permissions',
       'role-permission': '/api/private/role-permission',
       'user-role': '/api/private/user-role',
@@ -45,6 +50,11 @@ export const apiConfig = {
 
     return defaultEndpoints;
   })(),
+
+  /**
+   * Endpoints que deben ir al backend Spring Boot
+   */
+  springEndpoints: ['auth', 'users', 'roles', 'permissions'] as const,
 };
 
 /**
@@ -90,5 +100,11 @@ export const oauthConfig = {
  * @returns URL completa
  */
 export function getApiUrl(endpoint: keyof typeof apiConfig.endpoints): string {
-  return `${apiConfig.baseUrl}${apiConfig.endpoints[endpoint]}`;
+  const baseUrl = apiConfig.springEndpoints.includes(
+    endpoint as (typeof apiConfig.springEndpoints)[number],
+  )
+    ? apiConfig.springBaseUrl
+    : apiConfig.baseUrl;
+
+  return `${baseUrl}${apiConfig.endpoints[endpoint]}`;
 }

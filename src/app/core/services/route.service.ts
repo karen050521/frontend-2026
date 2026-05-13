@@ -11,7 +11,7 @@ export class RouteService {
   private readonly apiUrl: string;
 
   constructor(private http: HttpClient) {
-    this.apiUrl = `${environment.apiBaseUrl}/routes`;
+    this.apiUrl = `${environment.apiNestUrl}/ruta`;
   }
 
   /**

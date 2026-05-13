@@ -62,17 +62,40 @@ export class AuthService {
   private readonly twoFactorExpiresAtStorageKey = '2faExpiresAt';
   private readonly twoFactorAttemptsStorageKey = '2faAttemptsRemaining';
   private readonly twoFactorEmailStorageKey = '2faEmail';
-
+  private readonly userRoleStorageKey = 'user_role';
   // Estado del usuario actual
   private readonly _currentUser = signal<User | null>(null);
 
+  // 2. Nueva señal para el rol activo (inicializa leyendo el localStorage)
+  private readonly _activeRole = signal<string | null>(localStorage.getItem('user_role'));
   // Señales públicas de solo lectura
   public readonly currentUser = this._currentUser.asReadonly();
   public readonly isAuthenticated = computed(() => this._currentUser() !== null);
 
+    // 3. Exponer el rol de forma pública y reactiva
+  public readonly activeRole = this._activeRole.asReadonly();
+
   constructor(private http: HttpClient) {
     // Cargar usuario desde localStorage si existe
     this.loadUserFromStorage();
+    console.log('AuthService Init - Rol en Storage:', localStorage.getItem('user_role'));
+  }
+
+  /**
+   * 4. Método para establecer el rol seleccionado y guardarlo en el navegador
+   */
+setCurrentRole(roleName: string): void {
+  if (!roleName) return;
+  const role = roleName.toLowerCase().trim(); // Limpiamos espacios
+  localStorage.setItem(this.userRoleStorageKey, role);
+  this._activeRole.set(role); // Esto es lo que avisa al Sidebar que debe redibujarse
+}
+
+  /**
+   * 5. Obtener el rol actual (útil para guardias o lógica puntual)
+   */
+  getStoredRole(): string | null {
+    return localStorage.getItem(this.userRoleStorageKey);
   }
 
   /**
@@ -226,7 +249,7 @@ export class AuthService {
    */
   register(name: string, email: string, password: string): Promise<User> {
     return this.http
-      .post<User>(`${apiConfig.baseUrl}/api/public/auth/register`, {
+      .post<User>(`${environment.apiSpringUrl}/api/public/auth/register`, {
         name,
         email,
         password,
@@ -238,13 +261,23 @@ export class AuthService {
       });
   }
 
-  /**
-   * Cierra la sesión del usuario
+/**
+   * Cierra la sesión del usuario y limpia el rol persistido
    */
   logout(): void {
+    // 1. Limpiamos la sesión (Token y User)
     this.clearAuthenticatedSession();
+    
+    // 2. Limpiamos el estado del rol
+    localStorage.removeItem(this.userRoleStorageKey);
+    this._activeRole.set(null); 
+    
+    // 3. Limpiamos verificaciones y estados temporales
     localStorage.removeItem(this.verificationStorageKey);
     this.clearTwoFactorState();
+    
+    // Opcional: Redirigir al login si tienes el Router inyectado
+    // this.router.navigate(['/login']);
   }
 
   /**

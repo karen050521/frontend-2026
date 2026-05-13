@@ -72,7 +72,7 @@ export class AuthService {
   public readonly currentUser = this._currentUser.asReadonly();
   public readonly isAuthenticated = computed(() => this._currentUser() !== null);
 
-    // 3. Exponer el rol de forma pública y reactiva
+  // 3. Exponer el rol de forma pública y reactiva
   public readonly activeRole = this._activeRole.asReadonly();
 
   constructor(private http: HttpClient) {
@@ -85,12 +85,12 @@ export class AuthService {
   /**
    * 4. Método para establecer el rol seleccionado y guardarlo en el navegador
    */
-setCurrentRole(roleName: string): void {
-  if (!roleName) return;
-  const role = roleName.toLowerCase().trim(); // Limpiamos espacios
-  localStorage.setItem(this.userRoleStorageKey, role);
-  this._activeRole.set(role); // Esto es lo que avisa al Sidebar que debe redibujarse
-}
+  setCurrentRole(roleName: string): void {
+    if (!roleName) return;
+    const role = roleName.toLowerCase().trim(); // Limpiamos espacios
+    localStorage.setItem(this.userRoleStorageKey, role);
+    this._activeRole.set(role); // Esto es lo que avisa al Sidebar que debe redibujarse
+  }
 
   /**
    * Obtiene el rol directamente desde el JWT cuando existe.
@@ -109,7 +109,9 @@ setCurrentRole(roleName: string): void {
       } = jwtDecode(token);
 
       const tokenRole = decoded.role || decoded.userRole || decoded.roles?.[0];
-      return typeof tokenRole === 'string' && tokenRole.trim() ? tokenRole.toLowerCase().trim() : null;
+      return typeof tokenRole === 'string' && tokenRole.trim()
+        ? tokenRole.toLowerCase().trim()
+        : null;
     } catch {
       return null;
     }
@@ -285,21 +287,21 @@ setCurrentRole(roleName: string): void {
       });
   }
 
-/**
+  /**
    * Cierra la sesión del usuario y limpia el rol persistido
    */
   logout(): void {
     // 1. Limpiamos la sesión (Token y User)
     this.clearAuthenticatedSession();
-    
+
     // 2. Limpiamos el estado del rol
     localStorage.removeItem(this.userRoleStorageKey);
-    this._activeRole.set(null); 
-    
+    this._activeRole.set(null);
+
     // 3. Limpiamos verificaciones y estados temporales
     localStorage.removeItem(this.verificationStorageKey);
     this.clearTwoFactorState();
-    
+
     // Opcional: Redirigir al login si tienes el Router inyectado
     // this.router.navigate(['/login']);
   }
@@ -511,7 +513,9 @@ setCurrentRole(roleName: string): void {
       } = jwtDecode(token);
 
       const tokenRole = decoded.role || decoded.userRole || decoded.roles?.[0];
-      return typeof tokenRole === 'string' && tokenRole.trim() ? tokenRole.toLowerCase().trim() : null;
+      return typeof tokenRole === 'string' && tokenRole.trim()
+        ? tokenRole.toLowerCase().trim()
+        : null;
     } catch {
       return null;
     }

@@ -78,6 +78,18 @@ export const routes: Routes = [
       import('./features/security/reset-password.component').then((m) => m.ResetPasswordComponent),
   },
   {
+    path: 'consulta-rutas',
+    loadComponent: () =>
+      import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'rutas',
+    loadComponent: () =>
+      import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: '403',
     loadComponent: () =>
       import('./shared/components/access-denied/access-denied.component').then(

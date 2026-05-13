@@ -1,5 +1,5 @@
 <div class="space-y-6 p-6">
-  <!-- Tabs de navegación -->
+  <!-- Tabs de navegaciï¿½n -->
   <div class="flex gap-4 border-b-2 border-gray-200 dark:border-gray-700">
     <button
       (click)="switchTab('rutas')"
@@ -21,24 +21,31 @@
     </button>
   </div>
 
-  <!-- Pestaña: Rutas Disponibles -->
+  <!-- Pestaï¿½a: Rutas Disponibles -->
   @if (activeTab() === 'rutas') {
     <!-- Saldo y Recarga -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Tarjeta de Saldo -->
-      <div class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg p-6 text-white shadow-lg">
+      <div
+        class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg p-6 text-white shadow-lg"
+      >
         <p class="text-sm opacity-80">Saldo Disponible</p>
         <h2 class="text-3xl font-bold mt-2">{{ formatCurrency(saldo()) }}</h2>
         <p class="text-xs opacity-70 mt-4">Tu saldo para viajes</p>
       </div>
 
-      <!-- Botón Recarga -->
+      <!-- Botï¿½n Recarga -->
       <div class="flex items-center justify-center">
         <button
           (click)="iniciarRecarga()"
           class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
         >
-          <svg class="w-6 h-6 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-6 h-6 inline-block mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -51,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Búsqueda de Paraderos -->
+    <!-- Bï¿½squeda de Paraderos -->
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
       <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
@@ -79,14 +86,18 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
       <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
         <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M18 8h-1V6c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h1v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-2h1c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 10H7V9h10v9z" />
+          <path
+            d="M18 8h-1V6c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h1v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-2h1c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 10H7V9h10v9z"
+          />
         </svg>
         Rutas Disponibles (HU-001)
       </h3>
 
       @if (isLoadingRoutes()) {
         <div class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+          ></div>
           <p class="mt-2 text-gray-600 dark:text-gray-400">Cargando rutas...</p>
         </div>
       } @else if (routes().length === 0) {
@@ -94,14 +105,20 @@
       } @else {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (route of routes(); track route.id) {
-            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition">
+            <div
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition"
+            >
               <h4 class="font-bold text-lg mb-2">{{ route.name }}</h4>
               <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 ?? {{ route.startPoint }} ? {{ route.endPoint }}
               </p>
               <div class="flex justify-between items-center mb-3">
-                <span class="text-2xl font-bold text-green-600">{{ formatCurrency(route.fare) }}</span>
-                <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded">
+                <span class="text-2xl font-bold text-green-600">{{
+                  formatCurrency(route.fare)
+                }}</span>
+                <span
+                  class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded"
+                >
                   ~{{ route.estimatedTime }} min
                 </span>
               </div>
@@ -131,7 +148,9 @@
       } @else {
         <div class="space-y-3">
           @for (trip of recentTrips(); track trip.id) {
-            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div
+              class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+            >
               <div>
                 <p class="font-bold">{{ trip.route }}</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ trip.date }}</p>
@@ -147,7 +166,7 @@
     </div>
   }
 
-  <!-- Pestaña: Mis Boletos -->
+  <!-- Pestaï¿½a: Mis Boletos -->
   @if (activeTab() === 'boletos') {
     <app-boletos></app-boletos>
   }

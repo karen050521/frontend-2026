@@ -76,12 +76,8 @@ export class AnalyticsDashboardComponent implements OnInit {
    * Calcula los KPIs principales
    */
   protected calculateKPIs(): void {
-    this.ingresoTotal.set(
-      this.ingresosMensuales().reduce((sum, item) => sum + item.ingresos, 0)
-    );
-    this.viajesTotal.set(
-      this.ingresosMensuales().reduce((sum, item) => sum + item.viajes, 0)
-    );
+    this.ingresoTotal.set(this.ingresosMensuales().reduce((sum, item) => sum + item.ingresos, 0));
+    this.viajesTotal.set(this.ingresosMensuales().reduce((sum, item) => sum + item.viajes, 0));
   }
 
   /**

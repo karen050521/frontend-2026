@@ -23,16 +23,18 @@ export interface MenuItem {
 export class SidebarComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  
+
   // Reactividad total: escucha al servicio o al localStorage si el servicio está vacío
-public readonly userRole = computed(() => {
-    return this.authService.activeRole() || localStorage.getItem('user_role') || ''; 
+  public readonly userRole = computed(() => {
+    return this.authService.activeRole() || localStorage.getItem('user_role') || '';
   });
 
   // FUNCIONES COMPUTED PARA EL HTML CON CONTROL DE ROLES
   public esAdmin = computed(() => {
     const r = this.userRole().toLowerCase();
-    return r.includes('administrador') && !r.includes('empresa') || r === '69b1f1e630276cc75c84424a';
+    return (
+      (r.includes('administrador') && !r.includes('empresa')) || r === '69b1f1e630276cc75c84424a'
+    );
   });
 
   public esEmpresa = computed(() => {

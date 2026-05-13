@@ -100,6 +100,31 @@ export class BoletoService {
   }
 
   /**
+   * Obtiene los boletos asociados a un usuario específico.
+   * Intenta rutas comunes hasta encontrar la que responda en el backend.
+   */
+  getBoletosByUserId(userId: number | string): Observable<Boleto[]> {
+    this.loadingState.set(true);
+    this.errorState.set(null);
+
+    const normalizedUserId = String(userId).trim();
+    const primaryPath = `${this.apiUrl}/user/${normalizedUserId}`;
+    const fallbackPath = `${this.apiUrl}/usuario/${normalizedUserId}`;
+
+    return this.http.get<Boleto[]>(primaryPath).pipe(
+      map((response) => this.normalizeListResponse<Boleto>(response)),
+      tap((boletos) => this.syncBoletosState(boletos)),
+      catchError((primaryError) =>
+        this.http.get<Boleto[]>(fallbackPath).pipe(
+          map((response) => this.normalizeListResponse<Boleto>(response)),
+          tap((boletos) => this.syncBoletosState(boletos)),
+          catchError((fallbackError) => this.handleError(fallbackError || primaryError)),
+        ),
+      ),
+    );
+  }
+
+  /**
    * Obtiene un boleto por su ID
    */
   getBoletoById(id: number): Observable<Boleto> {
@@ -200,5 +225,12 @@ export class BoletoService {
     }
 
     return [];
+  }
+
+  private syncBoletosState(boletos: Boleto[]): void {
+    const validBoletos = (boletos || []).filter((b) => b.id);
+    this.boletosState.set(validBoletos);
+    this.totalCountState.set(validBoletos.length);
+    this.loadingState.set(false);
   }
 }

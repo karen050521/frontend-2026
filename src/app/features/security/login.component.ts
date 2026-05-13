@@ -145,7 +145,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       await this.authService.verifyLoginCode(code);
       this.stopTwoFactorTimer();
       this.isVerificationModalOpen = false;
-      
+
       // Obtener roles del usuario autenticado
       await this.loadUserRolesAndNavigate();
     } catch (error: any) {
@@ -206,8 +206,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       // Obtener roles del usuario
       this.userRoleService.getUserRoles(currentUser.id).subscribe({
         next: (userRoles) => {
-          const roles = userRoles.map(ur => ur.role).filter((role): role is RoleRef => !!role);
-          
+          const roles = userRoles.map((ur) => ur.role).filter((role): role is RoleRef => !!role);
+
           if (roles.length === 0) {
             // Sin roles, navegar directamente
             this.router.navigate([this.returnUrl]);
@@ -295,7 +295,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (normalizedRole.includes('administrador') || normalizedRole === '69b1f1e630276cc75c84424a') {
       this.toastService.success('✅ Accediendo como Administrador del Sistema');
-      return '/admin/user-role';
+      return '/user-role';
     }
 
     if (

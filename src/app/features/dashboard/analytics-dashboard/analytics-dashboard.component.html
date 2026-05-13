@@ -16,14 +16,18 @@
     </div>
 
     <!-- Usuarios Activos -->
-    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+    <div
+      class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg"
+    >
       <p class="text-sm opacity-80">Usuarios Activos</p>
       <h3 class="text-2xl font-bold mt-2">{{ usuariosActivos().toLocaleString() }}</h3>
       <p class="text-xs opacity-70 mt-2">Este mes</p>
     </div>
 
     <!-- Incidentes Resueltos -->
-    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+    <div
+      class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg"
+    >
       <p class="text-sm opacity-80">Incidentes Resueltos</p>
       <h3 class="text-2xl font-bold mt-2">{{ incidentesResueltos() }}</h3>
       <p class="text-xs opacity-70 mt-2">Este trimestre</p>
@@ -57,7 +61,9 @@
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-bold flex items-center gap-2">
           <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+            />
           </svg>
           Ingresos Mensuales (HU-014)
         </h2>
@@ -74,7 +80,12 @@
 
       <!-- Placeholder Gráfico de Líneas -->
       <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
-        <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="w-12 h-12 mx-auto text-gray-400 mb-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -92,7 +103,9 @@
             <tr class="border-b border-gray-200 dark:border-gray-700">
               <td class="px-3 py-2 font-bold">{{ item.mes }}</td>
               <td class="px-3 py-2 text-right">{{ formatCurrency(item.ingresos) }}</td>
-              <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ item.viajes }} viajes</td>
+              <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">
+                {{ item.viajes }} viajes
+              </td>
             </tr>
           }
         </tbody>
@@ -113,7 +126,9 @@
           <div>
             <div class="flex justify-between mb-1 text-sm">
               <span class="font-bold">{{ ruta.ruta }}</span>
-              <span class="text-gray-600 dark:text-gray-400">{{ formatCurrency(ruta.ingresos) }}</span>
+              <span class="text-gray-600 dark:text-gray-400">{{
+                formatCurrency(ruta.ingresos)
+              }}</span>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
@@ -121,7 +136,9 @@
                 [style.width.%]="ruta.percentage"
               ></div>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ruta.percentage }}% del total</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {{ ruta.percentage }}% del total
+            </p>
           </div>
         }
       </div>
@@ -135,7 +152,9 @@
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-bold flex items-center gap-2">
           <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+            <path
+              d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"
+            />
           </svg>
           Distribución por Género (HU-015)
         </h2>
@@ -152,7 +171,12 @@
 
       <!-- Placeholder Gráfico Pastel -->
       <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
-        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="w-20 h-20 mx-auto text-gray-400 mb-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -164,7 +188,14 @@
       </div>
 
       <div class="space-y-3">
-        @for (demo of [{ label: 'Hombres', valor: demografiaUsuarios().hombres, color: 'bg-blue-500' }, { label: 'Mujeres', valor: demografiaUsuarios().mujeres, color: 'bg-pink-500' }, { label: 'Otros', valor: demografiaUsuarios().otros, color: 'bg-purple-500' }]; track demo.label) {
+        @for (
+          demo of [
+            { label: 'Hombres', valor: demografiaUsuarios().hombres, color: 'bg-blue-500' },
+            { label: 'Mujeres', valor: demografiaUsuarios().mujeres, color: 'bg-pink-500' },
+            { label: 'Otros', valor: demografiaUsuarios().otros, color: 'bg-purple-500' },
+          ];
+          track demo.label
+        ) {
           <div>
             <div class="flex justify-between mb-1">
               <span class="font-bold text-sm">{{ demo.label }}</span>
@@ -189,7 +220,12 @@
 
       <!-- Placeholder Gráfico de Barras -->
       <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
-        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="w-20 h-20 mx-auto text-gray-400 mb-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -208,7 +244,10 @@
               <span class="text-sm">{{ edad.porcentaje }}%</span>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-              <div class="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full" [style.width.%]="edad.porcentaje"></div>
+              <div
+                class="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full"
+                [style.width.%]="edad.porcentaje"
+              ></div>
             </div>
           </div>
         }
@@ -245,7 +284,9 @@
               <span class="font-bold text-sm">{{ incident.tipo }}</span>
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold">{{ incident.cantidad }}</span>
-                <span [class]="'text-xs font-bold ' + getTrendColor(incident.tendencia)">{{ incident.tendencia }}</span>
+                <span [class]="'text-xs font-bold ' + getTrendColor(incident.tendencia)">{{
+                  incident.tendencia
+                }}</span>
               </div>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
@@ -263,14 +304,21 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
       <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
         <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
+          <path
+            d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"
+          />
         </svg>
         Tendencia Mensual
       </h2>
 
       <!-- Placeholder Gráfico de Líneas -->
       <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center mb-4">
-        <svg class="w-20 h-20 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="w-20 h-20 mx-auto text-gray-400 mb-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"

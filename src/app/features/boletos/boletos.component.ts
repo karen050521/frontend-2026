@@ -329,7 +329,8 @@ export class BoletosComponent implements OnInit {
       if (Number(v) === userId) return true;
     }
     // También puede haber un campo 'user' con objeto id dentro
-    if (boleto.user && typeof boleto.user === 'string' && Number(boleto.user) === userId) return true;
+    if (boleto.user && typeof boleto.user === 'string' && Number(boleto.user) === userId)
+      return true;
     return false;
   }
 
@@ -363,12 +364,11 @@ export class BoletosComponent implements OnInit {
       next: (response: RegistrarAbordajeResponse) => {
         // Manejo inteligente del saldo (soporta snake_case y camelCase)
         const saldoRestante = response?.saldo_restante ?? response?.saldoRestante;
-        const saldoTexto = typeof saldoRestante === 'number' 
-          ? ` - Saldo: $${saldoRestante.toFixed(2)}` 
-          : '';
+        const saldoTexto =
+          typeof saldoRestante === 'number' ? ` - Saldo: $${saldoRestante.toFixed(2)}` : '';
 
         this.toastService.success(`¡Abordaje exitoso!${saldoTexto}`);
-        
+
         this.abordajeForm.reset();
         this.loadBoletos(); // Refresca la tabla
         this.isSubmitting.set(false);

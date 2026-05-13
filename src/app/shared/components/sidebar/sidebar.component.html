@@ -4,7 +4,6 @@
   class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 theme-nav border-r theme-divider transition-transform duration-300 ease-in-out z-40 flex flex-col"
 >
   <nav class="p-4 space-y-2 flex-1 overflow-y-auto">
-    
     <!-- Inicio/Home - Disponible para todos -->
     <a
       routerLink="/dashboard"
@@ -13,7 +12,12 @@
       class="theme-nav-item flex items-center gap-3 w-full"
     >
       <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
       </svg>
       <span class="flex-1">Inicio</span>
     </a>
@@ -24,42 +28,57 @@
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           🔒 Seguridad
         </p>
-        
+
         <!-- Gestión de Usuarios y Roles -->
-        <a 
+        <a
           routerLink="/user-role"
           routerLinkActive="active"
-          (click)="closeSidebar()" 
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Usuarios y Roles</span>
         </a>
 
         <!-- Gestión de Roles -->
-        <a 
-          routerLink="/roles" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/roles"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Roles</span>
         </a>
 
         <!-- Gestión de Permisos -->
-        <a 
-          routerLink="/permissions" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/permissions"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
           </svg>
           <span class="flex-1 text-sm">Permisos</span>
         </a>
@@ -72,42 +91,57 @@
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           🚌 Flota
         </p>
-        
+
         <!-- Registrar Bus (HU-012) -->
-        <a 
-          routerLink="/registro-bus" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/registro-bus"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           <span class="flex-1 text-sm">Registrar Bus</span>
         </a>
 
         <!-- Programación (HU-011) -->
-        <a 
-          routerLink="/programacion" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/programacion"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
           <span class="flex-1 text-sm">Programación</span>
         </a>
 
         <!-- Incidentes por Bus (HU-008) -->
-        <a 
-          routerLink="/incidentes" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/incidentes"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 0a2 2 0 100-4 2 2 0 000 4zm0-11a9 9 0 100 18 9 9 0 000-18z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4v2m0 0a2 2 0 100-4 2 2 0 000 4zm0-11a9 9 0 100 18 9 9 0 000-18z"
+            />
           </svg>
           <span class="flex-1 text-sm">Incidentes</span>
         </a>
@@ -120,29 +154,39 @@
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           👨‍✈️ Operación
         </p>
-        
+
         <!-- Inicio Turno (HU-006) -->
-        <a 
-          routerLink="/inicio-turno" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/inicio-turno"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Iniciar Turno</span>
         </a>
 
         <!-- Reportar Incidente (HU-007) -->
-        <a 
-          routerLink="/reportar-incidente" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/reportar-incidente"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Reportar Incidente</span>
         </a>
@@ -183,42 +227,57 @@
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           🎟️ Servicios
         </p>
-        
+
         <!-- Rutas (HU-001) -->
-        <a 
-          routerLink="/rutas" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/rutas"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
           </svg>
           <span class="flex-1 text-sm">Rutas</span>
         </a>
 
         <!-- Recarga de Saldo (HU-013) -->
-        <a 
-          routerLink="/recarga" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/recarga"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Recarga</span>
         </a>
 
         <!-- Mis Viajes -->
-        <a 
-          routerLink="/mis-viajes" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/mis-viajes"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span class="flex-1 text-sm">Mis Viajes</span>
         </a>
@@ -231,52 +290,66 @@
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           📊 Inteligencia
         </p>
-        
+
         <!-- Reportes de Ingresos (HU-014) -->
         @if (esFinanciero() || esGerente()) {
-          <a 
-            routerLink="/reportes-ingresos" 
-            routerLinkActive="active" 
-            (click)="closeSidebar()" 
+          <a
+            routerLink="/reportes-ingresos"
+            routerLinkActive="active"
+            (click)="closeSidebar()"
             class="theme-nav-item flex items-center gap-3 w-full"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span class="flex-1 text-sm">Reportes Ingresos</span>
           </a>
         }
-        
+
         <!-- Demografía (HU-015) -->
         @if (esAnalista() || esGerente()) {
-          <a 
-            routerLink="/Demografia" 
-            routerLinkActive="active" 
-            (click)="closeSidebar()" 
+          <a
+            routerLink="/Demografia"
+            routerLinkActive="active"
+            (click)="closeSidebar()"
             class="theme-nav-item flex items-center gap-3 w-full"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
             </svg>
             <span class="flex-1 text-sm">Demografía</span>
           </a>
         }
-        
+
         <!-- Tendencias de Incidentes (HU-016) -->
-        <a 
-          routerLink="/tendencias-incidentes" 
-          routerLinkActive="active" 
-          (click)="closeSidebar()" 
+        <a
+          routerLink="/tendencias-incidentes"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
           class="theme-nav-item flex items-center gap-3 w-full"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l-4-4m0 0l4-4m-4 4h18m0 0l4 4m0 0l-4 4m4-4H3" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 12l-4-4m0 0l4-4m-4 4h18m0 0l4 4m0 0l-4 4m4-4H3"
+            />
           </svg>
           <span class="flex-1 text-sm">Tendencias Incidentes</span>
         </a>
       </div>
     }
-
   </nav>
 
   @if (isAuthenticated()) {
@@ -300,8 +373,8 @@
 </aside>
 
 @if (isOpen()) {
-  <div 
-    class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in" 
-    (click)="close.emit()">
-  </div>
+  <div
+    class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in"
+    (click)="close.emit()"
+  ></div>
 }

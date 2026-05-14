@@ -26,28 +26,28 @@ import { ThemeService } from '../../../core/services/theme.service';
   styleUrl: './main-layout.component.css'
 })
 export class MainLayoutComponent {
-  protected readonly isSidebarOpen = signal(false);
+  readonly isSidebarOpen = signal(false);
 
   constructor(private themeService: ThemeService) {}
 
   /**
    * Alterna la visibilidad del sidebar
    */
-  protected toggleSidebar(): void {
+  toggleSidebar(): void {
     this.isSidebarOpen.update(value => !value);
   }
 
   /**
    * Alterna el tema de la aplicación
    */
-  protected toggleTheme(): void {
+  toggleTheme(): void {
     this.themeService.toggleTheme();
   }
 
   /**
    * Maneja eventos de búsqueda
    */
-  protected handleSearch(query: string): void {
+  handleSearch(query: string): void {
     // Aquí puedes implementar la lógica de búsqueda
   }
 }

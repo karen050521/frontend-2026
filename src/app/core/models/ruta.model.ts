@@ -23,9 +23,10 @@ export interface RutaParadero {
 export interface RutaLista {
   id: number;
   nombre: string;
-  origen: string;
-  destino: string;
-  tarifa: number;
+  descripcion?: string;
+  origen?: string;
+  destino?: string;
+  tarifa: number | string;
   duracionEstimada: number;
   estado: 'activa' | 'inactiva';
 }

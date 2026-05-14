@@ -89,22 +89,17 @@ export class BoletosComponent implements OnInit {
    * Obtiene boletos filtrados y ordenados
    */
   protected get filteredBoletos() {
-    let boletos = this.boletoServiceInst.boletos();
+    // Tomamos los boletos del signal del servicio
+    let boletos = [...this.boletoServiceInst.boletos()];
 
-    // Filtrar por usuario actual: obtener id desde localStorage 'currentUser' o desde token
-    const currentUserId = this.getCurrentUserId();
-    if (currentUserId) {
-      boletos = boletos.filter((b) => this.isBoletoOwnedBy(b, currentUserId));
-    }
-
-    // Filtrar por estado
+    // 1. Filtrar por estado
     const status = this.statusFilter();
     if (status !== 'TODOS') {
       boletos = boletos.filter((b) => b.status === status);
     }
 
-    // Filtrar por búsqueda
-    const query = this.searchQuery().toLowerCase();
+    // 2. Filtrar por búsqueda de texto
+    const query = this.searchQuery().toLowerCase().trim();
     if (query) {
       boletos = boletos.filter(
         (b) =>
@@ -116,7 +111,7 @@ export class BoletosComponent implements OnInit {
       );
     }
 
-    // Ordenar
+    // 3. Ordenar
     return boletos.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
@@ -138,18 +133,19 @@ export class BoletosComponent implements OnInit {
   }
 
   /**
-   * Carga la lista de boletos
+   * Carga la lista de boletos llamando al servicio
    */
-
   private loadBoletos(): void {
     const currentUserId = this.getCurrentUserId();
+    
+    // Si tenemos un ID (string o number), pedimos los específicos, sino todos
     const boletosRequest = currentUserId
       ? this.boletoServiceInst.getBoletosByUserId(currentUserId)
       : this.boletoServiceInst.getBoletos();
 
     boletosRequest.subscribe({
       next: (boletos) => {
-        console.log('✅ Boletos cargados:', boletos.length);
+        console.log('✅ Boletos cargados correctamente:', boletos.length);
       },
       error: (error) => {
         console.error('❌ Error al cargar boletos:', error);
@@ -195,6 +191,7 @@ export class BoletosComponent implements OnInit {
       .subscribe({
         next: () => {
           this.toastService.success('Viaje finalizado correctamente');
+          this.loadBoletos();
         },
         error: (error) => {
           console.error('Error al finalizar viaje:', error);
@@ -217,6 +214,7 @@ export class BoletosComponent implements OnInit {
         .subscribe({
           next: () => {
             this.toastService.success('Boleto cancelado correctamente');
+            this.loadBoletos();
           },
           error: (error) => {
             console.error('Error al cancelar boleto:', error);
@@ -282,60 +280,33 @@ export class BoletosComponent implements OnInit {
   }
 
   /**
-   * Obtiene el id del usuario actual desde localStorage o desde el token JWT
+   * Obtiene el id del usuario actual como STRING (compatible con UUID/IDs largos)
    */
-  private getCurrentUserId(): number | null {
-    // 1) intentar desde currentUser guardado por AuthService
+  private getCurrentUserId(): string | null {
+    // 1) intentar desde currentUser
     const raw = localStorage.getItem(this.currentUserStorageKey);
     if (raw) {
       try {
-        const parsed = JSON.parse(raw) as { id?: string | number };
-        const parsedId = Number(parsed?.id);
-        if (Number.isFinite(parsedId)) return parsedId;
-      } catch {
-        // ignore
-      }
+        const parsed = JSON.parse(raw);
+        if (parsed?.id) return String(parsed.id);
+      } catch { }
     }
 
-    // 2) fallback: intentar extraer del token (sub, id, userId)
+    // 2) fallback: extraer del token JWT
     const token = localStorage.getItem(this.tokenStorageKey);
     if (!token) return null;
 
     try {
-      // use dynamic parse to avoid adding new deps; jwt is JSON-safe base64
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const tokenId = Number(payload?.id || payload?.userId || payload?.sub);
-      return Number.isFinite(tokenId) ? tokenId : null;
+      const tokenId = payload?.id || payload?.userId || payload?.sub;
+      return tokenId ? String(tokenId) : null;
     } catch {
       return null;
     }
   }
 
   /**
-   * Comprueba varias formas de relación entre boleto y usuario
-   */
-  private isBoletoOwnedBy(boleto: any, userId: number): boolean {
-    if (!boleto) return false;
-    const candidateIds = [
-      boleto.userId,
-      boleto.user?.id,
-      boleto.usuarioId,
-      boleto.user_id,
-      boleto.ownerId,
-      boleto.clientId,
-    ];
-    for (const v of candidateIds) {
-      if (v === undefined || v === null) continue;
-      if (Number(v) === userId) return true;
-    }
-    // También puede haber un campo 'user' con objeto id dentro
-    if (boleto.user && typeof boleto.user === 'string' && Number(boleto.user) === userId)
-      return true;
-    return false;
-  }
-
-  /**
-   * Registra abordaje enviando token Bearer manualmente
+   * Registra abordaje
    */
   protected submitAbordaje(): void {
     if (this.abordajeForm.invalid) {
@@ -349,7 +320,6 @@ export class BoletosComponent implements OnInit {
       return;
     }
 
-    // 1. Bloqueamos el botón inmediatamente
     this.isSubmitting.set(true);
 
     const rawValue = this.abordajeForm.value;
@@ -359,10 +329,8 @@ export class BoletosComponent implements OnInit {
       metodo_pago_id: Number(rawValue.metodo_pago_id),
     };
 
-    // 2. Usamos el servicio (Verifica si es boletoService o boletoServiceInst)
     this.boletoServiceInst.registrarAbordaje(payload, token).subscribe({
       next: (response: RegistrarAbordajeResponse) => {
-        // Manejo inteligente del saldo (soporta snake_case y camelCase)
         const saldoRestante = response?.saldo_restante ?? response?.saldoRestante;
         const saldoTexto =
           typeof saldoRestante === 'number' ? ` - Saldo: $${saldoRestante.toFixed(2)}` : '';
@@ -370,12 +338,11 @@ export class BoletosComponent implements OnInit {
         this.toastService.success(`¡Abordaje exitoso!${saldoTexto}`);
 
         this.abordajeForm.reset();
-        this.loadBoletos(); // Refresca la tabla
+        this.loadBoletos(); 
         this.isSubmitting.set(false);
       },
       error: (error) => {
         console.error('❌ Error al registrar abordaje:', error);
-        // Mostramos el mensaje que viene del backend si existe
         const msg = error.error?.message || 'No se pudo registrar el abordaje';
         this.toastService.error(msg);
         this.isSubmitting.set(false);

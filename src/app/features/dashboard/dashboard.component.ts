@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -26,6 +27,9 @@ import { AnalyticsDashboardComponent } from './analytics-dashboard/analytics-das
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
+  // Inyección de HttpClient para la sincronización
+  private http = inject(HttpClient);
+
   protected isLoading = signal<boolean>(false);
   protected activeTab = signal<
     'solicitudes' | 'historial' | 'favoritos' | 'todas-las-rutas' | 'boletos'
@@ -82,6 +86,12 @@ export class DashboardComponent implements OnInit {
     console.log('👤 Dashboard cargado para:', this.currentUser?.name);
     console.log('🔐 Rol activo:', this.userRole());
 
+    // --- SINCRONIZACIÓN AUTOMÁTICA CON EL BACKEND ---
+    if (this.isCitizen()) {
+      this.sincronizarConBackend();
+    }
+    // ------------------------------------------------
+
     this.route.queryParamMap.subscribe((params) => {
       const tab = params.get('tab');
       if (tab === 'boletos') {
@@ -93,6 +103,32 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
+   * Envía los datos del usuario logueado al backend de NestJS
+   * para asegurar que el ciudadano exista en MySQL.
+   */
+  private sincronizarConBackend(): void {
+    const payload = this.authService.currentUser(); // Obtenemos info del signal de auth
+    
+    if (payload && payload.email) {
+      console.log('🔄 Sincronizando datos de ciudadano...');
+      
+      // Ajustamos el payload para que el back lo entienda (name vs nombre)
+      const syncData = {
+        id: payload.id,
+        email: payload.email,
+        name: payload.name,
+        role: 'Ciudadano'
+      };
+
+      this.http.post('http://localhost:3000/ciudadano/find-or-create', syncData)
+        .subscribe({
+          next: (res) => console.log('✅ Sincronización exitosa:', res),
+          error: (err) => console.error('❌ Error de sincronización:', err)
+        });
+    }
+  }
+
+  /**
    * Inicia una nueva solicitud de bus
    */
   protected iniciarSolicitud(): void {
@@ -100,51 +136,30 @@ export class DashboardComponent implements OnInit {
     this.toastService.info('Funcionalidad próximamente disponible');
   }
 
-  /**
-   * Abre el historial
-   */
   protected abrirHistorial(): void {
     this.activeTab.set('historial');
   }
 
-  /**
-   * Abre favoritos
-   */
   protected abrirFavoritos(): void {
     this.activeTab.set('favoritos');
   }
 
-  /**
-   * Cambia a tab de solicitudes
-   */
   protected irASolicitudes(): void {
     this.activeTab.set('solicitudes');
   }
 
-  /**
-   * Abre todas las rutas
-   */
   protected verTodasLasRutas(): void {
     this.activeTab.set('todas-las-rutas');
   }
 
-  /**
-   * Abre la sección de boletos
-   */
   protected verMisBoletos(): void {
     this.activeTab.set('boletos');
   }
 
-  /**
-   * Obtiene nombre del usuario
-   */
   protected getNombreUsuario(): string {
     return this.currentUser?.name?.split(' ')[0] || 'Usuario';
   }
 
-  /**
-   * Obtiene saludo según hora del día
-   */
   protected getSaludo(): string {
     const hora = new Date().getHours();
     if (hora < 12) return '¡Buenos días';

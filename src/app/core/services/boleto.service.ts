@@ -99,28 +99,25 @@ export class BoletoService {
     );
   }
 
-  /**
-   * Obtiene los boletos asociados a un usuario específico.
-   * Intenta rutas comunes hasta encontrar la que responda en el backend.
+/**
+   * Obtiene los boletos del usuario actual logueado.
+   * Llama al nuevo endpoint que extrae el ID directamente del Token.
    */
-  getBoletosByUserId(userId: number | string): Observable<Boleto[]> {
+  getBoletosDelUsuario(): Observable<Boleto[]> {
     this.loadingState.set(true);
     this.errorState.set(null);
 
-    const normalizedUserId = String(userId).trim();
-    const primaryPath = `${this.apiUrl}/user/${normalizedUserId}`;
-    const fallbackPath = `${this.apiUrl}/usuario/${normalizedUserId}`;
-
-    return this.http.get<Boleto[]>(primaryPath).pipe(
+    // URL fija que coincide con el @Get('mis-boletos') del controlador de Nest
+    return this.http.get<Boleto[]>(`${this.apiUrl}/mis-boletos`).pipe(
       map((response) => this.normalizeListResponse<Boleto>(response)),
-      tap((boletos) => this.syncBoletosState(boletos)),
-      catchError((primaryError) =>
-        this.http.get<Boleto[]>(fallbackPath).pipe(
-          map((response) => this.normalizeListResponse<Boleto>(response)),
-          tap((boletos) => this.syncBoletosState(boletos)),
-          catchError((fallbackError) => this.handleError(fallbackError || primaryError)),
-        ),
-      ),
+      tap((boletos) => {
+        this.syncBoletosState(boletos);
+        this.loadingState.set(false);
+      }),
+      catchError((error) => {
+        this.loadingState.set(false);
+        return this.handleError(error);
+      }),
     );
   }
 

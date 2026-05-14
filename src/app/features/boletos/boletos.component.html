@@ -1,5 +1,4 @@
 <div class="boletos-container">
-  <!-- Header -->
   <div class="boletos-header">
     <div>
       <h1 class="boletos-title">Mis Boletos</h1>
@@ -7,7 +6,6 @@
     </div>
   </div>
 
-  <!-- Formulario de abordaje -->
   <section class="abordaje-card">
     <div class="abordaje-header">
       <h2 class="abordaje-title">Registrar abordaje</h2>
@@ -68,7 +66,6 @@
     </form>
   </section>
 
-  <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card stat-total">
       <div class="stat-icon">🎫</div>
@@ -100,9 +97,7 @@
     </div>
   </div>
 
-  <!-- Filters Section -->
   <div class="filters-section">
-    <!-- Search Bar -->
     <div class="search-container">
       <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -120,7 +115,6 @@
       />
     </div>
 
-    <!-- Status Filter -->
     <div class="filter-group">
       <label class="filter-label">Estado:</label>
       <div class="filter-buttons">
@@ -143,7 +137,6 @@
       </div>
     </div>
 
-    <!-- Sort -->
     <div class="filter-group">
       <label class="filter-label">Ordenar:</label>
       <div class="filter-buttons">
@@ -165,7 +158,6 @@
     </div>
   </div>
 
-  <!-- Loading State -->
   @if (boletoServiceInst.loading()) {
     <div class="loading-container">
       <div class="spinner"></div>
@@ -173,7 +165,6 @@
     </div>
   }
 
-  <!-- Error State -->
   @else if (boletoServiceInst.error()) {
     <div class="error-container">
       <div class="error-icon">
@@ -192,7 +183,6 @@
     </div>
   }
 
-  <!-- Empty State -->
   @else if (boletoServiceInst.boletos() && boletoServiceInst.boletos().length === 0) {
     <div class="empty-container">
       <div class="empty-icon">
@@ -210,22 +200,18 @@
     </div>
   }
 
-  <!-- Boletos List -->
   @else {
-    @if (filteredBoletos.length > 0) {
+    @if (filteredBoletos().length > 0) {
       <div class="boletos-list">
-        @for (boleto of filteredBoletos; track boleto.id) {
+        @for (boleto of filteredBoletos(); track boleto.id; let i = $index) {
           <div class="boleto-card">
-            <!-- Status Badge -->
             <div [class]="'status-badge ' + getStatusClass(boleto.status)">
               <span class="status-icon">{{ getStatusIcon(boleto.status) }}</span>
               <span class="status-text">{{ getStatusText(boleto.status) }}</span>
             </div>
 
-            <!-- Main Info -->
             <div class="boleto-main">
               @if (boleto.travelDetails) {
-                <!-- Route Info -->
                 <div class="route-info">
                   <div class="route-point">
                     <div class="point-marker origin"></div>
@@ -257,18 +243,15 @@
                   </div>
                 </div>
 
-                <!-- Details Grid -->
                 <div class="details-grid">
-                  <!-- Ticket ID -->
                   <div class="detail-item">
                     <div class="detail-icon">🎫</div>
                     <div class="detail-content">
                       <p class="detail-label">Número de boleto</p>
-                      <p class="detail-value">#{{ boleto.id }}</p>
+                      <p class="detail-value">#{{ i + 1 }}</p>
                     </div>
                   </div>
 
-                  <!-- Driver -->
                   <div class="detail-item">
                     <div class="detail-icon">👨‍✈️</div>
                     <div class="detail-content">
@@ -279,7 +262,6 @@
                     </div>
                   </div>
 
-                  <!-- Vehicle -->
                   <div class="detail-item">
                     <div class="detail-icon">🚌</div>
                     <div class="detail-content">
@@ -290,7 +272,6 @@
                     </div>
                   </div>
 
-                  <!-- Scheduled Time -->
                   <div class="detail-item">
                     <div class="detail-icon">🕐</div>
                     <div class="detail-content">
@@ -301,7 +282,6 @@
                     </div>
                   </div>
 
-                  <!-- Boarding Time -->
                   <div class="detail-item">
                     <div class="detail-icon">🚪</div>
                     <div class="detail-content">
@@ -310,7 +290,6 @@
                     </div>
                   </div>
 
-                  <!-- Disembark Time -->
                   @if (boleto.disembarkTime) {
                     <div class="detail-item">
                       <div class="detail-icon">👇</div>
@@ -328,7 +307,6 @@
               }
             </div>
 
-            <!-- Actions -->
             <div class="boleto-actions">
               @if (boleto.status === 'ACTIVO') {
                 <button

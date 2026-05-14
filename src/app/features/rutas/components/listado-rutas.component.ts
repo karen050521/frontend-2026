@@ -25,7 +25,7 @@ import { RutaLista } from '../../../core/models/ruta.model';
         <div class="font-semibold">{{ ruta.nombre }}</div>
         <div class="text-sm text-gray-600">{{ ruta.origen }} → {{ ruta.destino }}</div>
         <div class="flex justify-between items-center mt-2">
-          <span class="text-green-600 font-bold">{{ formatTarifa(ruta.tarifa) }}</span>
+        <span class="text-green-600 font-bold">{{ formatTarifa(+ruta.tarifa) }}</span>
           <span class="text-xs text-pink-600">{{ formatDuracion(ruta.duracionEstimada) }}</span>
         </div>
       </button>

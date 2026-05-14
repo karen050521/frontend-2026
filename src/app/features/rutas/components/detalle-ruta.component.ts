@@ -16,7 +16,7 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
       <div class="grid grid-cols-2 gap-4">
         <div>
           <span class="text-gray-600 text-sm">Tarifa</span>
-          <p class="text-xl font-bold text-green-600">{{ formatTarifa(ruta().tarifa) }}</p>
+          <p class="xl font-bold text-green-600">{{ formatTarifa(+ruta().tarifa) }}</p>
         </div>
         <div>
           <span class="text-gray-600 text-sm">Duración</span>

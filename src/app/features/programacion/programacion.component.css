@@ -1,0 +1,6 @@
+/* Estilización estética de los selectores de fecha nativos para que queden oscuros en Chrome/Edge */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) sepia(1) saturate(5) hue-rotate(295deg); /* Tonalidad Rosa Kala */
+    cursor: pointer;
+}

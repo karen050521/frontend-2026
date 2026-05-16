@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
-/**
- * Interface para ítems de menú (si decides usarlos dinámicamente)
- */
 export interface MenuItem {
   label: string;
   icon: string;
@@ -29,17 +26,29 @@ export class SidebarComponent {
     return this.authService.activeRole() || localStorage.getItem('user_role') || '';
   });
 
-  // FUNCIONES COMPUTED PARA EL HTML CON CONTROL DE ROLES
+  // FUNCIONES COMPUTED PARA EL HTML CON CONTROL DE ROLES REALES
   public esAdmin = computed(() => {
     const r = this.userRole().toLowerCase();
     return (
-      (r.includes('administrador') && !r.includes('empresa')) || r === '69b1f1e630276cc75c84424a'
+      ((r.includes('administrador') || r.includes('adminsitrador')) && !r.includes('empresa')) || 
+      r === '69b1f1e630276cc75c84424a'
     );
   });
 
   public esEmpresa = computed(() => {
-    const r = this.userRole().toLowerCase();
-    return r.includes('administrador de empresa') || r.includes('company');
+    // Normalizamos el texto quitando acentos y dejándolo en minúsculas
+    const r = this.userRole()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+      r.includes('administrador de empresa') || 
+      r.includes('adminsitrador de empresa') || // 👈 Blindaje contra el typo de la Base de Datos
+      r.includes('company') || 
+      r.includes('gerente') || 
+      r.includes('empresa')
+    );
   });
 
   public esConductor = computed(() => {
@@ -66,6 +75,7 @@ export class SidebarComponent {
     const r = this.userRole().toLowerCase();
     return r.includes('gerente');
   });
+
   // Inputs y Outputs
   public readonly isOpen = input<boolean>(false);
   public readonly close = output<void>();
@@ -75,40 +85,28 @@ export class SidebarComponent {
   protected readonly isAuthenticated = this.authService.isAuthenticated;
   protected readonly defaultAvatarUrl = 'assets/default-avatar.svg';
 
-  /**
-   * Cierra el sidebar
-   */
   public closeSidebar(): void {
     this.close.emit();
   }
 
-  /**
-   * Navega a la vista principal según el rol activo
-   */
   protected irAVistaPrincipal(): void {
     const currentRole = this.userRole()?.toLowerCase();
 
-    if (currentRole?.includes('admin')) {
+    if (currentRole?.includes('admin') || currentRole?.includes('sitrador')) {
       this.router.navigate(['/roles']);
     } else if (currentRole?.includes('conductor')) {
-      this.router.navigate(['/registro-bus']);
+      this.router.navigate(['/features/turno-conductor']); 
     } else {
       this.router.navigate(['/dashboard']);
     }
     this.closeSidebar();
   }
 
-  /**
-   * Obtiene la URL del avatar o la de por defecto
-   */
   public getAvatarUrl(): string {
     const photoUrl = this.currentUser()?.photoUrl;
     return photoUrl && photoUrl.trim().length > 0 ? photoUrl : this.defaultAvatarUrl;
   }
 
-  /**
-   * Maneja errores en la carga de la imagen del avatar
-   */
   public onAvatarError(event: Event): void {
     const img = event.target as HTMLImageElement;
     if (img.src.includes(this.defaultAvatarUrl)) {

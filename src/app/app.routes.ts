@@ -21,6 +21,23 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'programacion',
+    loadComponent: () => import('./features/programacion/programacion.component').then((m) => m.ProgramacionComponent),
+    canActivate: [AuthGuard],
+  },
+  // VISTA DEL CONDUCTOR (Sincronizada con el Sidebar)
+  {
+    path: 'features/turno-conductor',
+    loadComponent: () => import('./features/turnos/turno-conductor.component').then((m) => m.TurnoConductorComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'reportar-incidente', // 🚨 NUEVA RUTA PARA EL REPORTE DE INCIDENTES 
+    loadComponent: () => 
+      import('./features/incidentes/incidente-bus.component').then((m) => m.IncidenteBusComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'home',
     component: HomeComponent,
     canActivate: [AuthGuard],

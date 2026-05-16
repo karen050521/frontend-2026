@@ -2,6 +2,8 @@ import { Component, signal, OnInit } from '@angular/core';
 import { MainLayoutComponent } from './shared/components/main-layout/main-layout.component';
 import { GlobalModalComponent } from './shared/components/global-modal/global-modal.component';
 import { ThemeService } from './core/services/theme.service';
+import { RouterOutlet } from '@angular/router'; // 👈 Asegúrate de importar esto
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component'; 
 
 /**
  * App - Componente raíz de la aplicación
@@ -13,7 +15,7 @@ import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [MainLayoutComponent, GlobalModalComponent],
+  imports: [MainLayoutComponent, GlobalModalComponent, RouterOutlet, ToastContainerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

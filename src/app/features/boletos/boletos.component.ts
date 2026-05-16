@@ -8,7 +8,6 @@ import {
   BusOption,
   ParaderoOption,
   RegistrarAbordajeDto,
-  RegistrarAbordajeResponse,
 } from '../../core/models/boleto.model';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -23,20 +22,19 @@ type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 })
 export class BoletosComponent implements OnInit {
   private readonly tokenStorageKey = 'authToken';
-  private readonly currentUserStorageKey = 'currentUser';
 
+  // --- SEÑALES DE ESTADO ---
   protected searchQuery = signal<string>('');
   protected statusFilter = signal<StatusFilter>('TODOS');
   protected sortBy = signal<'recent' | 'oldest'>('recent');
   protected buses = signal<BusOption[]>([]);
   protected paraderos = signal<ParaderoOption[]>([]);
+  protected misTarjetas = signal<any[]>([]); 
   protected isSubmitting = signal<boolean>(false);
 
-  protected metodosPago = [
-    { id: 1, nombre: 'Tarjeta' },
-    { id: 2, nombre: 'Efectivo' },
-    { id: 3, nombre: 'Billetera digital' },
-  ];
+  // --- SEÑALES PARA EL MODAL ---
+  protected showCancelModal = signal<boolean>(false);
+  protected selectedBoleto = signal<Boleto | null>(null);
 
   protected abordajeForm: FormGroup;
 
@@ -61,30 +59,22 @@ export class BoletosComponent implements OnInit {
     forkJoin({
       buses: this.boletoServiceInst.getBuses(),
       paraderos: this.boletoServiceInst.getParaderos(),
+      tarjetas: this.boletoServiceInst.getMisTarjetas(),
     }).subscribe({
-      next: ({ buses, paraderos }) => {
+      next: ({ buses, paraderos, tarjetas }) => {
         this.buses.set(buses);
         this.paraderos.set(paraderos);
+        this.misTarjetas.set(tarjetas);
       },
-      error: () => {
-        this.toastService.error('No fue posible cargar buses y paraderos');
-      },
+      error: () => this.toastService.error('Error al sincronizar datos del servidor'),
     });
   }
 
-  /**
-   * ESTE ES EL COMPUTED QUE ARREGLA TU VISTA
-   * Mapea los datos del backend al formato que el HTML espera
-   */
   readonly filteredBoletos = computed(() => {
     const rawBoletos = this.boletoServiceInst.boletos() || [];
     const query = this.searchQuery().toLowerCase().trim();
     const status = this.statusFilter();
 
-    console.log('--- COMPUTED: Procesando boletos ---');
-    console.log('1. Cantidad original en Signal:', rawBoletos.length);
-
-    // 1. Mapear datos de NestJS -> Formato HTML
     let mapped = rawBoletos.map((b: any) => ({
       ...b,
       status: (b.estado || b.status || 'ACTIVO').toUpperCase(),
@@ -99,36 +89,23 @@ export class BoletosComponent implements OnInit {
       }
     }));
 
-    console.log('2. Después de mapear propiedades:', mapped);
-
-    // 2. Filtrar por estado
     if (status !== 'TODOS') {
       mapped = mapped.filter((b: any) => b.status === status);
-      console.log(`3. Filtrado por estado (${status}):`, mapped.length, 'resultados');
     }
 
-    // 3. Filtrar por búsqueda
     if (query) {
       mapped = mapped.filter((b: any) => 
         b.travelDetails.origin.toLowerCase().includes(query) ||
         b.travelDetails.destination.toLowerCase().includes(query) ||
-        b.numeroBoleto?.toLowerCase().includes(query) ||
-        b.id?.toString().includes(query)
+        b.numeroBoleto?.toLowerCase().includes(query)
       );
-      console.log(`4. Filtrado por texto (${query}):`, mapped.length, 'resultados');
     }
 
-    // 4. Ordenar
-    const finalResult = mapped.sort((a: any, b: any) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+    return mapped.sort((a: any, b: any) => {
+      const dateA = new Date(a.boardingTime || 0).getTime();
+      const dateB = new Date(b.boardingTime || 0).getTime();
       return this.sortBy() === 'recent' ? dateB - dateA : dateA - dateB;
     });
-
-    console.log('5. Resultado final enviado al HTML:', finalResult);
-    console.log('------------------------------------');
-    
-    return finalResult;
   });
 
   protected get stats() {
@@ -142,86 +119,25 @@ export class BoletosComponent implements OnInit {
   }
 
   private loadBoletos(): void {
-    console.log('Llamando a getBoletosDelUsuario...');
-    this.boletoServiceInst.getBoletosDelUsuario().subscribe({
-      next: (res) => {
-        console.log('Respuesta cruda del Servidor:', res);
-        // Nota: Si el servicio actualiza una Signal interna, el computed se disparará solo.
-      },
-      error: (err) => {
-        console.error('Error en la petición de boletos:', err);
-        this.toastService.error('Error al cargar los boletos');
-      }
-    });
+    this.boletoServiceInst.getBoletosDelUsuario().subscribe();
   }
 
-  protected onSearch(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery.set(input.value);
+  // --- VALIDACIÓN DE CAMPOS (REQUERIDO POR EL HTML) ---
+  protected hasFieldError(fieldName: string): boolean {
+    const field = this.abordajeForm.get(fieldName);
+    return !!field && field.invalid && (field.touched || field.dirty);
   }
 
-  protected onStatusFilterChange(status: string): void {
-    this.statusFilter.set(status as StatusFilter);
+  // --- LABELS (REQUERIDO POR EL HTML) ---
+  protected getBusLabel(bus: BusOption): string {
+    return bus.placa ? `${bus.placa} (${bus.nombre || 'Bus'})` : `Bus ${bus.id}`;
   }
 
-  protected onSortChange(sort: 'recent' | 'oldest'): void {
-    this.sortBy.set(sort);
+  protected getParaderoLabel(paradero: ParaderoOption): string {
+    return paradero.nombre || paradero.direccion || `Paradero ${paradero.id}`;
   }
 
-  protected finishTravel(boleto: Boleto): void {
-    if (!boleto.id) return;
-    this.boletoServiceInst.updateBoleto(boleto.id, { status: 'COMPLETADO', disembarkTime: new Date() })
-      .subscribe({
-        next: () => {
-          this.toastService.success('Viaje finalizado');
-          this.loadBoletos();
-        }
-      });
-  }
-
-  protected cancelBoleto(boleto: Boleto): void {
-    if (!boleto.id) return;
-    if (confirm('¿Cancelar este boleto?')) {
-      this.boletoServiceInst.updateBoleto(boleto.id, { status: 'CANCELADO' })
-        .subscribe({
-          next: () => {
-            this.toastService.success('Boleto cancelado');
-            this.loadBoletos();
-          }
-        });
-    }
-  }
-
-  protected getStatusClass(status: string | undefined): string {
-    const s = (status || 'ACTIVO').toLowerCase();
-    return `badge-${s}`;
-  }
-
-  protected getStatusText(status: string): string {
-    const statusMap: Record<string, string> = {
-      ACTIVO: 'En viaje',
-      COMPLETADO: 'Finalizado',
-      CANCELADO: 'Cancelado',
-    };
-    return statusMap[status.toUpperCase()] || status;
-  }
-
-  protected getStatusIcon(status: string): string {
-    const iconMap: Record<string, string> = { ACTIVO: '🚌', COMPLETADO: '✓', CANCELADO: '✕' };
-    return iconMap[status.toUpperCase()] || '○';
-  }
-
-  protected formatDate(date: any): string {
-    if (!date) return '-';
-    return new Date(date).toLocaleString('es-ES', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  }
-
-  protected retryLoad(): void {
-    this.loadBoletos();
-  }
-
+  // --- ACCIONES ---
   protected submitAbordaje(): void {
     if (this.abordajeForm.invalid) {
       this.abordajeForm.markAllAsTouched();
@@ -240,28 +156,87 @@ export class BoletosComponent implements OnInit {
 
     this.boletoServiceInst.registrarAbordaje(payload, token).subscribe({
       next: (res) => {
-        this.toastService.success('¡Abordaje exitoso!');
+        this.toastService.success(`¡Abordaje exitoso! Saldo: $${res.saldoRestante}`);
         this.abordajeForm.reset();
         this.loadBoletos();
+        this.loadFormData();
         this.isSubmitting.set(false);
       },
       error: (err) => {
-        this.toastService.error(err.error?.message || 'Error');
+        this.toastService.error(err.message || 'Error en el abordaje');
         this.isSubmitting.set(false);
       }
     });
   }
 
-  protected hasFieldError(fieldName: string): boolean {
-    const field = this.abordajeForm.get(fieldName);
-    return !!field && field.invalid && (field.touched || field.dirty);
+  protected finishTravel(boleto: Boleto): void {
+    if (!boleto.id) return;
+    const payload = { estado: 'completado', finViaje: new Date().toISOString() };
+    this.boletoServiceInst.updateBoleto(Number(boleto.id), payload).subscribe({
+      next: () => { this.toastService.success('Viaje finalizado'); this.loadBoletos(); }
+    });
   }
 
-  protected getBusLabel(bus: BusOption): string {
-    return bus.nombre || bus.placa || `Bus ${bus.id}`;
+  protected openCancelModal(boleto: Boleto): void {
+    this.selectedBoleto.set(boleto);
+    this.showCancelModal.set(true);
   }
 
-  protected getParaderoLabel(paradero: ParaderoOption): string {
-    return paradero.nombre || paradero.direccion || `Paradero ${paradero.id}`;
+  protected closeCancelModal(): void {
+    this.showCancelModal.set(false);
+    this.selectedBoleto.set(null);
+  }
+
+  protected confirmCancel(): void {
+    const boleto = this.selectedBoleto();
+    if (!boleto || !boleto.id) return;
+    this.boletoServiceInst.updateBoleto(Number(boleto.id), { estado: 'cancelado' }).subscribe({
+      next: () => {
+        this.toastService.success('Boleto cancelado correctamente');
+        this.loadBoletos();
+        this.closeCancelModal();
+      },
+      error: () => { this.toastService.error('No se pudo cancelar'); this.closeCancelModal(); }
+    });
+  }
+
+  // --- HELPERS UI ---
+  protected onSearch(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onStatusFilterChange(status: string): void {
+    this.statusFilter.set(status as StatusFilter);
+  }
+
+  protected onSortChange(sort: 'recent' | 'oldest'): void {
+    this.sortBy.set(sort);
+  }
+
+  protected getStatusClass(status: string | undefined): string {
+    return `badge-${(status || 'ACTIVO').toLowerCase()}`;
+  }
+
+  protected getStatusText(status: string): string {
+    const statusMap: Record<string, string> = {
+      ACTIVO: 'En viaje', COMPLETADO: 'Finalizado', CANCELADO: 'Cancelado',
+    };
+    return statusMap[status.toUpperCase()] || status;
+  }
+
+  protected getStatusIcon(status: string): string {
+    const iconMap: Record<string, string> = { ACTIVO: '🚌', COMPLETADO: '✓', CANCELADO: '✕' };
+    return iconMap[status.toUpperCase()] || '○';
+  }
+
+  protected formatDate(date: any): string {
+    if (!date) return '-';
+    return new Date(date).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  protected retryLoad(): void {
+    this.loadBoletos();
   }
 }

@@ -14,7 +14,7 @@ import {
 import { environment } from '../../../environments/environment';
 
 /**
- * BoletoService - Servicio para gestión de boletos/tickets
+ * BoletoService - Servicio para gestión de boletos y métodos de pago del ciudadano
  */
 @Injectable({
   providedIn: 'root',
@@ -23,6 +23,8 @@ export class BoletoService {
   private readonly apiUrl = `${environment.apiNestUrl}${environment.apiEndpoints.boletos}`;
   private readonly busesUrl = `${environment.apiNestUrl}/bus`;
   private readonly paraderosUrl = `${environment.apiNestUrl}/paradero`;
+  // Endpoint para obtener las tarjetas/instrumentos del ciudadano logueado
+  private readonly misMetodosUrl = `${environment.apiNestUrl}/metodo-pago-ciudadano/mis-metodos`;
 
   private readonly boletosState = signal<Boleto[]>([]);
   private readonly loadingState = signal<boolean>(false);
@@ -37,7 +39,20 @@ export class BoletoService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Limpia el estado local de boletos para evitar UI rota ante errores del backend
+   * NUEVO: Obtiene las tarjetas (metodos_pago_ciudadano) asociadas al usuario autenticado.
+   * Esto permite ver el saldo real antes de abordar.
+   */
+  getMisTarjetas(): Observable<any[]> {
+    return this.http
+      .get<any[] | { data?: any[] }>(this.misMetodosUrl)
+      .pipe(
+        map((response) => this.normalizeListResponse<any>(response)),
+        catchError((error) => this.handleError(error))
+      );
+  }
+
+  /**
+   * Limpia el estado local
    */
   resetBoletosState(): void {
     this.boletosState.set([]);
@@ -46,7 +61,7 @@ export class BoletoService {
   }
 
   /**
-   * Obtiene lista de buses para formulario
+   * Obtiene lista de buses
    */
   getBuses(): Observable<BusOption[]> {
     return this.http
@@ -55,7 +70,7 @@ export class BoletoService {
   }
 
   /**
-   * Obtiene lista de paraderos para formulario
+   * Obtiene lista de paraderos
    */
   getParaderos(): Observable<ParaderoOption[]> {
     return this.http
@@ -64,7 +79,7 @@ export class BoletoService {
   }
 
   /**
-   * Registra abordaje enviando Bearer token explícitamente
+   * Registra abordaje (María)
    */
   registrarAbordaje(
     payload: RegistrarAbordajeDto,
@@ -82,32 +97,12 @@ export class BoletoService {
   }
 
   /**
-   * Obtiene todos los boletos
-   */
-  getBoletos(): Observable<Boleto[]> {
-    this.loadingState.set(true);
-    this.errorState.set(null);
-
-    return this.http.get<Boleto[]>(this.apiUrl).pipe(
-      tap((boletos) => {
-        const validBoletos = (boletos || []).filter((b) => b.id);
-        this.boletosState.set(validBoletos);
-        this.totalCountState.set(validBoletos.length);
-        this.loadingState.set(false);
-      }),
-      catchError((error) => this.handleError(error)),
-    );
-  }
-
-/**
-   * Obtiene los boletos del usuario actual logueado.
-   * Llama al nuevo endpoint que extrae el ID directamente del Token.
+   * Obtiene boletos del usuario actual
    */
   getBoletosDelUsuario(): Observable<Boleto[]> {
     this.loadingState.set(true);
     this.errorState.set(null);
 
-    // URL fija que coincide con el @Get('mis-boletos') del controlador de Nest
     return this.http.get<Boleto[]>(`${this.apiUrl}/mis-boletos`).pipe(
       map((response) => this.normalizeListResponse<Boleto>(response)),
       tap((boletos) => {
@@ -121,35 +116,13 @@ export class BoletoService {
     );
   }
 
-  /**
-   * Obtiene un boleto por su ID
-   */
   getBoletoById(id: number): Observable<Boleto> {
     return this.http
       .get<Boleto>(`${this.apiUrl}/${id}`)
       .pipe(catchError((error) => this.handleError(error)));
   }
 
-  /**
-   * Crea un nuevo boleto (registra abordaje)
-   */
-  createBoleto(createBoletoDto: CreateBoletoDto): Observable<Boleto> {
-    this.errorState.set(null);
-
-    return this.http.post<Boleto>(this.apiUrl, createBoletoDto).pipe(
-      tap((boleto) => {
-        const currentBoletos = this.boletosState();
-        this.boletosState.set([boleto, ...currentBoletos]);
-        this.totalCountState.set(this.boletosState().length);
-      }),
-      catchError((error) => this.handleError(error)),
-    );
-  }
-
-  /**
-   * Actualiza un boleto (estado o fin de viaje)
-   */
-  updateBoleto(id: number, updateBoletoDto: UpdateBoletoDto): Observable<Boleto> {
+  updateBoleto(id: number, updateBoletoDto: any): Observable<Boleto> {
     this.errorState.set(null);
 
     return this.http.patch<Boleto>(`${this.apiUrl}/${id}`, updateBoletoDto).pipe(
@@ -157,17 +130,15 @@ export class BoletoService {
         const boletos = this.boletosState();
         const index = boletos.findIndex((b) => b.id === id);
         if (index !== -1) {
-          boletos[index] = updatedBoleto;
-          this.boletosState.set([...boletos]);
+          const newArray = [...boletos];
+          newArray[index] = updatedBoleto;
+          this.boletosState.set(newArray);
         }
       }),
-      catchError((error) => this.handleError(error)),
+      catchError((error) => this.handleError(error))
     );
   }
 
-  /**
-   * Elimina un boleto
-   */
   deleteBoleto(id: number): Observable<void> {
     this.errorState.set(null);
 
@@ -183,21 +154,7 @@ export class BoletoService {
   }
 
   /**
-   * Obtiene boletos activos
-   */
-  getActiveBoletos(): Boleto[] {
-    return this.boletosState().filter((b) => b.status === 'ACTIVO');
-  }
-
-  /**
-   * Obtiene boletos completados
-   */
-  getCompletedBoletos(): Boleto[] {
-    return this.boletosState().filter((b) => b.status === 'COMPLETADO');
-  }
-
-  /**
-   * Manejo de errores
+   * Manejo de errores centralizado
    */
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Error desconocido';
@@ -205,6 +162,7 @@ export class BoletoService {
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Error: ${error.error.message}`;
     } else {
+      // Priorizamos el mensaje que viene del backend (ej: "Saldo insuficiente")
       errorMessage = error.error?.message || `Error ${error.status}: ${error.statusText}`;
     }
 
@@ -213,14 +171,8 @@ export class BoletoService {
   }
 
   private normalizeListResponse<T>(response: T[] | { data?: T[] } | null | undefined): T[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    if (response && Array.isArray(response.data)) {
-      return response.data;
-    }
-
+    if (Array.isArray(response)) return response;
+    if (response && Array.isArray(response.data)) return response.data;
     return [];
   }
 

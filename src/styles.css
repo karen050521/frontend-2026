@@ -367,3 +367,15 @@
     }
   }
 }
+
+/* 🚀 DESBLOQUEO GLOBAL DE SCROLL */
+html, body {
+  overflow-y: auto !important;
+  height: auto !important;
+}
+
+/* Por si acaso Bootstrap dejó la clase de bloqueo pegada en el body */
+body.modal-open {
+  overflow-y: auto !important;
+  padding-right: 0 !important;
+}

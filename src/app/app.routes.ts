@@ -14,7 +14,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
   },
-  // VISTA DEL ADMINISTRADOR (Nueva)
+  // VISTA DEL ADMINISTRADOR / GERENTE DE EMPRESA
   {
     path: 'registro-bus',
     loadComponent: () => import('./features/buses/bus-registro.component').then((m) => m.BusRegistroComponent),
@@ -25,6 +25,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/programacion/programacion.component').then((m) => m.ProgramacionComponent),
     canActivate: [AuthGuard],
   },
+  {
+    path: 'auditoria-incidentes', // 🚨 NUEVA RUTA: Consulta y seguimiento de incidentes por Bus
+    loadComponent: () => 
+      import('./features/incidente-admin/incidente-admin.component').then((m) => m.IncidenteAdminComponent),
+    canActivate: [AuthGuard],
+  },
   // VISTA DEL CONDUCTOR (Sincronizada con el Sidebar)
   {
     path: 'features/turno-conductor',
@@ -32,7 +38,7 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
-    path: 'reportar-incidente', // 🚨 NUEVA RUTA PARA EL REPORTE DE INCIDENTES 
+    path: 'reportar-incidente', // VISTA DEL CONDUCTOR: Reporte rápido
     loadComponent: () => 
       import('./features/incidentes/incidente-bus.component').then((m) => m.IncidenteBusComponent),
     canActivate: [AuthGuard],
@@ -74,12 +80,6 @@ export const routes: Routes = [
       import('./features/permissions/manage-permissions.component').then(
         (m) => m.ManagePermissionsComponent,
       ),
-    canActivate: [AuthGuard],
-  },
-  {
-    path: 'dashboard',
-    loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
   },
   {

@@ -1,193 +1,276 @@
-<div class="boletos-container">
-  <div class="boletos-header">
-    <div>
-      <h1 class="boletos-title">Mis Boletos</h1>
-      <p class="boletos-subtitle">Gestiona y consulta tus boletos de viaje</p>
-    </div>
+<div class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans">
+  
+  <div class="mb-10">
+    <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400">
+      Mis Boletos de Viaje
+    </h1>
+    <p class="text-gray-400 mt-2 text-sm">Gestiona tus solicitudes de abordaje, valida tus fondos y consulta tu historial de transporte urbano.</p>
   </div>
 
-  <section class="abordaje-card">
-    <div class="abordaje-header">
-      <h2 class="abordaje-title">Registrar abordaje</h2>
-      <p class="abordaje-subtitle">Selecciona bus, paradero y tu tarjeta de transporte</p>
-    </div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <div class="lg:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl h-fit sticky top-6">
+      <h2 class="text-xl font-semibold mb-2 flex items-center gap-2 text-pink-500">
+        <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+        Registrar Abordaje
+      </h2>
+      <p class="text-gray-400 text-xs mb-6">Selecciona la unidad en servicio y tu método de pago para generar el boleto digital.</p>
 
-    <form class="abordaje-form" [formGroup]="abordajeForm" (ngSubmit)="submitAbordaje()">
-      <div class="form-group">
-        <label class="form-label" for="bus_id">Bus disponible</label>
-        <select id="bus_id" class="form-select" formControlName="bus_id">
-          <option [ngValue]="null">Selecciona un bus</option>
-          @for (bus of buses(); track bus.id) {
-            <option [ngValue]="bus.id">{{ getBusLabel(bus) }}</option>
+      <form [formGroup]="abordajeForm" (ngSubmit)="submitAbordaje()" class="space-y-5">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Bus en Servicio *</label>
+          <select formControlName="bus_id"
+                  class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all cursor-pointer">
+            <option [ngValue]="null" disabled selected>Seleccione una unidad activa...</option>
+            @for (bus of buses(); track bus.id) {
+              <option [ngValue]="bus.id" class="bg-[#1e1e1e] text-white">
+                {{ getBusLabel(bus) }}
+              </option>
+            }
+          </select>
+          @if (hasFieldError('bus_id')) {
+            <p class="text-rose-400 text-xs mt-1.5 flex items-center gap-1">⚠ Debes seleccionar un bus en ruta activo</p>
           }
-        </select>
-        @if (hasFieldError('bus_id')) {
-          <p class="form-error">Debes seleccionar un bus para abordar</p>
-        }
-      </div>
+        </div>
 
-      <div class="form-group">
-        <label class="form-label" for="paradero_id">Paradero actual</label>
-        <select id="paradero_id" class="form-select" formControlName="paradero_id">
-          <option [ngValue]="null">Selecciona un paradero</option>
-          @for (paradero of paraderos(); track paradero.id) {
-            <option [ngValue]="paradero.id">{{ getParaderoLabel(paradero) }}</option>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Paradero Actual *</label>
+          <select formControlName="paraderoAbordaje_id"
+                  class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all cursor-pointer">
+            <option [ngValue]="null" disabled selected>Seleccione el paradero...</option>
+            @for (paradero of paraderos(); track paradero.id) {
+              <option [ngValue]="paradero.id" class="bg-[#1e1e1e] text-white">
+                {{ getParaderoLabel(paradero) }}
+              </option>
+            }
+          </select>
+          @if (hasFieldError('paraderoAbordaje_id')) {
+            <p class="text-rose-400 text-xs mt-1.5 flex items-center gap-1">⚠ Selecciona el paradero donde te encuentras</p>
           }
-        </select>
-        @if (hasFieldError('paradero_id')) {
-          <p class="form-error">Selecciona el paradero donde te encuentras</p>
-        }
-      </div>
+        </div>
 
-      <div class="form-group">
-        <label class="form-label" for="metodo_pago_id">Mi Tarjeta (Saldo disponible)</label>
-        <select id="metodo_pago_id" class="form-select" formControlName="metodo_pago_id">
-          <option [ngValue]="null">Selecciona una tarjeta</option>
-          @for (tarjeta of misTarjetas(); track tarjeta.id) {
-            <option [ngValue]="tarjeta.id">
-              {{ tarjeta.tipoInstrumento }} - ${{ tarjeta.saldo | number:'1.0-0' }}
-            </option>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Mi Tarjeta de Transporte *</label>
+          <select formControlName="metodoPagoCiudadano_id"
+                  class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all cursor-pointer">
+            <option [ngValue]="null" disabled selected>Seleccione una tarjeta...</option>
+            @for (tarjeta of misTarjetas(); track tarjeta.id) {
+              <option [ngValue]="tarjeta.id" class="bg-[#1e1e1e] text-white">
+                💳 {{ tarjeta.tipoInstrumento || 'Tarjeta KALA' }} (Saldo: ${{ tarjeta.saldo | number:'1.2-2' }})
+              </option>
+            }
+          </select>
+          @if (hasFieldError('metodoPagoCiudadano_id')) {
+            <p class="text-rose-400 text-xs mt-1.5 flex items-center gap-1">⚠ Selecciona una tarjeta con saldo suficiente</p>
           }
-        </select>
-        @if (hasFieldError('metodo_pago_id')) {
-          <p class="form-error">Selecciona una tarjeta con saldo suficiente</p>
-        }
-      </div>
+        </div>
 
-      <button
-        class="btn-submit-abordaje"
-        type="submit"
-        [disabled]="abordajeForm.invalid || isSubmitting()"
-      >
-        @if (isSubmitting()) {
-          Validando saldo...
-        } @else {
-          Confirmar Abordaje
-        }
-      </button>
-    </form>
-  </section>
-
-  <div class="stats-grid">
-    <div class="stat-card stat-total">
-      <div class="stat-icon">🎫</div>
-      <div class="stat-content">
-        <p class="stat-label">Total</p>
-        <p class="stat-value">{{ stats.total }}</p>
-      </div>
-    </div>
-    <div class="stat-card stat-active">
-      <div class="stat-icon">🚌</div>
-      <div class="stat-content">
-        <p class="stat-label">En viaje</p>
-        <p class="stat-value">{{ stats.activos }}</p>
-      </div>
-    </div>
-    <div class="stat-card stat-completed">
-      <div class="stat-icon">✅</div>
-      <div class="stat-content">
-        <p class="stat-label">Completados</p>
-        <p class="stat-value">{{ stats.completados }}</p>
-      </div>
-    </div>
-    <div class="stat-card stat-cancelled">
-      <div class="stat-icon">❌</div>
-      <div class="stat-content">
-        <p class="stat-label">Cancelados</p>
-        <p class="stat-value">{{ stats.cancelados }}</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="filters-section">
-    <div class="search-container">
-      <input
-        type="text"
-        class="search-input"
-        placeholder="Buscar por origen, destino o número..."
-        (input)="onSearch($event)"
-      />
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-buttons">
-        @for (status of ['TODOS', 'ACTIVO', 'COMPLETADO', 'CANCELADO']; track status) {
-          <button
-            class="filter-btn"
-            [class.active]="statusFilter() === status"
-            (click)="onStatusFilterChange(status)"
-          >
-            {{ getStatusText(status) }}
-          </button>
-        }
-      </div>
-    </div>
-  </div>
-
-  @if (boletoServiceInst.loading()) {
-    <div class="loading-container"><div class="spinner"></div></div>
-  } 
-  @else if (filteredBoletos().length > 0) {
-    <div class="boletos-list">
-      @for (boleto of filteredBoletos(); track boleto.id) {
-        <div class="boleto-card">
-          <div [class]="'status-badge ' + getStatusClass(boleto.status)">
-            <span>{{ getStatusText(boleto.status) }}</span>
-          </div>
-
-          <div class="boleto-main">
-            <div class="route-info">
-              <div class="point-content">
-                <p class="point-label">RUTA</p>
-                <p class="point-value">{{ boleto.travelDetails.origin }} ➔ {{ boleto.travelDetails.destination }}</p>
-              </div>
+        @if (selectedTarjeta) {
+          <div class="bg-[#222] border border-gray-800 rounded-xl p-4 space-y-2 mt-2">
+            <div class="flex justify-between text-xs text-gray-400">
+              <span>Saldo disponible en tarjeta:</span>
+              <span class="text-white font-medium">${{ selectedTarjeta.saldo | number:'1.2-2' }}</span>
             </div>
-
-            <div class="details-grid">
-              <div class="detail-item">
-                <p class="detail-label">Costo</p>
-                <p class="detail-value">${{ boleto.costo | number }}</p>
-              </div>
-              <div class="detail-item">
-                <p class="detail-label">Vehículo</p>
-                <p class="detail-value">{{ boleto.travelDetails.vehiclePlate }}</p>
-              </div>
-              <div class="detail-item">
-                <p class="detail-label">Abordaje</p>
-                <p class="detail-value">{{ formatDate(boleto.boardingTime) }}</p>
-              </div>
+            <div class="flex justify-between text-xs text-gray-400">
+              <span>Costo pasaje KALA:</span>
+              <span class="text-rose-400 font-medium">-$2,500.00</span>
             </div>
-          </div>
-
-          <div class="boleto-actions">
-            @if (boleto.status === 'ACTIVO') {
-              <button class="btn btn-primary" (click)="finishTravel(boleto)">Finalizar</button>
-              <button class="btn btn-danger" (click)="openCancelModal(boleto)">Cancelar</button>
+            <div class="border-t border-gray-800 pt-2 flex justify-between text-sm font-bold">
+              <span>Saldo proyectado al abordar:</span>
+              <span [class.text-emerald-400]="selectedTarjeta.saldo >= 2500" 
+                    [class.text-rose-500]="selectedTarjeta.saldo < 2500">
+                ${{ (selectedTarjeta.saldo - 2500) | number:'1.2-2' }}
+              </span>
+            </div>
+            
+            @if (selectedTarjeta.saldo < 2500) {
+              <div class="bg-rose-950/40 border border-rose-500/30 text-rose-400 text-[11px] p-2 rounded-lg text-center font-medium mt-2">
+                ❌ Fondos insuficientes. Recarga tu tarjeta antes de generar el boleto.
+              </div>
             }
           </div>
+        }
+
+        <button type="submit" 
+                [disabled]="isSubmitting() || abordajeForm.invalid || (selectedTarjeta && selectedTarjeta.saldo < 2500)"
+                class="w-full mt-4 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2">
+          @if (isSubmitting()) {
+            <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+            <span>Procesando pago...</span>
+          } @else {
+            <span>Confirmar Abordaje</span>
+          }
+        </button>
+      </form>
+    </div>
+
+    <div class="lg:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col">
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center mb-6 pb-6 border-b border-gray-800">
+        <div class="flex items-center gap-3">
+          <h2 class="text-xl font-semibold text-fuchsia-400">Historial de Viajes</h2>
+          <span class="bg-[#2a2a2a] text-xs font-mono px-2.5 py-1 rounded-full border border-gray-700 text-gray-300">
+            {{ filteredBoletos().length }} registros
+          </span>
+        </div>
+        
+        <div class="flex gap-1.5 overflow-x-auto pb-1">
+          @for (status of ['TODOS', 'ACTIVO', 'COMPLETADO', 'CANCELADO']; track status) {
+            <button type="button" 
+                    class="text-xs font-semibold px-3 py-2 rounded-xl transition-all text-nowrap"
+                    [class.bg-gradient-to-r]="statusFilter() === status"
+                    [class.from-pink-600]="statusFilter() === status"
+                    [class.to-fuchsia-600]="statusFilter() === status"
+                    [class.text-white]="statusFilter() === status"
+                    [class.bg-[#2a2a2a]]="statusFilter() !== status"
+                    [class.text-gray-400]="statusFilter() !== status"
+                    [class.hover:bg-[#333]]="statusFilter() !== status"
+                    (click)="onStatusFilterChange(status)">
+              {{ status === 'ACTIVO' ? 'En viaje' : status === 'COMPLETADO' ? 'Finalizados' : status === 'CANCELADO' ? 'Cancelados' : 'Ver Todos' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="relative w-full mb-4">
+        <input type="text" 
+               class="w-full bg-[#2a2a2a] text-gray-300 text-sm rounded-xl pl-4 pr-4 py-2.5 border border-gray-700 focus:outline-none focus:border-fuchsia-500 transition-colors" 
+               placeholder="Filtrar por origen, destino o código..." 
+               (input)="onSearch($event)">
+      </div>
+
+      @if (boletoServiceInst.loading()) {
+        <div class="flex-1 flex flex-col items-center justify-center py-12 text-center">
+          <div class="animate-spin inline-block w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full mb-3"></div>
+          <p class="text-gray-500 text-sm">Sincronizando bitácora de boletos...</p>
+        </div>
+      } 
+      
+      @else if (filteredBoletos().length === 0) {
+        <div class="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-gray-800 rounded-xl my-4 py-16">
+          <span class="text-4xl mb-3 block">🎫</span>
+          <p class="text-gray-500 text-sm">No se encontraron boletos con el filtro seleccionado.</p>
         </div>
       }
-    </div>
-  } @else {
-    <div class="empty-container">
-      <p>No se encontraron boletos con estos filtros.</p>
-    </div>
-  }
 
-  @if (showCancelModal()) {
-    <div class="modal-overlay">
-      <div class="modal-content">
-        <h3 class="modal-title">¿Confirmar cancelación?</h3>
-        <p class="modal-body">
-          Estás a punto de cancelar el boleto del viaje de 
-          <strong>{{ selectedBoleto()?.travelDetails?.origin }}</strong>. 
-          Esta acción no se puede deshacer.
+      @if (!boletoServiceInst.loading() && filteredBoletos().length > 0) {
+        <div class="space-y-4 overflow-y-auto max-h-[65vh] pr-1">
+          @for (boleto of filteredBoletos(); track boleto.id) {
+            <div class="bg-[#262626] border border-gray-800/80 p-5 rounded-xl hover:border-gray-700 transition-all shadow-md">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                <div class="flex items-start gap-3.5 flex-1">
+                  <div class="bg-[#1a1a1a] p-3 rounded-xl text-xl border border-gray-800">🚌</div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span class="font-mono text-xs text-pink-400 font-bold tracking-wider bg-pink-950/30 border border-pink-500/20 px-2 py-0.5 rounded">
+                        {{ boleto.numeroBoleto || 'N/A' }}
+                      </span>
+                      <span class="px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide border uppercase"
+                            [ngClass]="{
+                              'bg-pink-950/40 text-pink-400 border-pink-500/30': boleto.status === 'ACTIVO',
+                              'bg-emerald-950/40 text-emerald-400 border-emerald-500/30': boleto.status === 'COMPLETADO',
+                              'bg-rose-950/40 text-rose-400 border-rose-500/30': boleto.status === 'CANCELADO'
+                            }">
+                        {{ boleto.status === 'ACTIVO' ? 'En viaje' : boleto.status.toLowerCase() }}
+                      </span>
+                    </div>
+
+<h3 class="text-base font-bold text-white flex items-center gap-2">
+                      <span class="text-gray-200">¡Disfruta tu viaje en el sistema KALA!</span>
+                      @if (boleto.status === 'ACTIVO') {
+                        <span class="animate-pulse text-xs bg-emerald-950/80 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
+                          🌱 Viaje en progreso
+                        </span>
+                      }
+                    </h3>
+
+                    <div class="text-gray-400 text-xs mt-1">
+                      Vehículo: <span class="text-fuchsia-400 font-mono font-medium">{{ boleto.travelDetails?.vehiclePlate || 'N/A' }}</span>
+                    </div>
+
+                    @if (boleto.status === 'ACTIVO') {
+                      <div class="mt-4 p-3.5 bg-[#1a1a1e] border border-gray-800 rounded-xl space-y-3 max-w-md">
+                        <div>
+                          <label class="block text-xs font-semibold text-emerald-400 mb-1.5 flex items-center gap-1">
+                            📍 ¿En qué paradero desciendes de la unidad? *
+                          </label>
+                          <select 
+                            [(ngModel)]="paraderoDescensoSeleccionado" 
+                            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all cursor-pointer">
+                            <option [ngValue]="null" disabled selected>Selecciona la estación de bajada...</option>
+                            @for (rp of boleto.ruta?.rutaParaderos; track rp.id) {
+                              <option [value]="rp.paradero?.id" class="bg-[#1e1e1e]">
+                                Secuencia {{ rp.orden_secuencial }} - {{ rp.paradero?.nombre || 'Paradero ' + rp.paradero_id }}
+                              </option>
+                            }
+                          </select>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-1 border-t border-gray-800/60">
+                          <button type="button" 
+                                  class="text-rose-400 hover:text-rose-300 text-xs font-medium px-3 py-1.5 transition-colors"
+                                  (click)="openCancelModal(boleto)">
+                            Cancelar Abordaje
+                          </button>
+                          <button type="button" 
+                                  class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors shadow-md shadow-emerald-900/20 uppercase tracking-wider text-[11px]"
+                                  (click)="finishTravel(boleto)">
+                            Confirmar Descenso
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 self-start md:self-center">
+                  <div class="text-left md:text-right">
+                    <div class="text-xs text-gray-400 flex items-center gap-1 md:justify-end">
+                      <span class="text-emerald-500 text-xs">⏱</span> {{ formatDate(boleto.boardingTime) }}
+                    </div>
+                    <div class="text-sm font-bold text-white mt-1">
+                      Costo: <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-fuchsia-400">${{ boleto.costo | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+  </div>
+</div>
+
+@if (showCancelModal()) {
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-[#1e1e1e] border border-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+      <div class="text-center">
+        <div class="w-12 h-12 bg-rose-950/50 border border-rose-500/30 text-rose-400 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
+          ✕
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">¿Confirmar anulación?</h3>
+        <p class="text-gray-400 text-xs leading-relaxed mb-6">
+          Estás a punto de cancelar el abordaje vigente para el viaje desde 
+          <strong class="text-white">{{ selectedBoleto()?.travelDetails?.origin }}</strong>. Esta acción devolverá los fondos correspondientes.
         </p>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeCancelModal()">Volver</button>
-          <button class="btn btn-danger" (click)="confirmCancel()">Sí, cancelar</button>
+        <div class="flex gap-3">
+          <button type="button" 
+                  class="w-full bg-[#2a2a2a] hover:bg-[#333] text-gray-300 text-xs font-semibold py-2.5 rounded-xl border border-gray-700 transition-colors" 
+                  (click)="closeCancelModal()">
+            Volver
+          </button>
+          <button type="button" 
+                  class="w-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors shadow-lg shadow-rose-600/20" 
+                  (click)="confirmCancel()">
+            Sí, cancelar
+          </button>
         </div>
       </div>
     </div>
-  }
-</div>
+  </div>
+}

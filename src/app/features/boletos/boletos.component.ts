@@ -1,22 +1,19 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { BoletoService } from '../../core/services/boleto.service';
-import {
-  Boleto,
-  BusOption,
-  ParaderoOption,
-  RegistrarAbordajeDto,
-} from '../../core/models/boleto.model';
+import { Boleto, BusOption, ParaderoOption } from '../../core/models/boleto.model';
 import { ToastService } from '../../core/services/toast.service';
+import { FormsModule } from '@angular/forms'; // 👈 Agrega esta línea si no la tienes
 
 type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 
 @Component({
   selector: 'app-boletos',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './boletos.component.html',
   styleUrl: './boletos.component.css',
 })
@@ -37,6 +34,7 @@ export class BoletosComponent implements OnInit {
   protected selectedBoleto = signal<Boleto | null>(null);
 
   protected abordajeForm: FormGroup;
+  protected paraderoDescensoSeleccionado: number | null = null;
 
   constructor(
     public boletoServiceInst: BoletoService,
@@ -45,8 +43,8 @@ export class BoletosComponent implements OnInit {
   ) {
     this.abordajeForm = this.fb.group({
       bus_id: [null, Validators.required],
-      paradero_id: [null, Validators.required],
-      metodo_pago_id: [null, Validators.required],
+      paraderoAbordaje_id: [null, Validators.required],
+      metodoPagoCiudadano_id: [null, Validators.required],
     });
   }
 
@@ -55,18 +53,43 @@ export class BoletosComponent implements OnInit {
     this.loadFormData();
   }
 
+  // 🔍 EVALUACIÓN REACTIVA ÚNICA: Mapea tu tarjeta usando 'metodo_pago_id' de tu BD
+  protected get selectedTarjeta() {
+    const id = this.abordajeForm.get('metodoPagoCiudadano_id')?.value;
+    if (!id) return null;
+    return this.misTarjetas().find(t => t.metodo_pago_id == id) || null;
+  }
+
   private loadFormData(): void {
-    forkJoin({
-      buses: this.boletoServiceInst.getBuses(),
-      paraderos: this.boletoServiceInst.getParaderos(),
-      tarjetas: this.boletoServiceInst.getMisTarjetas(),
+    const token = localStorage.getItem(this.tokenStorageKey) || '';
+
+    if (!token) {
+      this.toastService.error('Sesión inválida o expirada. Inicie sesión nuevamente.');
+      return;
+    }
+
+forkJoin({
+      // 🚌 FILTRADO QUIRÚRGICO: El backend ya calcula 'enRuta' basándose en los turnos 'en_curso'
+      buses: this.boletoServiceInst.getBuses().pipe(
+        map((allBuses: any[]) => {
+          return allBuses.filter(bus => bus.enRuta === true);
+        }),
+        catchError(() => of([]))
+      ),
+      paraderos: this.boletoServiceInst.getParaderos().pipe(catchError(() => of([]))),
+      tarjetas: this.boletoServiceInst.getMisTarjetas(token).pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ buses, paraderos, tarjetas }) => {
+        console.log('🔴 REVISIÓN DE TARJETAS EN EL COMPONENTE:', tarjetas);
         this.buses.set(buses);
         this.paraderos.set(paraderos);
         this.misTarjetas.set(tarjetas);
+
+        if (buses.length === 0 && paraderos.length === 0 && tarjetas.length === 0) {
+          this.toastService.error('Error al sincronizar datos del servidor');
+        }
       },
-      error: () => this.toastService.error('Error al sincronizar datos del servidor'),
+      error: () => this.toastService.error('Error crítico al sincronizar datos del servidor'),
     });
   }
 
@@ -108,36 +131,23 @@ export class BoletosComponent implements OnInit {
     });
   });
 
-  protected get stats() {
-    const boletos = this.filteredBoletos();
-    return {
-      total: boletos.length,
-      activos: boletos.filter((b) => b.status === 'ACTIVO').length,
-      completados: boletos.filter((b) => b.status === 'COMPLETADO').length,
-      cancelados: boletos.filter((b) => b.status === 'CANCELADO').length,
-    };
-  }
-
   private loadBoletos(): void {
     this.boletoServiceInst.getBoletosDelUsuario().subscribe();
   }
 
-  // --- VALIDACIÓN DE CAMPOS (REQUERIDO POR EL HTML) ---
   protected hasFieldError(fieldName: string): boolean {
     const field = this.abordajeForm.get(fieldName);
     return !!field && field.invalid && (field.touched || field.dirty);
   }
 
-  // --- LABELS (REQUERIDO POR EL HTML) ---
-  protected getBusLabel(bus: BusOption): string {
-    return bus.placa ? `${bus.placa} (${bus.nombre || 'Bus'})` : `Bus ${bus.id}`;
+protected getBusLabel(bus: BusOption): string {
+    return bus.placa ? `🚌 ${bus.placa} - ${bus.nombre || 'Unidad en Ruta'}` : `Bus ${bus.id}`;
   }
 
   protected getParaderoLabel(paradero: ParaderoOption): string {
     return paradero.nombre || paradero.direccion || `Paradero ${paradero.id}`;
   }
 
-  // --- ACCIONES ---
   protected submitAbordaje(): void {
     if (this.abordajeForm.invalid) {
       this.abordajeForm.markAllAsTouched();
@@ -148,15 +158,16 @@ export class BoletosComponent implements OnInit {
 
     this.isSubmitting.set(true);
     const val = this.abordajeForm.value;
-    const payload: RegistrarAbordajeDto = {
+    
+    const payload = {
       bus_id: Number(val.bus_id),
-      paradero_id: Number(val.paradero_id),
-      metodo_pago_id: Number(val.metodo_pago_id),
+      paraderoAbordaje_id: Number(val.paraderoAbordaje_id),
+      metodoPagoCiudadano_id: Number(val.metodoPagoCiudadano_id),
     };
 
     this.boletoServiceInst.registrarAbordaje(payload, token).subscribe({
       next: (res) => {
-        this.toastService.success(`¡Abordaje exitoso! Saldo: $${res.saldoRestante}`);
+        this.toastService.success(`¡Abordaje exitoso! Saldo restante: $${res.saldoRestante}`);
         this.abordajeForm.reset();
         this.loadBoletos();
         this.loadFormData();
@@ -169,11 +180,39 @@ export class BoletosComponent implements OnInit {
     });
   }
 
-  protected finishTravel(boleto: Boleto): void {
+protected finishTravel(boleto: Boleto): void {
     if (!boleto.id) return;
-    const payload = { estado: 'completado', finViaje: new Date().toISOString() };
-    this.boletoServiceInst.updateBoleto(Number(boleto.id), payload).subscribe({
-      next: () => { this.toastService.success('Viaje finalizado'); this.loadBoletos(); }
+    
+    const token = localStorage.getItem(this.tokenStorageKey);
+    if (!token) return;
+
+    // 🚌 Validamos que se haya elegido un paradero del select dinámico
+    if (!this.paraderoDescensoSeleccionado) {
+      this.toastService.error('Por favor, seleccione el paradero exacto donde desciende del bus.');
+      return;
+    }
+
+    const payload = {
+      boleto_id: Number(boleto.id),
+      paraderoDescenso_id: Number(this.paraderoDescensoSeleccionado)
+    };
+
+    // 🔥 Enviamos el payload a tu endpoint especializado de descenso
+    this.boletoServiceInst.finalizarViaje(payload, token).subscribe({
+      next: (res) => {
+        // 🎯 CUMPLIMIENTO HU: Mensaje corporativo exacto de la historia
+        this.toastService.success(res.mensaje || 'Viaje completado - Gracias por usar nuestro servicio');
+        
+        // Limpiamos la variable para el próximo viaje
+        this.paraderoDescensoSeleccionado = null;
+        
+        // Refrescamos pantallas y estados
+        this.loadBoletos();
+        this.loadFormData();
+      },
+      error: (err) => {
+        this.toastService.error(err.message || 'Error al procesar el descenso');
+      }
     });
   }
 
@@ -191,16 +230,19 @@ export class BoletosComponent implements OnInit {
     const boleto = this.selectedBoleto();
     if (!boleto || !boleto.id) return;
     this.boletoServiceInst.updateBoleto(Number(boleto.id), { estado: 'cancelado' }).subscribe({
-      next: () => {
-        this.toastService.success('Boleto cancelado correctamente');
-        this.loadBoletos();
-        this.closeCancelModal();
+      next: () => { 
+        this.toastService.success('Boleto cancelado correctamente'); 
+        this.loadBoletos(); 
+        this.loadFormData(); 
+        this.closeCancelModal(); 
       },
-      error: () => { this.toastService.error('No se pudo cancelar'); this.closeCancelModal(); }
+      error: () => { 
+        this.toastService.error('No se pudo cancelar el boleto'); 
+        this.closeCancelModal(); 
+      }
     });
   }
 
-  // --- HELPERS UI ---
   protected onSearch(event: Event): void {
     this.searchQuery.set((event.target as HTMLInputElement).value);
   }
@@ -213,30 +255,15 @@ export class BoletosComponent implements OnInit {
     this.sortBy.set(sort);
   }
 
-  protected getStatusClass(status: string | undefined): string {
-    return `badge-${(status || 'ACTIVO').toLowerCase()}`;
-  }
-
-  protected getStatusText(status: string): string {
-    const statusMap: Record<string, string> = {
-      ACTIVO: 'En viaje', COMPLETADO: 'Finalizado', CANCELADO: 'Cancelado',
-    };
-    return statusMap[status.toUpperCase()] || status;
-  }
-
-  protected getStatusIcon(status: string): string {
-    const iconMap: Record<string, string> = { ACTIVO: '🚌', COMPLETADO: '✓', CANCELADO: '✕' };
-    return iconMap[status.toUpperCase()] || '○';
-  }
-
   protected formatDate(date: any): string {
     if (!date) return '-';
-    return new Date(date).toLocaleString('es-ES', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    return new Date(date).toLocaleString('es-ES', { 
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
     });
   }
 
   protected retryLoad(): void {
     this.loadBoletos();
+    this.loadFormData();
   }
 }

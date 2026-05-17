@@ -14,6 +14,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
   },
+  // 🎫 NUEVA RUTA: Gestión de Boletos y Abordaje del Ciudadano
+  {
+    path: 'boletos',
+    loadComponent: () => import('./features/boletos/boletos.component').then((m) => m.BoletosComponent),
+    canActivate: [AuthGuard],
+  },
   // VISTA DEL ADMINISTRADOR / GERENTE DE EMPRESA
   {
     path: 'registro-bus',

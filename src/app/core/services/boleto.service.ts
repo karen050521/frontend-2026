@@ -5,17 +5,11 @@ import { catchError, map, tap } from 'rxjs/operators';
 import {
   Boleto,
   BusOption,
-  CreateBoletoDto,
   ParaderoOption,
-  RegistrarAbordajeDto,
   RegistrarAbordajeResponse,
-  UpdateBoletoDto,
 } from '../models/boleto.model';
 import { environment } from '../../../environments/environment';
 
-/**
- * BoletoService - Servicio para gestión de boletos y métodos de pago del ciudadano
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -23,7 +17,6 @@ export class BoletoService {
   private readonly apiUrl = `${environment.apiNestUrl}${environment.apiEndpoints.boletos}`;
   private readonly busesUrl = `${environment.apiNestUrl}/bus`;
   private readonly paraderosUrl = `${environment.apiNestUrl}/paradero`;
-  // Endpoint para obtener las tarjetas/instrumentos del ciudadano logueado
   private readonly misMetodosUrl = `${environment.apiNestUrl}/metodo-pago-ciudadano/mis-metodos`;
 
   private readonly boletosState = signal<Boleto[]>([]);
@@ -38,51 +31,42 @@ export class BoletoService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * NUEVO: Obtiene las tarjetas (metodos_pago_ciudadano) asociadas al usuario autenticado.
-   * Esto permite ver el saldo real antes de abordar.
-   */
-  getMisTarjetas(): Observable<any[]> {
-    return this.http
-      .get<any[] | { data?: any[] }>(this.misMetodosUrl)
-      .pipe(
-        map((response) => this.normalizeListResponse<any>(response)),
-        catchError((error) => this.handleError(error))
-      );
+getMisTarjetas(token: string): Observable<any[]> {
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    // 🎯 CAMBIO AQUÍ: Cambiamos 'this.misMetodosUrl' para pegarle al controlador de boletos
+    // Si tu servicio usa 'this.apiUrl', déjalo así. Si usa otra variable base, cámbiala por esa.
+    return this.http.get<any[] | { data?: any[] }>(`${this.apiUrl}/mis-tarjetas`, { headers }).pipe(
+      map((response) => this.normalizeListResponse<any>(response)),
+      catchError((error) => this.handleError(error)),
+    );
   }
 
-  /**
-   * Limpia el estado local
-   */
   resetBoletosState(): void {
     this.boletosState.set([]);
     this.totalCountState.set(0);
     this.loadingState.set(false);
   }
 
-  /**
-   * Obtiene lista de buses
-   */
   getBuses(): Observable<BusOption[]> {
     return this.http
       .get<BusOption[] | { data?: BusOption[] }>(this.busesUrl)
       .pipe(map((response) => this.normalizeListResponse<BusOption>(response)));
   }
 
-  /**
-   * Obtiene lista de paraderos
-   */
   getParaderos(): Observable<ParaderoOption[]> {
     return this.http
       .get<ParaderoOption[] | { data?: ParaderoOption[] }>(this.paraderosUrl)
       .pipe(map((response) => this.normalizeListResponse<ParaderoOption>(response)));
   }
 
-  /**
-   * Registra abordaje (María)
+/**
+   * ✅ REGISTRAR ABORDAJE (Elegante y Dinámico)
    */
   registrarAbordaje(
-    payload: RegistrarAbordajeDto,
+    payload: { bus_id?: number; paraderoAbordaje_id?: number; metodoPagoCiudadano_id?: number },
     token: string,
   ): Observable<RegistrarAbordajeResponse> {
     this.errorState.set(null);
@@ -91,14 +75,36 @@ export class BoletoService {
       Authorization: `Bearer ${token}`,
     });
 
+    // 🌟 Cambiado de localhost a la variable limpia del servicio
     return this.http
       .post<RegistrarAbordajeResponse>(this.apiUrl, payload, { headers })
       .pipe(catchError((error) => this.handleError(error)));
   }
 
   /**
-   * Obtiene boletos del usuario actual
+   * 🚌 FINALIZAR VIAJE / DESCENSO (Elegante y Dinámico)
    */
+  finalizarViaje(
+    payload: { boleto_id: number; paraderoDescenso_id: number },
+    token: string,
+  ): Observable<any> {
+    this.errorState.set(null);
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    // 🌟 Concatenamos limpiamente usando la ruta base de boletos
+    return this.http
+      .post<any>(`${this.apiUrl}/finalizar-viaje`, payload, { headers })
+      .pipe(
+        tap(() => {
+          this.getBoletosDelUsuario().subscribe();
+        }),
+        catchError((error) => this.handleError(error))
+      );
+  }
+  
   getBoletosDelUsuario(): Observable<Boleto[]> {
     this.loadingState.set(true);
     this.errorState.set(null);
@@ -135,7 +141,7 @@ export class BoletoService {
           this.boletosState.set(newArray);
         }
       }),
-      catchError((error) => this.handleError(error))
+      catchError((error) => this.handleError(error)),
     );
   }
 
@@ -153,19 +159,13 @@ export class BoletoService {
     );
   }
 
-  /**
-   * Manejo de errores centralizado
-   */
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Error desconocido';
-
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      // Priorizamos el mensaje que viene del backend (ej: "Saldo insuficiente")
       errorMessage = error.error?.message || `Error ${error.status}: ${error.statusText}`;
     }
-
     this.errorState.set(errorMessage);
     return throwError(() => new Error(errorMessage));
   }

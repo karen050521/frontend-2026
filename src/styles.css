@@ -379,3 +379,23 @@ body.modal-open {
   overflow-y: auto !important;
   padding-right: 0 !important;
 }
+
+/* 🧹 RESETEO GLOBAL: Quita espacios fantasmas de los contenedores base */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 🎯 CORRECCIÓN DEL ESPACIO SUPERIOR: 
+   Ajusta el contenedor principal de tus vistas para pegarse arriba */
+app-root, .main-container, main, .content-wrapper {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* 🛡️ BLINDAJE POR SI TIENES UN NAVBAR: 
+   Si usas un Navbar fijo arriba, a veces el primer elemento tiene un margen excesivo. 
+   Esto neutraliza los márgenes que empujan la vista hacia abajo. */
+.container, .container-fluid, .page-container {
+  margin-top: 0 !important;
+}

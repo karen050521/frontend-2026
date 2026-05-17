@@ -323,7 +323,7 @@
       </div>
     }
 
-    @if (esAnalista() || esFinanciero() || esGerente()) {
+@if (esAnalista() || esFinanciero() || esGerente()) {
       <div class="pt-4 mt-2 border-t theme-divider animate-in fade-in duration-500">
         <p class="theme-text-tertiary text-[10px] font-black uppercase tracking-widest px-4 mb-2">
           📊 Inteligencia
@@ -355,19 +355,19 @@
             </svg>
             <span class="flex-1 text-sm">Demografía</span>
           </a>
-        }
 
-        <a
-          routerLink="/tendencias-incidentes"
-          routerLinkActive="active"
-          (click)="closeSidebar()"
-          class="theme-nav-item flex items-center gap-3 w-full"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l-4-4m0 0l4-4m-4 4h18m0 0l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-          <span class="flex-1 text-sm">Tendencias Incidentes</span>
-        </a>
+          <a
+            routerLink="/tendencia-incidentes"
+            routerLinkActive="active"
+            (click)="closeSidebar()"
+            class="theme-nav-item flex items-center gap-3 w-full"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span class="flex-1 text-sm">Tendencias Incidentes</span>
+          </a>
+        }
       </div>
     }
 

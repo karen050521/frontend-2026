@@ -1,0 +1,58 @@
+<div class="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
+  
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-violet-500">Kala</span> 
+        <span class="text-zinc-400 font-light">|</span> 
+        Tendencia de Incidentes
+      </h1>
+      <p class="text-xs text-zinc-400 mt-1">
+        Historial analítico de fallas, colisiones y retrasos operativos del último año.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2.5 rounded-xl shadow-lg shadow-black/20">
+      <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <label for="empresa" class="text-[11px] font-black text-zinc-400 uppercase tracking-wider">Empresa:</label>
+      <select
+        id="empresa"
+        [(ngModel)]="empresaSeleccionada"
+        (change)="filtrarPorEmpresa()"
+        class="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer pr-2"
+      >
+        <option value="todas" class="bg-zinc-950 text-white">Consolidado General</option>
+        <option value="1" class="bg-zinc-950 text-white">Sideral S.A.</option>
+        <option value="2" class="bg-zinc-950 text-white">Gran Caldas</option>
+        <option value="3" class="bg-zinc-950 text-white">Autolegal</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 backdrop-blur-md shadow-2xl">
+    <div class="flex items-center justify-between mb-6 border-b border-zinc-800/50 pb-4">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-[11px] font-mono text-zinc-400 font-bold uppercase tracking-widest">
+          Frecuencia Mensual de Incidentes
+        </span>
+      </div>
+      <span class="text-[10px] bg-zinc-800 text-zinc-400 font-medium px-2 py-0.5 rounded-full border border-zinc-700/50">
+        Mínimo 3 meses evaluados
+      </span>
+    </div>
+
+    <div class="relative w-full h-[420px]">
+      <canvas
+        baseChart
+        [data]="lineChartData"
+        [options]="lineChartOptions"
+        [type]="lineChartType"
+      >
+      </canvas>
+    </div>
+  </div>
+
+</div>

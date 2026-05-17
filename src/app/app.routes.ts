@@ -112,6 +112,12 @@ export const routes: Routes = [
       import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
     canActivate: [AuthGuard],
   },
+{
+    path: 'tendencia-incidentes', // 📊 Gráfico de líneas para el Gerente
+    loadComponent: () => 
+      import('./features/incidente-admin/tendencia-incidentes/tendencia-incidentes').then((m) => m.TendenciaIncidentes),
+    canActivate: [AuthGuard],
+  },
   {
     path: '403',
     loadComponent: () =>

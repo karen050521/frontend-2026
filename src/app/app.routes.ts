@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { AuthGuard } from './core/guards/auth.guard';
+import { BusRegistroComponent } from './features/buses/bus-registro.component';
 
 export const routes: Routes = [
   {
@@ -118,6 +119,7 @@ export const routes: Routes = [
       import('./features/incidente-admin/tendencia-incidentes/tendencia-incidentes').then((m) => m.TendenciaIncidentes),
     canActivate: [AuthGuard],
   },
+  { path: 'buses/publico/:placa', component: BusRegistroComponent },//QR del bus
   {
     path: '403',
     loadComponent: () =>

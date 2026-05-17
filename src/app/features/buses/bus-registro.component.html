@@ -1,126 +1,269 @@
-<section class="p-4 md:p-8 space-y-8">
-  <header>
-    <h1 class="text-3xl font-black theme-text-primary tracking-tight">Consola de Administración</h1>
-    <p class="theme-text-secondary">Gestión de flota y recursos operativos.</p>
+<section class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans space-y-8">
+  <header class="space-y-3">
+    <h1
+      class="text-3xl md:text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400"
+    >
+      Panel de Control: Registro de Bus
+    </h1>
+    <p class="text-gray-400 max-w-3xl">
+      Registra unidades, valida la placa en tiempo real y administra la flota con el mismo lenguaje
+      visual del módulo de programación.
+    </p>
   </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <div class="lg:col-span-3 flex gap-3 items-center mb-2">
+      <div class="text-sm font-semibold text-gray-300 mr-2">Filtrar:</div>
+      <button
+        type="button"
+        (click)="seleccionarFiltro('todos')"
+        [class.opacity-60]="filtroEstado !== 'todos'"
+        class="px-3 py-1 rounded-full border border-gray-700 text-sm bg-[#161616] text-white"
+      >
+        Todos
+      </button>
+      <button
+        type="button"
+        (click)="seleccionarFiltro('operativo')"
+        [class.opacity-60]="filtroEstado !== 'operativo'"
+        class="px-3 py-1 rounded-full border border-gray-700 text-sm bg-[#052e13] text-emerald-400"
+      >
+        Operativo
+      </button>
+      <button
+        type="button"
+        (click)="seleccionarFiltro('mantenimiento')"
+        [class.opacity-60]="filtroEstado !== 'mantenimiento'"
+        class="px-3 py-1 rounded-full border border-gray-700 text-sm bg-[#2b1f00] text-amber-400"
+      >
+        Mantenimiento
+      </button>
+      <button
+        type="button"
+        (click)="seleccionarFiltro('fuera de servicio')"
+        [class.opacity-60]="filtroEstado !== 'fuera_de_servicio'"
+        class="px-3 py-1 rounded-full border border-gray-700 text-sm bg-[#2a0b0b] text-red-400"
+      >
+        Fuera de servicio
+      </button>
+    </div>
     <div
-      class="lg:col-span-8 theme-card border theme-divider rounded-[2rem] p-8 shadow-xl shadow-pink-500/5"
+      class="lg:col-span-2 bg-[#1e1e1e] p-6 md:p-8 rounded-2xl border border-gray-800 shadow-xl shadow-pink-500/5"
     >
-      <h2 class="text-pink-500 font-black text-xs uppercase tracking-widest mb-6">
-        Módulo: Registro de Bus
-      </h2>
+      <div class="mb-6 flex items-center gap-3">
+        <span class="w-2 h-8 bg-pink-500 rounded-full inline-block"></span>
+        <div>
+          <h2 class="text-xl font-semibold text-pink-500">Nuevo Registro de Vehículo</h2>
+          <p class="text-sm text-gray-400">Completa los campos obligatorios antes de guardar.</p>
+        </div>
+      </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <label class="block text-xs font-bold theme-text-secondary"
-            >PLACA
+      <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="block text-sm font-medium text-gray-300">
+            Placa *
             <input
               type="text"
               formControlName="placa"
               (input)="normalizePlate($event)"
-              class="theme-input w-full p-3 rounded-xl border mt-1"
               placeholder="AAA-123"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('placa')"
+              [class.border-gray-700]="!showFieldError('placa')"
             />
+            @if (showFieldError('placa')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('placa')
+              }}</span>
+            }
           </label>
-          <label class="block text-xs font-bold theme-text-secondary"
-            >MODELO
+
+          <label class="block text-sm font-medium text-gray-300">
+            Modelo *
             <input
               type="text"
               formControlName="modelo"
-              class="theme-input w-full p-3 rounded-xl border mt-1"
               placeholder="Ej: Mercedes Benz"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('modelo')"
+              [class.border-gray-700]="!showFieldError('modelo')"
             />
+            @if (showFieldError('modelo')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('modelo')
+              }}</span>
+            }
           </label>
         </div>
 
-        <div class="grid grid-cols-3 gap-4">
-          <label class="block text-xs font-bold theme-text-secondary"
-            >AÑO
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label class="block text-sm font-medium text-gray-300">
+            Año *
             <input
               type="number"
               formControlName="anio"
-              class="theme-input w-full p-3 rounded-xl border mt-1"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('anio')"
+              [class.border-gray-700]="!showFieldError('anio')"
             />
+            @if (showFieldError('anio')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('anio')
+              }}</span>
+            }
           </label>
-          <label class="block text-xs font-bold theme-text-secondary"
-            >SENTADOS
+
+          <label class="block text-sm font-medium text-gray-300">
+            Cap. Sentados *
             <input
               type="number"
               formControlName="capacidad_sentados"
-              class="theme-input w-full p-3 rounded-xl border mt-1"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('capacidad_sentados')"
+              [class.border-gray-700]="!showFieldError('capacidad_sentados')"
             />
+            @if (showFieldError('capacidad_sentados')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('capacidad_sentados')
+              }}</span>
+            }
           </label>
-          <label class="block text-xs font-bold theme-text-secondary"
-            >PARADOS
+
+          <label class="block text-sm font-medium text-gray-300">
+            Cap. Parados *
             <input
               type="number"
               formControlName="capacidad_parados"
-              class="theme-input w-full p-3 rounded-xl border mt-1"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('capacidad_parados')"
+              [class.border-gray-700]="!showFieldError('capacidad_parados')"
             />
+            @if (showFieldError('capacidad_parados')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('capacidad_parados')
+              }}</span>
+            }
           </label>
         </div>
 
-        <label class="block text-xs font-bold theme-text-secondary"
-          >ESTADO
-          <select formControlName="estado" class="theme-input w-full p-3 rounded-xl border mt-1">
-            <option value="operativo">Operativo</option>
-            <option value="mantenimiento">Mantenimiento</option>
-            <option value="fuera de servicio">Fuera de servicio</option>
-          </select>
-        </label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="block text-sm font-medium text-gray-300">
+            Estado *
+            <select
+              formControlName="estado"
+              class="w-full bg-[#2a2a2a] border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-pink-500 transition-colors mt-2"
+              [class.border-rose-500]="showFieldError('estado')"
+              [class.border-gray-700]="!showFieldError('estado')"
+            >
+              <option value="operativo">Operativo</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="fuera_de_servicio">Fuera de servicio</option>
+            </select>
+            @if (showFieldError('estado')) {
+              <span class="mt-2 block text-xs text-rose-400">{{
+                getFieldErrorMessage('estado')
+              }}</span>
+            }
+          </label>
 
-        <div
-          (click)="f.click()"
-          class="border-2 border-dashed theme-divider rounded-2xl p-4 flex flex-col items-center cursor-pointer hover:bg-pink-500/5 transition-all"
-        >
-          <input #f type="file" class="hidden" (change)="onFileSelected($event)" accept="image/*" />
-          <span class="text-[10px] font-bold theme-text-secondary uppercase tracking-tighter">
-            {{ selectedFile ? selectedFile.name : '📷 Cargar Fotografía del Vehículo' }}
-          </span>
+          <div
+            (click)="f.click()"
+            class="border-2 border-dashed border-gray-700 rounded-2xl p-4 min-h-[92px] flex flex-col items-center justify-center cursor-pointer hover:border-pink-500 hover:bg-pink-500/5 transition-all"
+          >
+            <input
+              #f
+              type="file"
+              class="hidden"
+              (change)="onFileSelected($event)"
+              accept="image/*"
+            />
+            <span
+              class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.25em] text-center"
+            >
+              {{ selectedFile ? selectedFile.name : 'Cargar fotografía del vehículo' }}
+            </span>
+            <span class="mt-2 text-[10px] text-gray-500 uppercase tracking-[0.2em] text-center">
+              Archivo opcional para identificación visual
+            </span>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          [disabled]="form.invalid || isSaving"
-          class="w-full bg-pink-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all"
-        >
-          {{ isSaving ? 'PROCESANDO...' : 'GUARDAR VEHÍCULO' }}
-        </button>
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            type="submit"
+            [disabled]="isSaving"
+            class="flex-1 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-wait"
+          >
+            {{ isSaving ? 'PROCESANDO...' : 'GUARDAR VEHÍCULO' }}
+          </button>
+
+          <button
+            type="button"
+            (click)="
+              form.reset({ estado: 'operativo', anio: 2026 });
+              selectedFile = null;
+              submitAttempted = false
+            "
+            class="sm:w-auto w-full px-6 py-3 rounded-xl border border-gray-700 text-gray-300 font-semibold hover:bg-[#2a2a2a] transition-all"
+          >
+            Limpiar
+          </button>
+        </div>
       </form>
     </div>
 
-    <div class="lg:col-span-4 h-full">
-      <div
-        class="theme-card border theme-divider rounded-[2rem] p-8 flex flex-col items-center justify-center text-center h-full min-h-[350px]"
-      >
-        @if (generatedQr) {
-          <p class="text-[10px] font-black text-pink-500 mb-4 tracking-widest uppercase">
-            QR Generado
-          </p>
-          <div class="bg-white p-4 rounded-3xl shadow-inner border border-gray-100">
-            <img [src]="generatedQr" class="w-40 h-40 object-contain" alt="Código QR" />
-          </div>
-          <p class="mt-4 text-[10px] theme-text-secondary font-bold">
-            IDENTIFICADOR ÚNICO DE FLOTA
-          </p>
-        } @else {
-          <div class="opacity-20 flex flex-col items-center">
-            <div
-              class="w-20 h-20 border-4 border-dashed theme-divider rounded-3xl mb-4 flex items-center justify-center text-2xl"
-            >
-              ?
-            </div>
-            <p class="text-[10px] font-bold theme-text-secondary uppercase">Esperando Registro</p>
-          </div>
-        }
+    <div
+      class="bg-[#1e1e1e] p-6 md:p-8 rounded-2xl border border-gray-800 shadow-xl shadow-pink-500/5 h-full min-h-[360px] flex flex-col items-center justify-center text-center"
+    >
+      <p class="text-xs font-semibold tracking-[0.25em] uppercase text-pink-400 mb-4">
+        Código QR de Flota
+      </p>
+
+      @if (generatedQr) {
+        <div class="bg-white p-4 rounded-3xl shadow-inner border border-gray-100">
+          <img
+            [src]="generatedQr"
+            class="w-44 h-44 object-contain cursor-pointer"
+            alt="Código QR"
+            (click)="openPublicBusPage()"
+          />
+        </div>
+        <div class="mt-2">
+          <button
+            type="button"
+            (click)="openPublicBusPage()"
+            class="px-4 py-2 rounded-full bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white text-sm shadow-lg"
+          >
+            Ver QR
+          </button>
+        </div>
+        <p class="mt-4 text-sm text-gray-300 font-medium">
+          Identificador único del bus registrado.
+        </p>
+      } @else {
+        <div
+          class="w-24 h-24 rounded-3xl border-2 border-dashed border-gray-700 flex items-center justify-center text-3xl text-gray-500 mb-4"
+        >
+          ?
+        </div>
+        <p class="text-gray-400 text-sm max-w-xs">
+          Cuando guardes un bus correctamente, aquí verás su QR de identificación.
+        </p>
+      }
+
+      <div class="mt-8 w-full grid grid-cols-2 gap-3">
+        <div class="rounded-2xl border border-gray-800 bg-[#262626] p-4 text-left">
+          <p class="text-[10px] uppercase tracking-[0.25em] text-gray-500">Buses activos</p>
+          <p class="mt-2 text-2xl font-bold text-white">{{ buses.length }}</p>
+        </div>
       </div>
     </div>
 
-    <div class="lg:col-span-12 theme-card border theme-divider rounded-[2rem] p-6 shadow-sm">
+    <div
+      class="lg:col-span-3 bg-[#1e1e1e] p-6 md:p-8 rounded-2xl border border-gray-800 shadow-xl overflow-hidden"
+    >
       <button
-        class="w-full text-left flex items-center justify-between p-3 rounded-2xl hover:bg-pink-500/5 transition-all outline-none"
+        class="w-full text-left flex items-center justify-between gap-4 p-3 rounded-2xl hover:bg-pink-500/5 transition-all outline-none"
         (click)="flotaOpen = !flotaOpen"
       >
         <div class="flex items-center gap-4">
@@ -128,94 +271,83 @@
             🚌
           </div>
           <div>
-            <h3 class="text-lg font-black theme-text-primary mb-0">Flota Registrada</h3>
-            <p class="text-sm theme-text-secondary mb-0">
-              {{ buses.length }} unidades vinculadas a KALA
+            <h3 class="text-lg font-semibold text-white mb-0">Flota Registrada</h3>
+            <p class="text-sm text-gray-400 mb-0">
+              {{ buses.length }} unidades vinculadas al sistema
             </p>
           </div>
         </div>
         <div
-          class="text-xs text-pink-600 font-black px-5 py-2 bg-pink-500/10 rounded-full uppercase tracking-widest"
+          class="text-xs text-pink-400 font-semibold px-4 py-2 bg-pink-500/10 rounded-full uppercase tracking-[0.2em]"
         >
-          {{ flotaOpen ? 'Ocultar Lista ↑' : 'Mostrar Detalles ↓' }}
+          {{ flotaOpen ? 'Ocultar lista' : 'Mostrar lista' }}
         </div>
       </button>
 
       @if (flotaOpen) {
-        <div
-          class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-top-4 duration-300"
-        >
-          @for (bus of buses; track bus.id) {
-            <div
-              class="p-5 rounded-[2rem] border theme-divider theme-card flex flex-col gap-4 group hover:border-pink-500 transition-all shadow-sm"
-            >
-              <div class="flex gap-4 items-center">
-                <div
-                  class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 overflow-hidden border theme-divider flex-shrink-0"
-                >
-                  <img
-                    *ngIf="bus.foto"
-                    [src]="'http://localhost:3000/uploads/' + bus.foto"
-                    class="w-full h-full object-cover"
-                    alt="Bus"
-                  />
-                  <div
-                    *ngIf="!bus.foto"
-                    class="w-full h-full flex items-center justify-center text-[8px] text-gray-400 font-bold uppercase p-1 text-center"
-                  >
-                    Sin Foto
-                  </div>
-                </div>
-
-                <div class="flex-1">
-                  <div class="flex justify-between items-center">
-                    <span class="font-black theme-text-primary text-base">{{ bus.placa }}</span>
+        <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-800">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-[#262626] text-gray-300 text-sm border-b border-gray-800">
+                <th class="p-4 font-semibold">Foto</th>
+                <th class="p-4 font-semibold">Placa</th>
+                <th class="p-4 font-semibold">Modelo</th>
+                <th class="p-4 font-semibold">Año</th>
+                <th class="p-4 font-semibold">Estado</th>
+                <th class="p-4 font-semibold">Acción</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800/50 text-sm text-gray-300">
+              @for (bus of buses; track bus.id) {
+                <tr class="hover:bg-[#252525] transition-colors align-middle">
+                  <td class="p-4">
+                    <div
+                      class="w-14 h-14 rounded-2xl overflow-hidden border border-gray-800 bg-[#2a2a2a] flex items-center justify-center"
+                    >
+                      @if (resolveBusPhotoUrl(bus); as fotoUrl) {
+                        <img [src]="fotoUrl" class="w-full h-full object-cover" alt="Bus" />
+                      } @else {
+                        <span class="text-[8px] text-gray-500 font-bold uppercase text-center p-1"
+                          >Sin foto</span
+                        >
+                      }
+                    </div>
+                  </td>
+                  <td class="p-4 font-semibold text-white">{{ bus.placa }}</td>
+                  <td class="p-4 text-gray-400">{{ bus.modelo }}</td>
+                  <td class="p-4 text-gray-400">{{ bus.anio }}</td>
+                  <td class="p-4">
                     <span
-                      [class]="
-                        'text-[8px] px-2 py-1 rounded-full font-black uppercase tracking-tighter ' +
-                        (bus.estado === 'operativo'
-                          ? 'bg-green-500/10 text-green-600'
-                          : bus.estado === 'mantenimiento'
-                            ? 'bg-yellow-500/10 text-yellow-600'
-                            : 'bg-red-500/10 text-red-600')
+                      class="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.18em]"
+                      [class.bg-green-500/10]="bus.estado === 'operativo'"
+                      [class.text-green-400]="bus.estado === 'operativo'"
+                      [class.bg-yellow-500/10]="bus.estado === 'mantenimiento'"
+                      [class.text-yellow-400]="bus.estado === 'mantenimiento'"
+                      [class.bg-red-500/10]="
+                        bus.estado !== 'operativo' && bus.estado !== 'mantenimiento'
+                      "
+                      [class.text-red-400]="
+                        bus.estado !== 'operativo' && bus.estado !== 'mantenimiento'
                       "
                     >
                       {{ bus.estado.replace('_', ' ') }}
                     </span>
-                  </div>
-                  <p class="text-[11px] theme-text-secondary font-medium">
-                    {{ bus.modelo }} • {{ bus.anio }}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                (click)="openEstadoModal(bus)"
-                class="w-full py-3 rounded-xl bg-pink-500/5 text-pink-600 text-[10px] font-black uppercase tracking-widest hover:bg-pink-600 hover:text-white transition-all"
-              >
-                Gestionar Registro
-              </button>
-            </div>
-          }
+                  </td>
+                  <td class="p-4">
+                    <button
+                      type="button"
+                      (click)="openEstadoModal(bus)"
+                      class="px-4 py-2 rounded-xl bg-pink-500/10 text-pink-300 text-[10px] font-semibold uppercase tracking-[0.2em] hover:bg-pink-600 hover:text-white transition-all"
+                    >
+                      Gestionar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
-    </div>
-
-    <div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="theme-card border theme-divider rounded-3xl p-6 opacity-40 grayscale">
-        <h4
-          class="text-xs font-black theme-text-secondary uppercase tracking-widest flex items-center gap-2"
-        >
-          <span class="text-lg">📍</span> Rutas y Horarios
-        </h4>
-      </div>
-      <div class="theme-card border theme-divider rounded-3xl p-6 opacity-40 grayscale">
-        <h4
-          class="text-xs font-black theme-text-secondary uppercase tracking-widest flex items-center gap-2"
-        >
-          <span class="text-lg">🚏</span> Gestión de Paraderos
-        </h4>
-      </div>
     </div>
   </div>
 
@@ -224,73 +356,70 @@
       <div class="absolute inset-0 bg-black/70 backdrop-blur-md" (click)="closeEstadoModal()"></div>
 
       <div
-        class="relative w-full max-w-md theme-card border theme-divider rounded-[2.5rem] p-8 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in duration-200"
+        class="relative w-full max-w-md bg-[#1e1e1e] border border-gray-800 rounded-[2rem] p-8 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)]"
       >
-        <header class="mb-8 flex justify-between items-start">
+        <header class="mb-8 flex justify-between items-start gap-4">
           <div>
-            <h4 class="text-2xl font-black theme-text-primary tracking-tight">Ficha Técnica</h4>
-            <p class="text-xs font-bold text-pink-500 uppercase tracking-widest">
+            <h4 class="text-2xl font-bold text-white tracking-tight">Ficha Técnica</h4>
+            <p class="text-xs font-semibold text-pink-400 uppercase tracking-[0.25em]">
               Información del Vehículo
             </p>
           </div>
           <button
             (click)="closeEstadoModal()"
-            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 theme-text-secondary transition-colors font-bold"
+            class="w-9 h-9 flex items-center justify-center rounded-full border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors font-bold"
           >
             ✕
           </button>
         </header>
 
-        <div class="flex gap-6 mb-8 items-center">
+        <div class="flex gap-5 mb-8 items-center">
           <div
-            class="w-24 h-24 rounded-3xl overflow-hidden border-2 theme-divider flex-shrink-0 bg-white"
+            class="w-24 h-24 rounded-3xl overflow-hidden border border-gray-800 flex-shrink-0 bg-[#262626]"
           >
-            <img
-              *ngIf="modalBus.foto"
-              [src]="'http://localhost:3000/uploads/' + modalBus.foto"
-              class="w-full h-full object-cover"
-              alt="Bus"
-            />
-            <div
-              *ngIf="!modalBus.foto"
-              class="w-full h-full flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase text-center p-2"
-            >
-              Sin Imagen
-            </div>
+            @if (resolveBusPhotoUrl(modalBus); as modalPhotoUrl) {
+              <img [src]="modalPhotoUrl" class="w-full h-full object-cover" alt="Bus" />
+            } @else {
+              <div
+                class="w-full h-full flex items-center justify-center text-[10px] text-gray-500 font-bold uppercase text-center p-2"
+              >
+                Sin Imagen
+              </div>
+            }
           </div>
 
           <div class="flex-1 space-y-3">
             <div>
-              <span
-                class="theme-text-secondary block text-[9px] uppercase font-black tracking-widest"
+              <span class="text-gray-400 block text-[9px] uppercase font-semibold tracking-[0.25em]"
                 >Placa Registrada</span
               >
-              <span class="theme-text-primary font-black text-xl">{{ modalBus.placa }}</span>
+              <span class="text-white font-bold text-xl">{{ modalBus.placa }}</span>
             </div>
             <div>
-              <span
-                class="theme-text-secondary block text-[9px] uppercase font-black tracking-widest"
+              <span class="text-gray-400 block text-[9px] uppercase font-semibold tracking-[0.25em]"
                 >Modelo de Fábrica</span
               >
-              <span class="theme-text-primary font-bold text-sm">{{ modalBus.modelo }}</span>
+              <span class="text-gray-200 font-medium text-sm">{{ modalBus.modelo }}</span>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-8">
-          <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border theme-divider">
-            <span class="theme-text-secondary block text-[8px] uppercase font-black mb-1"
+          <div class="p-4 rounded-2xl bg-[#262626] border border-gray-800">
+            <span
+              class="text-gray-400 block text-[8px] uppercase font-semibold tracking-[0.25em] mb-1"
               >Cap. Sentados</span
             >
-            <span class="theme-text-primary font-black text-lg"
+            <span class="text-white font-bold text-lg"
               >💺 {{ modalBus.capacidad_sentados || 0 }}</span
             >
           </div>
-          <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border theme-divider">
-            <span class="theme-text-secondary block text-[8px] uppercase font-black mb-1"
+          <div class="p-4 rounded-2xl bg-[#262626] border border-gray-800">
+            <span
+              class="text-gray-400 block text-[8px] uppercase font-semibold tracking-[0.25em] mb-1"
               >Cap. Parados</span
             >
-            <span class="theme-text-primary font-black text-lg"
+            <span class="text-white font-bold text-lg"
               >🚶 {{ modalBus.capacidad_parados || 0 }}</span
             >
           </div>
@@ -298,20 +427,20 @@
 
         <div class="space-y-6">
           <div class="space-y-2">
-            <span class="text-[10px] font-black theme-text-secondary uppercase tracking-widest ml-1"
+            <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.25em] ml-1"
               >Actualizar Estado Operativo</span
             >
             <div class="relative">
               <select
                 [(ngModel)]="modalState"
-                class="theme-input w-full p-4 rounded-2xl border font-black text-sm focus:border-pink-500 transition-all outline-none appearance-none cursor-pointer"
+                class="w-full bg-[#2a2a2a] border border-gray-700 rounded-2xl px-4 py-3 text-white font-semibold focus:outline-none focus:border-pink-500 transition-all appearance-none cursor-pointer"
               >
-                <option value="operativo">🟢 OPERATIVO</option>
-                <option value="mantenimiento">🟡 EN MANTENIMIENTO</option>
-                <option value="fuera de servicio">🔴 FUERA DE SERVICIO</option>
+                <option value="operativo">🟢 Operativo</option>
+                <option value="mantenimiento">🟡 En mantenimiento</option>
+                <option value="fuera_de_servicio">🔴 Fuera de servicio</option>
               </select>
               <div
-                class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none theme-text-secondary text-xs"
+                class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs"
               >
                 ▼
               </div>
@@ -321,13 +450,13 @@
           <div class="flex gap-3">
             <button
               (click)="closeEstadoModal()"
-              class="flex-1 py-4 rounded-2xl border theme-divider theme-text-primary font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+              class="flex-1 py-4 rounded-2xl border border-gray-700 text-gray-300 font-semibold text-[10px] uppercase tracking-[0.25em] hover:bg-[#262626] transition-all"
             >
               Cancelar
             </button>
             <button
               (click)="saveEstado()"
-              class="flex-1 py-4 rounded-2xl bg-pink-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-500/30 hover:bg-pink-700 active:scale-95 transition-all"
+              class="flex-1 py-4 rounded-2xl bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white font-semibold text-[10px] uppercase tracking-[0.25em] shadow-lg shadow-pink-500/30 hover:from-pink-500 hover:to-fuchsia-500 active:scale-95 transition-all"
             >
               Guardar Cambios
             </button>

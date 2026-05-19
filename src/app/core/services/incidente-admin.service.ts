@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 export interface IncidenteHistorialDto {
   id: number;
   fecha: Date;
-  tipo: 'mecnico' | 'accidente' | 'retraso' | 'otro';
+  tipo: 'mecanico' | 'accidente' | 'retraso' | 'otro';
   estado: 'pendiente' | 'en_revision' | 'resuelto';
   descripcion: string;
   gravedad: 'bajo' | 'medio' | 'alto' | 'critico';
@@ -22,7 +22,7 @@ export interface EstadisticasBusDto {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class IncidenteAdminService {
   private readonly http = inject(HttpClient);
@@ -31,7 +31,10 @@ export class IncidenteAdminService {
   /**
    * Obtiene todos los incidentes mapeados a un bus con filtros de tipo y estado
    */
-  obtenerHistorialPorBus(busId: number, filtros?: { tipo?: string; estado?: string }): Observable<IncidenteHistorialDto[]> {
+  obtenerHistorialPorBus(
+    busId: number,
+    filtros?: { tipo?: string; estado?: string },
+  ): Observable<IncidenteHistorialDto[]> {
     let params = new HttpParams();
     if (filtros?.tipo) params = params.set('tipo', filtros.tipo);
     if (filtros?.estado) params = params.set('estado', filtros.estado);
@@ -49,7 +52,10 @@ export class IncidenteAdminService {
   /**
    * Envía una actualización de estado o añade una bitácora de comentario al incidente
    */
-  actualizarSeguimiento(incidenteId: number, payload: { estado?: string; comentario?: string }): Observable<any> {
+  actualizarSeguimiento(
+    incidenteId: number,
+    payload: { estado?: string; comentario?: string },
+  ): Observable<any> {
     return this.http.patch<any>(`${this.apiUrl}/${incidenteId}/seguimiento`, payload);
   }
 }

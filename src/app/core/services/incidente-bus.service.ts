@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment'; // Ajusta la ruta a tu environment
 
 export interface CreateIncidenteBusDto {
-  tipo: 'mecnico' | 'accidente' | 'retraso' | 'otro';
+  tipo: 'mecanico' | 'accidente' | 'retraso' | 'otro';
   gravedad: 'bajo' | 'medio' | 'alto' | 'critico';
   descripcion: string;
   latitud: number;
@@ -13,11 +13,11 @@ export interface CreateIncidenteBusDto {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class IncidenteBusService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiNestUrl}/incidentes-buses`; 
+  private readonly apiUrl = `${environment.apiNestUrl}/incidentes-buses`;
 
   public reportarIncidente(dto: CreateIncidenteBusDto): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/reportar`, dto);

@@ -1,34 +1,23 @@
-// This file can be replaced during build by using the `fileReplacements` array.
-// `ng build` replaces `environment.ts` with `environment.prod.ts`.
-
 export const environment = {
-  production: false,
+  production: true,
 
-  apiBaseUrl: 'http://localhost:8181',
-  // Backend de NestJS (Lógica de Negocio)
-  apiNestUrl: 'http://localhost:3000',
-
-  // Backend de Spring Boot (Seguridad/Auth)
-  apiSpringUrl: 'http://localhost:8181',
+  apiBaseUrl: 'https://api.ejemplo.com',
+  apiNestUrl: 'https://api.ejemplo.com',
+  apiSpringUrl: 'https://auth.ejemplo.com',
 
   apiEndpoints: {
-    // Estos van para NestJS
     boletos: '/boletos',
     buses: '/bus',
     paraderos: '/paradero',
     rutas: '/ruta',
-
-    // Estos van para Spring Boot (Ajusta la ruta si tu Spring usa /api/auth)
     auth: '/api/public/auth/login',
     users: '/api/private/users',
     roles: '/api/private/roles',
     permissions: '/api/private/permissions',
   },
 
-  // Google reCAPTCHA v3
   recaptchaSiteKey: '6Lcw15EsAAAAAOA4SWBXU3UVK-5_myjCAxd-6TRk',
 
-  // Firebase Configuration
   firebase: {
     apiKey: 'AIzaSyAxBGYgrfSRodxi9T6KSl72cpU05tlRrN8',
     authDomain: 'angular-frontend-c0bb4.firebaseapp.com',
@@ -38,11 +27,12 @@ export const environment = {
     appId: '1:908212817474:web:a2cfbd37124254f65f27db',
   },
 
-  // OAuth Callback URLs
   oauth: {
     firebaseCallbackUrl: 'https://angular-frontend-c0bb4.firebaseapp.com/__/auth/handler',
-    developmentUrl: 'http://localhost:4200',
+    developmentUrl: 'https://tudominio.com',
   },
+
+  // ePayco Configuration (producción - cambiar testMode a false)
   epayco: {
     pKey: 'ec11e9d3345b23184b5c7f5efb8f3f3b',
     testMode: true,

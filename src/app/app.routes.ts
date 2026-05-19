@@ -137,4 +137,10 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'home',
   },
+  {
+    path: 'recarga',
+    loadComponent: () =>
+      import('./features/recarga/recarga.component').then((m) => m.RecargaComponent),
+    canActivate: [AuthGuard],
+  },
 ];

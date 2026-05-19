@@ -8,6 +8,12 @@ export const environment = {
   // Backend API - Usar tu dominio en producción
   apiBaseUrl: 'https://api.tudominio.com',
 
+  // Backend de NestJS (Lógica de Negocio)
+  apiNestUrl: 'https://api.tudominio.com',
+
+  // Backend de Spring Boot (Seguridad/Auth)
+  apiSpringUrl: 'https://api.tudominio.com',
+
   // Google reCAPTCHA v3 - Site Key de producción
   // Obtén esto de: https://www.google.com/recaptcha/admin
   recaptchaSiteKey: 'REEMPLAZA_CON_TU_SITE_KEY_PRODUCCION',

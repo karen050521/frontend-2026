@@ -113,6 +113,12 @@ export const routes: Routes = [
       import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
     canActivate: [AuthGuard],
   },
+  {
+    path: 'dashboard-servicios',
+    loadComponent: () =>
+      import('./features/dashboard-servicios/dashboard-servicios.component').then((m) => m.DashboardServiciosComponent),
+    canActivate: [AuthGuard],
+  },
 {
     path: 'tendencia-incidentes', // 📊 Gráfico de líneas para el Gerente
     loadComponent: () => 

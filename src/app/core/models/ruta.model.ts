@@ -98,3 +98,32 @@ export interface ParaderosCercanosResponse {
   paraderos: Paradero[];
   total: number;
 }
+/**
+ * @description Representa un paradero en el recorrido detallado de una ruta
+ */
+export interface ParaderoRecorrido {
+  id: number;
+  orden: number;
+  nombre: string;
+  descripcion?: string;
+  latitud: number;
+  longitud: number;
+  distanciaDesdeAnteriorMetros: number;
+  tiempoEstimadoMinutos: number;
+}
+
+/**
+ * @description Representa el recorrido completo de una ruta para el mapa
+ */
+export interface RutaRecorrido {
+  rutaId: number;
+  nombre: string;
+  descripcion?: string;
+  tarifa: number;
+  estado: string;
+  codigo: string;
+  paraderos: ParaderoRecorrido[];
+  distanciaTotal: number;
+  tiempoTotalEstimado: number;
+  cantidadParaderos: number;
+}

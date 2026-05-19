@@ -23,9 +23,12 @@ import { RutaLista } from '../../../core/models/ruta.model';
         class="w-full text-left p-3 border border-gray-300 rounded-lg hover:border-pink-500 transition cursor-pointer"
       >
         <div class="font-semibold">{{ ruta.nombre }}</div>
-        <div class="text-sm text-gray-600">{{ ruta.origen }} → {{ ruta.destino }}</div>
-        <div class="flex justify-between items-center mt-2">
-        <span class="text-green-600 font-bold">{{ formatTarifa(+ruta.tarifa) }}</span>
+        <div *ngIf="ruta.descripcion" class="text-sm text-gray-500 italic mb-1 line-clamp-2">
+          {{ ruta.descripcion }}
+        </div>
+        <div class="text-sm text-gray-600">{{ ruta.origen || 'Origen' }} → {{ ruta.destino || 'Destino' }}</div>
+        <div class="flex ju stify-between items-center mt-2">
+          <span class="text-green-600 font-bold">{{ formatTarifa(+ruta.tarifa) }}</span>
           <span class="text-xs text-pink-600">{{ formatDuracion(ruta.duracionEstimada) }}</span>
         </div>
       </button>
@@ -36,7 +39,7 @@ export class ListadoRutasComponent {
   rutas = input<RutaLista[]>([]);
   loading = input(false);
   rutaSeleccionada = input<number | null>(null);
-  
+
   seleccionar = output<number>();
 
   esSeleccionada(ruta: RutaLista): boolean {

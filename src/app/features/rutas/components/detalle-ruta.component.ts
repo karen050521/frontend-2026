@@ -8,7 +8,10 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
   imports: [CommonModule],
   template: `
     <div class="bg-white p-4 rounded-lg border border-gray-200">
-      <h3 class="text-lg font-bold mb-2">{{ ruta().nombre }}</h3>
+      <h3 class="text-lg font-bold mb-1">{{ ruta().nombre }}</h3>
+      
+      <p *ngIf="ruta().descripcion" class="text-sm text-gray-600 mb-3 italic">{{ ruta().descripcion }}</p>
+      
       <p class="text-gray-600 text-sm mb-3">
         <strong>{{ ruta().origen }}</strong> → <strong>{{ ruta().destino }}</strong>
       </p>
@@ -16,7 +19,7 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
       <div class="grid grid-cols-2 gap-4">
         <div>
           <span class="text-gray-600 text-sm">Tarifa</span>
-          <p class="xl font-bold text-green-600">{{ formatTarifa(+ruta().tarifa) }}</p>
+          <p class="text-xl font-bold text-green-600">{{ formatTarifa(+ruta().tarifa) }}</p>
         </div>
         <div>
           <span class="text-gray-600 text-sm">Duración</span>

@@ -2,29 +2,29 @@ import { Component, signal, effect, ElementRef, ViewChild, OnDestroy, OnInit, in
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import { ParaderoService } from '../../../core/services/paradero.service';
-import { Paradero } from '../../../core/models/ruta.model';@Component({
-    selector: 'app-paraderos-cercanos',
-    imports: [CommonModule],
-    templateUrl: './paraderos-cercanos.component.html',
-    styleUrls: ['./paraderos-cercanos.component.css']
+import { Paradero } from '../../../core/models/ruta.model'; @Component({
+  selector: 'app-paraderos-cercanos',
+  imports: [CommonModule],
+  templateUrl: './paraderos-cercanos.component.html',
+  styleUrls: ['./paraderos-cercanos.component.css']
 })
 export class ParaderosCercanosComponent implements OnInit, OnDestroy {
   @ViewChild('mapaContainer', { static: true }) mapaContainer!: ElementRef;
   private paraderoService = inject(ParaderoService);
-  
+
   paraderos = signal<Paradero[]>([]);
   cargando = signal<boolean>(false);
   errorMsg = signal<string | null>(null);
 
   private map: L.Map | null = null;
   private marcadoresLayer = L.layerGroup();
-  
+
   // CORRECCIÓN APLICADA AQUÍ:
   private marcadorUsuario: L.Marker | L.CircleMarker | null = null;
   private watchId: number | null = null;
 
   private busIcon = L.icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png', 
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
@@ -57,15 +57,15 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
     }
 
     this.cargando.set(true);
-    
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        
+
         this.actualizarMarcadorUsuario(lat, lng);
         this.buscarParaderos(lat, lng);
-        this.activarVigilanteDeRutas(); 
+        this.activarVigilanteDeRutas();
       },
       (err) => {
         this.cargando.set(false);
@@ -77,9 +77,9 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
 
   private buscarParaderos(lat: number, lng: number) {
     this.paraderoService.findNearby({ lat, lng }).subscribe({
-      // CORRECCIÓN APLICADA AQUÍ (Tipados estrictos)
       next: (data: Paradero[]) => {
-        this.paraderos.set(data);
+        // CORRECCIÓN APLICADA: Limitar a 5 paraderos cercanos
+        this.paraderos.set(data.slice(0, 5));
         this.cargando.set(false);
       },
       error: (e: any) => {
@@ -88,14 +88,13 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
       }
     });
   }
-
   private activarVigilanteDeRutas() {
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => {
-         const lat = pos.coords.latitude;
-         const lng = pos.coords.longitude;
-         this.actualizarMarcadorUsuario(lat, lng);
-         this.buscarParaderos(lat, lng);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        this.actualizarMarcadorUsuario(lat, lng);
+        this.buscarParaderos(lat, lng);
       },
       (err) => console.error("Error en watchPosition", err),
       { enableHighAccuracy: true }
@@ -104,7 +103,7 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
 
   private actualizarMarcadorUsuario(lat: number, lng: number) {
     if (!this.map) return;
-    
+
     if (this.marcadorUsuario) {
       this.marcadorUsuario.setLatLng([lat, lng]);
     } else {
@@ -124,7 +123,7 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
     this.marcadoresLayer.clearLayers();
 
     paraderos.forEach((p) => {
-      const lat = +p.latitud; 
+      const lat = +p.latitud;
       const lng = +p.longitud;
 
       const popupHtml = `

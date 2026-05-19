@@ -155,4 +155,10 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'home',
   },
+
+  // En app.routes.ts
+{ 
+  path: 'rutas/consulta', 
+  loadComponent: () => import('./features/rutas/consulta-rutas.component').then(m => m.ConsultaRutasComponent) 
+},
 ];

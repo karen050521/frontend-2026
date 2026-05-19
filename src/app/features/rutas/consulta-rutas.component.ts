@@ -1,11 +1,13 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RutaLista, RutaDetalle } from '../../core/models/ruta.model';
+import { RutaLista, RutaDetalle, RutaRecorrido } from '../../core/models/ruta.model';
 import { RutaService } from '../../core/services/ruta.service';
 import { FiltroRutasComponent } from './components/filtro-rutas.component';
 import { ListadoRutasComponent } from './components/listado-rutas.component';
 import { DetalleRutaComponent } from './components/detalle-ruta.component';
 import { MapaRutasComponent } from './components/mapa-rutas.component';
+import { forkJoin } from 'rxjs';
+
 
 @Component({
   selector: 'app-consulta-rutas',
@@ -73,7 +75,8 @@ export class ConsultaRutasComponent implements OnInit {
   rutas = signal<RutaLista[]>([]);
   rutaSeleccionada = signal<RutaDetalle | null>(null);
   loading = signal(false);
-
+  recorridoMapa = signal<RutaRecorrido | null>(null);
+  
   ngOnInit(): void {
     this.cargarRutas();
   }
@@ -103,15 +106,20 @@ export class ConsultaRutasComponent implements OnInit {
 
   onSeleccionar(rutaId: number): void {
     this.loading.set(true);
-    this.rutaService.obtenerRutaConParaderos(rutaId).subscribe({
-      next: (rutaCompleta) => {
-        this.rutaSeleccionada.set(rutaCompleta);
+    
+    // El forkJoin reemplaza por completo a la petición anterior
+    forkJoin({
+      detalle: this.rutaService.obtenerRutaConParaderos(rutaId),
+      recorrido: this.rutaService.obtenerRecorrido(rutaId)
+    }).subscribe({
+      next: (respuestas) => {
+        this.rutaSeleccionada.set(respuestas.detalle);
+        this.recorridoMapa.set(respuestas.recorrido);
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar paraderos:', error);
+        console.error('Error al cargar la ruta completa:', error);
         this.loading.set(false);
       }
     });
-  }
-}
+  }}

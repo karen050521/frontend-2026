@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { RutaLista, RutaDetalle, ApiResponse, AssignParaderosDto, RutaParadero } from '../models/ruta.model';
+import { RutaLista, RutaDetalle, ApiResponse, AssignParaderosDto, RutaParadero, RutaRecorrido } from '../models/ruta.model';
 
 @Injectable({
   providedIn: 'root'
@@ -102,5 +102,11 @@ export class RutaService {
    */
   crearRutaCompleta(dto: any): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}`, dto);
+  }
+  // Añade este método en la clase RutaService
+  obtenerRecorrido(id: number): Observable<RutaRecorrido> {
+    return this.http.get<any>(`${this.baseUrl}/${id}/recorrido`).pipe(
+      map(response => response.datos ? response.datos : response)
+    );
   }
 }

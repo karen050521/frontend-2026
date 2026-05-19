@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RutaService } from '../../../core/services/ruta.service';
+import { ParaderoService } from '../../../core/services/paradero.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -128,12 +129,15 @@ import { Router } from '@angular/router';
 
                   <div class="flex-1 ml-4">
                     <label class="block text-xs font-bold text-gray-400 mb-1">ID del Paradero *</label>
-                    <input 
-                      type="number" 
+                    <select 
                       formControlName="paraderoId"
-                      class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 theme-text-primary focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all outline-none text-sm"
-                      placeholder="ID"
+                      class="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 theme-text-primary focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all outline-none text-sm appearance-none"
                     >
+                      <option value="" disabled selected>Seleccione un paradero</option>
+                      @for (p of paraderosDisponibles; track p.id) {
+                        <option [value]="p.id">{{ p.id }} - {{ p.nombre }}</option>
+                      }
+                    </select>
                   </div>
 
                   <div class="w-32">
@@ -204,9 +208,11 @@ import { Router } from '@angular/router';
 export class CrearRutaComponent implements OnInit {
   private fb = inject(FormBuilder);
   private rutaService = inject(RutaService);
+  private paraderoService = inject(ParaderoService);
   private router = inject(Router);
 
   isSaving = false;
+  paraderosDisponibles: any[] = [];
 
   rutaForm: FormGroup = this.fb.group({
     nombre: ['', Validators.required],
@@ -223,6 +229,14 @@ export class CrearRutaComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Cargar paraderos disponibles
+    this.paraderoService.obtenerParaderos().subscribe({
+      next: (data) => {
+        this.paraderosDisponibles = data;
+      },
+      error: (err) => console.error('Error fetching paraderos', err)
+    });
+
     // Inicializar con 3 paraderos vacíos sugeridos por la HU
     this.addParadero();
     this.addParadero();

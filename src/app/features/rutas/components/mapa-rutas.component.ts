@@ -47,7 +47,9 @@ export class MapaRutasComponent {
     return this.ruta().rutaParaderos?.length || 0;
   }
 
-  formatCoordenada(valor: number): string {
-    return valor.toFixed(4);
+  formatCoordenada(valor: number | string | null | undefined): string {
+    if (valor == null) return 'N/A';
+    const num = typeof valor === 'string' ? parseFloat(valor) : valor;
+    return isNaN(num) ? 'N/A' : num.toFixed(4);
   }
 }

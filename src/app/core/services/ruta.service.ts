@@ -95,4 +95,12 @@ export class RutaService {
   asignarParaderosARuta(rutaId: number, dto: AssignParaderosDto): Observable<ApiResponse<RutaDetalle>> {
     return this.http.post<ApiResponse<RutaDetalle>>(`${this.baseUrl}/${rutaId}/paraderos`, dto);
   }
+
+  /**
+   * Crear una ruta nueva con o sin paraderos (Completa)
+   * POST /ruta
+   */
+  crearRutaCompleta(dto: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}`, dto);
+  }
 }

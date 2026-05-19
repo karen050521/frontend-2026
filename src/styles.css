@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
 
 /* ========================================
    SISTEMA DE TEMAS - LIGHT & DARK MODE

@@ -127,6 +127,24 @@ export const routes: Routes = [
   },
   { path: 'buses/publico/:placa', component: BusRegistroComponent },//QR del bus
   {
+    path: 'recarga',
+    loadComponent: () =>
+      import('./features/recarga/recarga.component').then((m) => m.RecargaComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'crear-ruta',
+    loadComponent: () =>
+      import('./features/rutas/crear-ruta/crear-ruta.component').then((m) => m.CrearRutaComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'crear-paradero',
+    loadComponent: () =>
+      import('./features/rutas/crear-paradero/crear-paradero.component').then((m) => m.CrearParaderoComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: '403',
     loadComponent: () =>
       import('./shared/components/access-denied/access-denied.component').then(
@@ -136,11 +154,5 @@ export const routes: Routes = [
   {
     path: '**',
     redirectTo: 'home',
-  },
-  {
-    path: 'recarga',
-    loadComponent: () =>
-      import('./features/recarga/recarga.component').then((m) => m.RecargaComponent),
-    canActivate: [AuthGuard],
   },
 ];

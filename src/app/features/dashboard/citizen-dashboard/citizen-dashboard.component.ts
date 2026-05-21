@@ -1,11 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouteService } from '../../../core/services/route.service';
+import { Router } from '@angular/router';
+import { RutaService } from '../../../core/services/ruta.service';
 import { BusService } from '../../../core/services/bus.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { BoletosComponent } from '../../boletos/boletos.component';
-import { Route } from '../../../core/models/route.model';
+import { RutaLista } from '../../../core/models/ruta.model';
 
 @Component({
   selector: 'app-citizen-dashboard',
@@ -15,7 +16,7 @@ import { Route } from '../../../core/models/route.model';
   styleUrl: './citizen-dashboard.component.css',
 })
 export class CitizenDashboardComponent implements OnInit {
-  protected routes = signal<Route[]>([]);
+  protected routes = signal<RutaLista[]>([]);
   protected isLoadingRoutes = signal<boolean>(false);
   protected searchParaderos = signal<string>('');
   protected saldo = signal<number>(45250); // Saldo en pesos COP
@@ -23,9 +24,10 @@ export class CitizenDashboardComponent implements OnInit {
   protected activeTab = signal<'rutas' | 'boletos'>('rutas');
 
   constructor(
-    private routeService: RouteService,
+    private rutaService: RutaService,
     private busService: BusService,
     private toastService: ToastService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -38,9 +40,9 @@ export class CitizenDashboardComponent implements OnInit {
    */
   protected loadRoutes(): void {
     this.isLoadingRoutes.set(true);
-    this.routeService.getAllRoutes().subscribe({
+    this.rutaService.obtenerRutas().subscribe({
       next: (response) => {
-        this.routes.set(response.data || []);
+        this.routes.set(response || []);
         this.isLoadingRoutes.set(false);
       },
       error: (error) => {
@@ -52,27 +54,10 @@ export class CitizenDashboardComponent implements OnInit {
   }
 
   /**
-   * Busca rutas por paradero
+   * Redirige a la pantalla interactiva de paraderos cercanos
    */
   protected buscarParadero(): void {
-    if (!this.searchParaderos().trim()) {
-      this.toastService.warning('Ingresa un paradero para buscar');
-      return;
-    }
-
-    this.isLoadingRoutes.set(true);
-    this.routeService.searchRoutes(this.searchParaderos()).subscribe({
-      next: (response) => {
-        this.routes.set(response.data || []);
-        this.isLoadingRoutes.set(false);
-        this.toastService.success('Búsqueda realizada');
-      },
-      error: (error) => {
-        console.error('Error buscando paradero:', error);
-        this.toastService.error('Error en la búsqueda');
-        this.isLoadingRoutes.set(false);
-      },
-    });
+    this.router.navigate(['/paraderos-cercanos']);
   }
 
   /**
@@ -118,8 +103,8 @@ export class CitizenDashboardComponent implements OnInit {
   /**
    * Compra un boleto
    */
-  protected comprarBoleto(route: Route): void {
-    this.toastService.info(`Boleto para ${route.name} - Redirigiendo...`);
+  protected comprarBoleto(route: RutaLista): void {
+    this.toastService.info(`Boleto para ${route.nombre} - Redirigiendo...`);
   }
 
   /**

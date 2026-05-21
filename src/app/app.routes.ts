@@ -114,6 +114,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'paraderos-cercanos',
+    loadComponent: () =>
+      import('./features/rutas/paraderos-cercanos/paraderos-cercanos.component').then((m) => m.ParaderosCercanosComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'dashboard-servicios',
     loadComponent: () =>
       import('./features/dashboard-servicios/dashboard-servicios.component').then((m) => m.DashboardServiciosComponent),

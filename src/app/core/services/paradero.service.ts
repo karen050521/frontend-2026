@@ -66,7 +66,7 @@ export class ParaderoService {
    * HU-002 (Alternativo): Versión con coordinates object
    */
   findNearby(coords: { lat: number; lng: number }): Observable<Paradero[]> {
-    return this.http.post<any>(`${this.baseUrl}/cercanos`, coords).pipe(
+    return this.http.get<any>(`${this.baseUrl}/cercanos?lat=${coords.lat}&lng=${coords.lng}`).pipe(
       map(response => this.procesarParaderos(response))
     );
   }

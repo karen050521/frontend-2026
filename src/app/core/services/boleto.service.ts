@@ -182,4 +182,11 @@ getMisTarjetas(token: string): Observable<any[]> {
     this.totalCountState.set(validBoletos.length);
     this.loadingState.set(false);
   }
+
+  obtenerRecorridoViaje(boletoId: number, token: string) {
+    return this.http.get<any>(`${this.apiUrl}/boletos/${boletoId}/recorrido`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
 }

@@ -126,10 +126,29 @@ export class ParaderosCercanosComponent implements OnInit, OnDestroy {
       const lat = +p.latitud;
       const lng = +p.longitud;
 
+      // 🎯 CUMPLIMIENTO HU-002: Construimos la lista de rutas HTML iterando las rutas del paradero
+      let rutasHTML = `
+        <div class="mt-2 text-xs text-gray-700">
+          <strong>Rutas que pasan por aquí:</strong>
+          <ul class="list-disc pl-4 mt-1">
+      `;
+      
+      // Verificamos si el paradero tiene rutas asociadas
+      if (p.rutas && p.rutas.length > 0) {
+        p.rutas.forEach((ruta: any) => {
+          rutasHTML += `<li>${ruta.nombre}</li>`;
+        });
+      } else {
+        rutasHTML += `<li class="text-gray-400 italic">Ninguna ruta asignada aún</li>`;
+      }
+      rutasHTML += `</ul></div>`;
+
+      // Armamos el popup uniendo la info básica y las rutas
       const popupHtml = `
-        <div class="font-sans">
-          <strong class="text-sm">${p.nombre}</strong><br>
-          <span class="text-xs text-gray-600">A ${p.distancia_metros} metros de ti.</span>
+        <div class="font-sans min-w-[180px]">
+          <strong class="text-sm text-blue-600 block mb-1">${p.nombre}</strong>
+          <span class="text-xs text-gray-600 block border-b pb-2">A ${p.distancia_metros} metros de ti.</span>
+          ${rutasHTML}
         </div>
       `;
 

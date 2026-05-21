@@ -190,6 +190,16 @@
                       Vehículo: <span class="text-fuchsia-400 font-mono font-medium">{{ boleto.travelDetails?.vehiclePlate || 'N/A' }}</span>
                     </div>
 
+                    @if (boleto.status === 'ACTIVO' || boleto.status === 'COMPLETADO') {
+                      <div class="mt-2.5">
+                        <button type="button" 
+                                class="bg-[#2a2a2a] hover:bg-[#333] border border-gray-700 text-pink-400 hover:text-pink-300 text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5"
+                                (click)="verRecorrido(boleto)">
+                          🗺️ Ver Recorrido de Viaje
+                        </button>
+                      </div>
+                    }
+
                     @if (boleto.status === 'ACTIVO') {
                       <div class="mt-4 p-3.5 bg-[#1a1a1e] border border-gray-800 rounded-xl space-y-3 max-w-md">
                         <div>
@@ -271,6 +281,105 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+}
+
+@if (showRecorridoModal()) {
+  <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+    <div class="bg-[#1e1e1e] border border-gray-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh]">
+      
+      <!-- Cabecera -->
+      <div class="flex justify-between items-center pb-4 border-b border-gray-800 mb-4">
+        <h3 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400 flex items-center gap-2">
+          <span>🗺️ Recorrido del Viaje</span>
+          @if (recorridoDetalle()?.boleto?.numeroBoleto) {
+            <span class="text-xs font-mono bg-pink-950/30 text-pink-400 px-2 py-0.5 rounded border border-pink-500/20">
+              {{ recorridoDetalle()?.boleto?.numeroBoleto }}
+            </span>
+          }
+        </h3>
+        <button (click)="cerrarRecorridoModal()" class="text-gray-400 hover:text-white transition-colors text-2xl font-semibold leading-none">&times;</button>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="overflow-y-auto flex-1 pr-1 space-y-4">
+        
+        <!-- Estado de carga -->
+        @if (loadingRecorrido()) {
+          <div class="py-12 flex flex-col items-center justify-center text-center">
+            <div class="animate-spin inline-block w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full mb-3"></div>
+            <p class="text-gray-500 text-sm">Consultando detalles geográficos y tiempos...</p>
+          </div>
+        } @else {
+          <!-- Tarjeta de Detalles del Viaje -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-[#262626] border border-gray-800 p-4 rounded-xl">
+              <span class="text-gray-500 text-xs block mb-1">Conductor Asignado</span>
+              <strong class="text-white text-sm block">
+                👨‍✈️ {{ recorridoDetalle()?.conductor || recorridoDetalle()?.conductorNombre || 'No asignado' }}
+              </strong>
+            </div>
+            
+            <div class="bg-[#262626] border border-gray-800 p-4 rounded-xl">
+              <span class="text-gray-500 text-xs block mb-1">Placa del Vehículo</span>
+              <strong class="text-fuchsia-400 font-mono text-sm block">
+                🚌 {{ recorridoDetalle()?.placa || recorridoDetalle()?.vehiculoPlaca || recorridoDetalle()?.bus?.placa || 'N/A' }}
+              </strong>
+            </div>
+
+            <div class="bg-[#262626] border border-gray-800 p-4 rounded-xl">
+              <span class="text-gray-500 text-xs block mb-1">Tiempo de Viaje</span>
+              <strong class="text-emerald-400 text-sm block">
+                ⏱️ {{ recorridoDetalle()?.tiempoTotalMinutos || 0 }} minutos
+              </strong>
+            </div>
+          </div>
+
+          <!-- Contenedor del Mapa Leaflet -->
+          <div class="w-full rounded-xl border border-gray-800 overflow-hidden shadow-inner relative">
+            <div id="mapa-recorrido-container" style="width: 100%; height: 350px;" class="bg-[#121212]"></div>
+          </div>
+
+          <!-- Historial de Validaciones -->
+          <div class="space-y-2">
+            <h4 class="text-sm font-semibold text-gray-300">Puntos de Validación (Checkpoints)</h4>
+            <div class="space-y-2">
+              @for (val of recorridoDetalle()?.validaciones; track val.id) {
+                <div class="flex items-center justify-between p-3 bg-[#262626]/60 border border-gray-800/80 rounded-xl">
+                  <div class="flex items-center gap-3">
+                    <span class="w-2.5 h-2.5 rounded-full" 
+                          [ngClass]="val.tipo === 'abordaje' ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                    <div>
+                      <span class="text-xs font-bold uppercase tracking-wider block"
+                            [ngClass]="val.tipo === 'abordaje' ? 'text-emerald-400' : 'text-rose-400'">
+                        {{ val.tipo === 'abordaje' ? 'Abordaje (Subida)' : 'Descenso (Bajada)' }}
+                      </span>
+                      <span class="text-xs text-gray-300">{{ val.paradero?.nombre || 'Paradero' }}</span>
+                    </div>
+                  </div>
+                  <span class="text-xs text-gray-400 font-mono">
+                    {{ formatDate(val.horaExacta) }}
+                  </span>
+                </div>
+              }
+              @if (!recorridoDetalle()?.validaciones || recorridoDetalle()?.validaciones.length === 0) {
+                <p class="text-xs text-gray-500 italic">No hay registros de validaciones para este boleto.</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Pie de página modal -->
+      <div class="pt-4 border-t border-gray-800 mt-4 flex justify-end">
+        <button type="button" 
+                class="bg-[#2a2a2a] hover:bg-[#333] text-gray-300 text-xs font-semibold py-2 px-4 rounded-xl border border-gray-700 transition-colors" 
+                (click)="cerrarRecorridoModal()">
+          Cerrar
+        </button>
+      </div>
+
     </div>
   </div>
 }

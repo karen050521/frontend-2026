@@ -109,12 +109,13 @@ export class RecargaComponent implements OnInit {
     const token = localStorage.getItem(this.tokenStorageKey) || '';
 
     this.isPaying.set(true);
-
+    console.log('Iniciando recarga con tarjetaId:', tarjeta?.id, 'y monto:', monto) 
     this.http
       .post<any>(
         `${this.baseUrl}/iniciar-recarga`,
         { tarjetaId: tarjeta.id, monto },
         { headers: { Authorization: `Bearer ${token}` } },
+        
       )
       .subscribe({
         next: (referencia) => {

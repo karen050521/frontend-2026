@@ -1,4 +1,4 @@
-import { Component, output } from '@angular/core';
+import { Component, output, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
@@ -17,17 +17,21 @@ import { debounceTime, Subject } from 'rxjs';
         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
       />
     </div>
-  `
+  `,
 })
-export class FiltroRutasComponent {
+export class FiltroRutasComponent implements OnDestroy {
   private buscarSubject = new Subject<string>();
   buscar = output<string>();
   termino = '';
 
   constructor() {
-    this.buscarSubject.pipe(debounceTime(500)).subscribe(valor => {
+    this.buscarSubject.pipe(debounceTime(500)).subscribe((valor) => {
       this.buscar.emit(valor);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.buscarSubject.complete();
   }
 
   onBuscar(valor: string) {

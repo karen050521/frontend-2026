@@ -7,6 +7,7 @@ import { BoletoService } from '../../core/services/boleto.service';
 import { Boleto, BusOption, ParaderoOption } from '../../core/models/boleto.model';
 import { ToastService } from '../../core/services/toast.service';
 import { FormsModule } from '@angular/forms'; // 👈 Agrega esta línea si no la tienes
+import * as L from 'leaflet';
 
 type StatusFilter = 'TODOS' | 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 
@@ -28,6 +29,10 @@ export class BoletosComponent implements OnInit {
   protected paraderos = signal<ParaderoOption[]>([]);
   protected misTarjetas = signal<any[]>([]); 
   protected isSubmitting = signal<boolean>(false);
+  protected showRecorridoModal = signal<boolean>(false);
+  protected loadingRecorrido = signal<boolean>(false);
+  protected recorridoDetalle = signal<any>(null);
+  private mapRecorrido: L.Map | null = null;
 
   // --- SEÑALES PARA EL MODAL ---
   protected showCancelModal = signal<boolean>(false);
@@ -265,5 +270,86 @@ protected finishTravel(boleto: Boleto): void {
   protected retryLoad(): void {
     this.loadBoletos();
     this.loadFormData();
+  }
+  protected verRecorrido(boleto: any): void {
+    const token = localStorage.getItem(this.tokenStorageKey);
+    if (!token || !boleto.id) return;
+
+    this.showRecorridoModal.set(true);
+    this.loadingRecorrido.set(true);
+
+    this.boletoServiceInst.obtenerRecorridoViaje(boleto.id, token).subscribe({
+      next: (data) => {
+        this.recorridoDetalle.set(data);
+        this.loadingRecorrido.set(false);
+        // Esperamos un tick para que Angular renderice el contenedor del mapa
+        setTimeout(() => this.dibujarMapaRecorrido(data), 300);
+      },
+      error: (err) => {
+        this.loadingRecorrido.set(false);
+        this.toastService.error('No se pudo cargar el recorrido de este viaje.');
+        this.cerrarRecorridoModal();
+      }
+    });
+  }
+
+  protected cerrarRecorridoModal(): void {
+    this.showRecorridoModal.set(false);
+    this.recorridoDetalle.set(null);
+    if (this.mapRecorrido) {
+      this.mapRecorrido.remove();
+      this.mapRecorrido = null;
+    }
+  }
+
+  private dibujarMapaRecorrido(data: any): void {
+    // Si ya existía un mapa, lo destruimos
+    if (this.mapRecorrido) {
+      this.mapRecorrido.remove();
+    }
+
+    const mapContainer = document.getElementById('mapa-recorrido-container');
+    if (!mapContainer) return;
+
+    this.mapRecorrido = L.map(mapContainer).setView([4.6097, -74.0817], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(this.mapRecorrido);
+
+    // 1. Dibujamos la línea de la ruta completa (El trayecto del bus)
+    const coordenadasRuta: L.LatLngTuple[] = data.ruta.coordenadasMapa.map(
+      (c: any) => [c.latitud, c.longitud] as L.LatLngTuple
+    );
+
+    if (coordenadasRuta.length > 0) {
+      const polyline = L.polyline(coordenadasRuta, { 
+        color: '#3b82f6', weight: 4, opacity: 0.7 
+      }).addTo(this.mapRecorrido);
+      this.mapRecorrido.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+    }
+
+    // 2. Dibujamos los puntos exactos donde el usuario validó (Abordaje / Descenso)
+    data.validaciones.forEach((v: any) => {
+      const isAbordaje = v.tipo === 'abordaje';
+      const color = isAbordaje ? '#10b981' : '#ef4444'; // Verde para subir, Rojo para bajar
+      
+      const markerHtml = `
+        <div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+          <svg style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isAbordaje ? 'M5 10l7-7m0 0l7 7m-7-7v18' : 'M19 14l-7 7m0 0l-7-7m7 7V3'}"></path></svg>
+        </div>`;
+      
+      const customIcon = L.divIcon({ html: markerHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+      const horaFormateada = new Date(v.horaExacta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+      L.marker([v.paradero.latitud, v.paradero.longitud], { icon: customIcon })
+        .bindPopup(`
+          <div class="text-sm">
+            <strong class="${isAbordaje ? 'text-green-600' : 'text-red-600'}">${v.tipo.toUpperCase()}</strong><br>
+            <b>Paradero:</b> ${v.paradero.nombre}<br>
+            <b>Hora exacta:</b> ${horaFormateada}
+          </div>
+        `)
+        .addTo(this.mapRecorrido!);
+    });
   }
 }

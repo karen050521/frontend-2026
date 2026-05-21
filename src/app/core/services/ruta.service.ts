@@ -54,21 +54,52 @@ export class RutaService {
       ...ruta,
       tarifa: typeof ruta.tarifa === 'string' ? parseFloat(ruta.tarifa) : ruta.tarifa,
       duracionEstimada: ruta.duracionEstimada || 0,
-      origen: ruta.origen || '',
-      destino: ruta.destino || '',
+      origen: ruta.origen || this.extraerOrigen(ruta.nombre),
+      destino: ruta.destino || this.extraerDestino(ruta.nombre),
     };
   }
 
   private normalizarRutaDetalle(ruta: any): RutaDetalle {
+    const paraderos = (ruta.rutaParaderos || []).map((rp: any) => this.normalizarRutaParadero(rp));
+    const origenDesdeParaderos = paraderos.length > 0 ? paraderos[0].paradero.nombre : '';
+    const destinoDesdeParaderos = paraderos.length > 0 ? paraderos[paraderos.length - 1].paradero.nombre : '';
     return {
       ...ruta,
       tarifa: typeof ruta.tarifa === 'string' ? parseFloat(ruta.tarifa) : ruta.tarifa,
       duracionEstimada: ruta.duracionEstimada || 0,
-      origen: ruta.origen || '',
-      destino: ruta.destino || '',
+      origen: ruta.origen || origenDesdeParaderos || this.extraerOrigen(ruta.nombre),
+      destino: ruta.destino || destinoDesdeParaderos || this.extraerDestino(ruta.nombre),
       duracionEstimadoFormato: ruta.duracionEstimadoFormato || this.formatearDuracion(ruta.duracionEstimada),
-      rutaParaderos: (ruta.rutaParaderos || []).map((rp: any) => this.normalizarRutaParadero(rp)),
+      rutaParaderos: paraderos,
     };
+  }
+
+  /**
+   * Extrae el origen de una ruta a partir de su nombre.
+   * Ej: "Ruta Centro - Sur" => "Centro"
+   */
+  private extraerOrigen(nombre: string): string {
+    if (!nombre) return '';
+    const match = nombre.match(/Ruta\s+(.+?)\s*[-–—]\s*(.+)/i);
+    if (match) return match[1].trim();
+    // Si tiene formato "X - Y" sin "Ruta"
+    const match2 = nombre.match(/^(.+?)\s*[-–—]\s*(.+)/);
+    if (match2) return match2[1].trim();
+    return '';
+  }
+
+  /**
+   * Extrae el destino de una ruta a partir de su nombre.
+   * Ej: "Ruta Centro - Sur" => "Sur"
+   */
+  private extraerDestino(nombre: string): string {
+    if (!nombre) return '';
+    const match = nombre.match(/Ruta\s+(.+?)\s*[-–—]\s*(.+)/i);
+    if (match) return match[2].trim();
+    // Si tiene formato "X - Y" sin "Ruta"
+    const match2 = nombre.match(/^(.+?)\s*[-–—]\s*(.+)/);
+    if (match2) return match2[2].trim();
+    return '';
   }
 
   private normalizarRutaParadero(rp: any): RutaParadero {
@@ -76,7 +107,7 @@ export class RutaService {
       id: rp.id,
       ordenSecuencial: rp.ordenSecuencial || 0,
       horaLlegadaEstimada: rp.horaLlegadaEstimada,
-      paradero: rp.paradero || rp,
+      paradero: rp.paradero ?? { nombre: 'Desconocido', latitud: 0, longitud: 0 },
     };
   }
 
@@ -103,10 +134,9 @@ export class RutaService {
   crearRutaCompleta(dto: any): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}`, dto);
   }
-  // Añade este método en la clase RutaService
   obtenerRecorrido(id: number): Observable<RutaRecorrido> {
     return this.http.get<any>(`${this.baseUrl}/${id}/recorrido`).pipe(
-      map(response => response.datos ? response.datos : response)
+     map(response => response.datos ? response.datos : response)
     );
   }
 }

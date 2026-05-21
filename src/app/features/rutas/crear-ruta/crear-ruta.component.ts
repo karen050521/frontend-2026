@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core'; // 👈 Añadir AfterViewInit, ViewChild, ElementRef
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RutaService } from '../../../core/services/ruta.service';
 import { ParaderoService } from '../../../core/services/paradero.service';
 import { Router } from '@angular/router';
+import * as L from 'leaflet'; // 👈 Importar Leaflet
 
 @Component({
   selector: 'app-crear-ruta',

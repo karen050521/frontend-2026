@@ -42,6 +42,7 @@ export class EpaycoService {
     taxBase?: number;
     tax?: number;
     external?: boolean;
+    email_billing?: string;
     extra1?: string;
     extra2?: string;
     extra3?: string;
@@ -66,6 +67,7 @@ export class EpaycoService {
       country: 'co',
       lang: 'es',
       external: data.external !== undefined ? Boolean(data.external) : false,
+      email_billing: data.email_billing || '',
       method: 'GET',
       extra1: data.extra1 || '',
       extra2: data.extra2 || '',

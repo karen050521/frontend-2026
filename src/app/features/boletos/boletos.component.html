@@ -317,14 +317,14 @@
             <div class="bg-[#262626] border border-gray-800 p-4 rounded-xl">
               <span class="text-gray-500 text-xs block mb-1">Conductor Asignado</span>
               <strong class="text-white text-sm block">
-                👨‍✈️ {{ recorridoDetalle()?.conductor || recorridoDetalle()?.conductorNombre || 'No asignado' }}
+                👨‍✈️ {{ recorridoDetalle()?.operacion?.conductorNombre || recorridoDetalle()?.conductor || recorridoDetalle()?.conductorNombre || 'No asignado' }}
               </strong>
             </div>
             
             <div class="bg-[#262626] border border-gray-800 p-4 rounded-xl">
               <span class="text-gray-500 text-xs block mb-1">Placa del Vehículo</span>
               <strong class="text-fuchsia-400 font-mono text-sm block">
-                🚌 {{ recorridoDetalle()?.placa || recorridoDetalle()?.vehiculoPlaca || recorridoDetalle()?.bus?.placa || 'N/A' }}
+                🚌 {{ recorridoDetalle()?.operacion?.busPlaca || recorridoDetalle()?.placa || recorridoDetalle()?.vehiculoPlaca || recorridoDetalle()?.bus?.placa || 'N/A' }}
               </strong>
             </div>
 

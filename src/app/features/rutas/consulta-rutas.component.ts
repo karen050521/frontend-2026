@@ -49,7 +49,7 @@ import { forkJoin } from 'rxjs';
           <!-- Detalle + Mapa (2 columnas) -->
           <div class="lg:col-span-2 space-y-6" *ngIf="rutaSeleccionada()">
             <app-detalle-ruta [ruta]="rutaSeleccionada()!" />
-            <app-mapa-rutas [ruta]="rutaSeleccionada()!" />
+            <app-mapa-rutas [ruta]="rutaSeleccionada()!" [recorrido]="recorridoMapa()" />
           </div>
 
           <!-- Placeholder cuando no hay ruta seleccionada -->

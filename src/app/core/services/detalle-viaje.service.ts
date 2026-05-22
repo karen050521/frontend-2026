@@ -3,11 +3,13 @@ import { Injectable, inject } from '@angular/core'
 import { Observable } from 'rxjs';
 import { DetalleViajeResponse } from '../models/detalle-viaje.model';
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ViajeService {
-  private apiUrl = 'http://localhost:3000/api/boletos'; // Ajusta a tu URL
+  private apiUrl = `${environment.apiNestUrl}${environment.apiEndpoints.boletos}`;
 
   constructor(private http: HttpClient) {}
 

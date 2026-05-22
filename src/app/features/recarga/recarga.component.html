@@ -1,52 +1,44 @@
 <div class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans">
+  <!-- Header -->
   <div class="mb-8">
     <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400">
       Recarga de Saldo
     </h1>
     <p class="text-gray-400 mt-2 text-sm">
-      Selecciona tu tarjeta, elige un monto y completa el pago con ePayco.
+      Selecciona tu tarjeta, elige un monto y completa el pago mediante ePayco o nuestro simulador directo.
     </p>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Columna Izquierda: Datos de Recarga -->
     <div class="lg:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl h-fit">
-      <h2 class="text-xl font-semibold mb-2 flex items-center gap-2 text-pink-500">
+      <h2 class="text-xl font-semibold mb-5 flex items-center gap-2 text-pink-500">
         <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
-        Datos de Recarga
+        1. Datos de Recarga
       </h2>
 
       @if (isLoading()) {
         <p class="text-gray-400 text-sm mt-4">Cargando tarjetas...</p>
       } @else {
-        <div class="space-y-5 mt-5">
+        <div class="space-y-5">
+          <!-- Selección de tarjeta -->
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Mi Tarjeta de Transporte *</label>
             <select
               class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all cursor-pointer"
-              [(ngModel)]="tarjetaIdSeleccionada"
+              [ngModel]="tarjetaIdSeleccionada()"
+              (ngModelChange)="tarjetaIdSeleccionada.set($event)"
             >
               <option [ngValue]="null" disabled>Seleccione una tarjeta...</option>
               @for (tarjeta of tarjetas(); track tarjeta.id) {
                 <option [ngValue]="tarjeta.id" class="bg-[#1e1e1e] text-white">
-                  💳 {{ tarjeta.tipoInstrumento || 'Tarjeta KALA' }} (Saldo: ${{ tarjeta.saldo | number:'1.2-2' }})
+                  💳 {{ tarjeta.tipoInstrumento || 'Tarjeta KALA' }} - {{ tarjeta.identificadorInstrumento }}
                 </option>
               }
             </select>
             @if (!tarjetaSeleccionada()) {
               <p class="text-rose-400 text-xs mt-1.5">⚠ Debes seleccionar una tarjeta</p>
             }
-          </div>
-
-          <!-- Resumen de saldo -->
-          <div class="bg-[#222] border border-gray-800 rounded-xl p-4">
-            <div class="flex justify-between text-xs text-gray-400">
-              <span>Saldo actual:</span>
-              <span class="text-white font-medium">${{ saldoActual() | number:'1.2-2' }}</span>
-            </div>
-            <div class="flex justify-between text-xs text-gray-400 mt-2">
-              <span>Saldo después de recarga:</span>
-              <span class="text-emerald-400 font-bold">${{ saldoProyectado() | number:'1.2-2' }}</span>
-            </div>
           </div>
 
           <!-- Montos rápidos -->
@@ -67,27 +59,109 @@
             </div>
           </div>
 
+          <!-- Monto personalizado -->
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Monto personalizado</label>
-            <input
-              type="number"
-              min="5000"
-              max="500000"
-              class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
-              placeholder="Ej: 15000"
-              [value]="monto() ?? ''"
-              (input)="onMontoPersonalizadoInput($any($event.target).value)"
-            />
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+              <input
+                type="number"
+                min="5000"
+                max="500000"
+                class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
+                placeholder="Ej: 15000"
+                [value]="monto() ?? ''"
+                (input)="onMontoPersonalizadoInput($any($event.target).value)"
+              />
+            </div>
             @if (!montoValido() && (monto() !== null)) {
               <p class="text-rose-400 text-xs mt-1.5">⚠ El monto debe estar entre $5.000 y $500.000</p>
             }
+          </div>
+
+          <!-- Resumen de saldo -->
+          <div class="bg-[#222] border border-gray-800 rounded-xl p-4 space-y-2">
+            <div class="flex justify-between text-xs text-gray-400">
+              <span>Saldo actual:</span>
+              <span class="text-white font-medium">${{ saldoActual() | number:'1.2-2' }} COP</span>
+            </div>
+            @if (monto() && montoValido()) {
+              <div class="flex justify-between text-xs text-gray-400">
+                <span>Comisión de transacción (ePayco):</span>
+                <span class="text-rose-400 font-medium">+${{ comisionEpayco() | number:'1.2-2' }} COP</span>
+              </div>
+              <div class="flex justify-between text-xs text-gray-400">
+                <span>Total a debitar:</span>
+                <span class="text-white font-semibold">${{ (metodoDePago() === 'epayco' ? totalAPagar() : (monto() ?? 0)) | number:'1.2-2' }} COP</span>
+              </div>
+            }
+            <div class="border-t border-gray-800 pt-2 flex justify-between text-xs text-gray-400">
+              <span>Saldo después de recarga:</span>
+              <span class="text-emerald-400 font-bold">${{ saldoProyectado() | number:'1.2-2' }} COP</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Columna Derecha: Selección y Proceso de Pago -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Selector de Método de Pago -->
+      <div class="bg-[#1e1e1e] p-4 rounded-xl border border-gray-800 flex gap-4">
+        <button
+          type="button"
+          class="flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 border"
+          [class.bg-pink-600]="metodoDePago() === 'epayco'"
+          [class.border-pink-500]="metodoDePago() === 'epayco'"
+          [class.bg-[#2a2a2a]]="metodoDePago() !== 'epayco'"
+          [class.border-transparent]="metodoDePago() !== 'epayco'"
+          (click)="metodoDePago.set('epayco')"
+        >
+          <span>💳 Pasarela ePayco</span>
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 border"
+          [class.bg-pink-600]="metodoDePago() === 'directo'"
+          [class.border-pink-500]="metodoDePago() === 'directo'"
+          [class.bg-[#2a2a2a]]="metodoDePago() !== 'directo'"
+          [class.border-transparent]="metodoDePago() !== 'directo'"
+          (click)="metodoDePago.set('directo')"
+        >
+          <span>⚡ Pago Directo (Simulación)</span>
+        </button>
+      </div>
+
+      <!-- Contenido 1: Pasarela ePayco -->
+      @if (metodoDePago() === 'epayco') {
+        <div class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl space-y-5">
+          <h2 class="text-xl font-semibold flex items-center gap-2 text-pink-500">
+            <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+            Pasarela ePayco
+          </h2>
+          <p class="text-gray-400 text-sm">
+            Serás redirigido de forma segura a la pasarela de pagos ePayco. Podrás pagar usando tarjetas de crédito, PSE (cuenta de ahorros/corriente), Daviplata, Efecty o Baloto.
+          </p>
+          <div class="grid grid-cols-3 gap-4 border border-gray-800 p-4 rounded-xl bg-[#181818] text-center text-xs text-gray-400">
+            <div>
+              <span class="block text-lg mb-1">💳</span>
+              <span>Tarjetas de Crédito / Débito</span>
+            </div>
+            <div>
+              <span class="block text-lg mb-1">🏦</span>
+              <span>PSE (Bancos colombianos)</span>
+            </div>
+            <div>
+              <span class="block text-lg mb-1">💵</span>
+              <span>Efectivo (Efecty, Baloto)</span>
+            </div>
           </div>
 
           <button
             type="button"
             (click)="pagarRecarga()"
             [disabled]="!tarjetaSeleccionada() || !montoValido() || isPaying()"
-            class="w-full mt-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
+            class="w-full bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
           >
             @if (isPaying()) {
               <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
@@ -98,5 +172,225 @@
           </button>
         </div>
       }
+
+      <!-- Contenido 2: Pago Directo (Simulación de Fallback) -->
+      @if (metodoDePago() === 'directo') {
+        <div class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-semibold flex items-center gap-2 text-pink-500">
+              <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+              Simulador de Pago Directo
+            </h2>
+            <!-- Switcher interno de tipo directo (Tarjeta vs Daviplata) -->
+            <div class="bg-[#2a2a2a] p-1 rounded-lg border border-gray-700 flex text-xs">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded font-semibold transition"
+                [class.bg-pink-600]="tipoDirecto() === 'tarjeta'"
+                (click)="tipoDirecto.set('tarjeta')"
+              >
+                Tarjeta
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded font-semibold transition"
+                [class.bg-pink-600]="tipoDirecto() === 'daviplata'"
+                (click)="tipoDirecto.set('daviplata')"
+              >
+                Daviplata
+              </button>
+            </div>
+          </div>
+
+          <p class="text-gray-400 text-sm">
+            Este formulario simula el pago directo al backend pasando los datos de tarjeta o cuenta para ambientes de prueba donde la pasarela ePayco no esté configurada.
+          </p>
+
+          <!-- Formulario Tarjeta -->
+          @if (tipoDirecto() === 'tarjeta') {
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Número de Tarjeta *</label>
+                  <input
+                    type="text"
+                    placeholder="4575 6231 8229 0326"
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all font-mono"
+                    [value]="numeroTarjeta()"
+                    (input)="numeroTarjeta.set($any($event.target).value)"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Fecha Expiración *</label>
+                  <input
+                    type="text"
+                    placeholder="MM/AAAA (ej: 12/2027)"
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all font-mono"
+                    [value]="fechaExpiracion()"
+                    (input)="fechaExpiracion.set($any($event.target).value)"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">CVV *</label>
+                  <input
+                    type="password"
+                    placeholder="123"
+                    maxlength="4"
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all font-mono"
+                    [value]="cvv()"
+                    (input)="cvv.set($any($event.target).value)"
+                  />
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Franquicia (Opcional)</label>
+                  <select
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
+                    [ngModel]="franquicia()"
+                    (ngModelChange)="franquicia.set($event)"
+                  >
+                    <option value="">Seleccione franquicia...</option>
+                    <option value="Visa">Visa</option>
+                    <option value="Mastercard">Mastercard</option>
+                    <option value="American Express">American Express</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Clickable Test Credentials for Tarjetas -->
+              <div class="space-y-2.5">
+                <span class="block text-xs font-semibold text-gray-400">Tarjetas de Crédito de Pruebas (Click para autocompletar):</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    (click)="autofillTarjeta('4575623182290326', '12/2027', '123', 'Visa')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-emerald-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-emerald-400">🟢 Aceptada (Visa)</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">4575 6231 8229 0326</span>
+                    <span class="text-[10px] text-gray-500">Exp: 12/2027 | CVV: 123</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="autofillTarjeta('4151611527583283', '12/2027', '123', 'Visa')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-rose-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-rose-400">🟡 Fondos insuficientes</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">4151 6115 2758 3283</span>
+                    <span class="text-[10px] text-gray-500">Exp: 12/2027 | CVV: 123</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="autofillTarjeta('5170394490379427', '12/2027', '123', 'Mastercard')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-red-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-red-500">🔴 Fallida (Mastercard)</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">5170 3944 9037 9427</span>
+                    <span class="text-[10px] text-gray-500">Exp: 12/2027 | CVV: 123</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="autofillTarjeta('373118856457642', '12/2027', '123', 'American Express')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-amber-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-amber-500">🔵 Pendiente (Amex)</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">3731 1885 6457 642</span>
+                    <span class="text-[10px] text-gray-500">Exp: 12/2027 | CVV: 123</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Formulario Daviplata -->
+          @if (tipoDirecto() === 'daviplata') {
+            <div class="space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Tipo Documento *</label>
+                  <select
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all cursor-pointer"
+                    [ngModel]="daviplataDocTipo()"
+                    (ngModelChange)="daviplataDocTipo.set($event)"
+                  >
+                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                    <option value="CE">Cédula de Extranjería (CE)</option>
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Número de Cédula *</label>
+                  <input
+                    type="text"
+                    placeholder="1134568019"
+                    class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all font-mono"
+                    [value]="daviplataDocNumero()"
+                    (input)="daviplataDocNumero.set($any($event.target).value)"
+                  />
+                </div>
+              </div>
+
+              <!-- Clickable Test Credentials for Daviplata -->
+              <div class="space-y-2.5">
+                <span class="block text-xs font-semibold text-gray-400">Cuentas Daviplata de prueba (Click para autocompletar):</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    (click)="autofillDaviplata('CC', '1134568019')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-emerald-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-emerald-400">🟢 Cédula Ciudadanía (CC)</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">1134568019</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="autofillDaviplata('CE', '786630')"
+                    class="bg-[#242424] hover:bg-[#2e2e2e] border border-emerald-900/30 rounded-xl p-3 text-left transition flex flex-col justify-between"
+                  >
+                    <div class="flex justify-between items-center w-full mb-1">
+                      <span class="font-bold text-emerald-400">🟢 Cédula Extranjería (CE)</span>
+                      <span class="text-[10px] text-gray-500">Auto-fill</span>
+                    </div>
+                    <span class="font-mono text-gray-300">786630</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Botón de Pago Directo -->
+          <button
+            type="button"
+            (click)="pagarDirecto()"
+            [disabled]="!tarjetaSeleccionada() || !montoValido() || isPaying() || (tipoDirecto() === 'tarjeta' && (!numeroTarjeta() || !fechaExpiracion() || !cvv())) || (tipoDirecto() === 'daviplata' && !daviplataDocNumero())"
+            class="w-full bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
+          >
+            @if (isPaying()) {
+              <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+              <span>Procesando Simulación...</span>
+            } @else {
+              <span>Confirmar y Pagar Directo</span>
+            }
+          </button>
+        </div>
+      }
     </div>
+  </div>
 </div>

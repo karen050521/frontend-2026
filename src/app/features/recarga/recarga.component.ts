@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
 import { EpaycoService } from '../../core/services/epayco.service';
 import { BoletoService } from '../../core/services/boleto.service';
+import { AuthService } from '../../core/services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
@@ -19,6 +20,7 @@ import { environment } from '../../../environments/environment';
 export class RecargaComponent implements OnInit {
   private readonly tokenStorageKey = 'authToken';
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly baseUrl = `${environment.apiNestUrl}/metodo-pago-ciudadano`;
 
   protected readonly isLoading = signal<boolean>(false);
@@ -28,6 +30,16 @@ export class RecargaComponent implements OnInit {
 
   protected readonly montosPredefinidos = [10000, 20000, 50000, 100000];
   protected readonly monto = signal<number | null>(null);
+
+  // Estados Pago Directo
+  protected readonly metodoDePago = signal<'epayco' | 'directo'>('epayco');
+  protected readonly tipoDirecto = signal<'tarjeta' | 'daviplata'>('tarjeta');
+  protected readonly numeroTarjeta = signal<string>('');
+  protected readonly fechaExpiracion = signal<string>('');
+  protected readonly cvv = signal<string>('');
+  protected readonly franquicia = signal<string>('');
+  protected readonly daviplataDocTipo = signal<string>('CC');
+  protected readonly daviplataDocNumero = signal<string>('');
 
   protected readonly tarjetaSeleccionada = computed(() => {
     const id = this.tarjetaIdSeleccionada();
@@ -48,6 +60,21 @@ export class RecargaComponent implements OnInit {
   protected readonly montoValido = computed(() => {
     const m = Number(this.monto());
     return Number.isFinite(m) && m >= 5000 && m <= 500000;
+  });
+
+  protected readonly comisionEpayco = computed(() => {
+    const m = Number(this.monto() ?? 0);
+    if (m <= 0) return 0;
+    // Comisión ePayco estándar: 2.99% + $900 COP + 19% IVA de la comisión
+    const baseComision = m * 0.0299 + 900;
+    const ivaComision = baseComision * 0.19;
+    return Math.round(baseComision + ivaComision);
+  });
+
+  protected readonly totalAPagar = computed(() => {
+    const m = Number(this.monto() ?? 0);
+    if (m <= 0) return 0;
+    return m + this.comisionEpayco();
   });
 
   constructor(
@@ -122,12 +149,13 @@ export class RecargaComponent implements OnInit {
           this.epayco.openCheckout({
             invoice: referencia.referencia,
             amount: monto,
-            name: 'Recarga de saldo - KALA',
-            description: `Recarga de $${monto} a tu tarjeta ${tarjeta?.identificadorInstrumento || 'KALA'}`,
+            name: 'Recarga tarjeta transporte',
+            description: `Recarga tarjeta transporte #${tarjeta?.identificadorInstrumento || 'KALA'}`,
             currency: 'cop',
             taxBase: 0,
             tax: 0,
             external: false,
+            email_billing: this.authService.currentUser()?.email || '',
             extra1: String(tarjeta?.id ?? ''),
             extra2: `RECARGA-${Date.now()}`,
             extra3: String(monto),
@@ -136,7 +164,7 @@ export class RecargaComponent implements OnInit {
                 this.toast.success('Pago aprobado. El saldo se actualizará automáticamente.');
                 this.isPaying.set(false);
                 this.monto.set(null);
-                setTimeout(() => this.cargarTarjetas(), 3000);
+                setTimeout(() => this.cargarTarjetas(), 1000);
               } else {
                 this.isPaying.set(false);
                 this.toast.error('Pago no aprobado o cancelado');
@@ -144,6 +172,7 @@ export class RecargaComponent implements OnInit {
             },
             onClosingModal: () => {
               this.isPaying.set(false);
+              this.cargarTarjetas();
             },
           });
         },
@@ -153,5 +182,87 @@ export class RecargaComponent implements OnInit {
           this.toast.error('No se pudo iniciar la recarga. Intente nuevamente.');
         },
       });
+  }
+
+  protected pagarDirecto(): void {
+    if (!this.tarjetaSeleccionada()) {
+      this.toast.warning('Selecciona una tarjeta');
+      return;
+    }
+    if (!this.montoValido()) {
+      this.toast.warning('Ingresa un monto válido (entre $5.000 y $500.000)');
+      return;
+    }
+    if (this.isPaying()) return;
+
+    const tarjeta = this.tarjetaSeleccionada();
+    const monto = Number(this.monto());
+    const token = localStorage.getItem(this.tokenStorageKey) || '';
+
+    const payload: any = {
+      tarjetaId: tarjeta?.id,
+      monto,
+      tipoPago: this.tipoDirecto()
+    };
+
+    if (this.tipoDirecto() === 'tarjeta') {
+      payload.numeroTarjeta = this.numeroTarjeta();
+      payload.fechaExpiracion = this.fechaExpiracion();
+      payload.cvv = this.cvv();
+      payload.franquicia = this.franquicia();
+    } else {
+      payload.daviplataDocTipo = this.daviplataDocTipo();
+      payload.daviplataDocNumero = this.daviplataDocNumero();
+    }
+
+    this.isPaying.set(true);
+
+    this.http.post<any>(
+      `${this.baseUrl}/pagar-directo`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).subscribe({
+      next: (res) => {
+        this.isPaying.set(false);
+        if (res.exito && res.estado === 'Aceptada') {
+          this.toast.success('Pago aprobado. El saldo se actualizará automáticamente.');
+          this.monto.set(null);
+          this.limpiarFormularioDirecto();
+          this.cargarTarjetas();
+        } else if (res.estado === 'Pendiente') {
+          this.toast.warning(res.mensaje || 'Transacción pendiente por validación');
+        } else if (res.estado === 'Fallida') {
+          this.toast.error(res.mensaje || 'Error de comunicación con el centro de autorizaciones');
+        } else {
+          this.toast.error(res.mensaje || 'Transacción rechazada/fondos insuficientes');
+        }
+      },
+      error: (err) => {
+        this.isPaying.set(false);
+        console.error('Error al procesar pago directo:', err);
+        const errMsg = err.error?.message || 'No se pudo procesar el pago directo. Intente nuevamente.';
+        this.toast.error(errMsg);
+      }
+    });
+  }
+
+  protected autofillTarjeta(numero: string, exp: string, cvv: string, franquicia: string): void {
+    this.numeroTarjeta.set(numero);
+    this.fechaExpiracion.set(exp);
+    this.cvv.set(cvv);
+    this.franquicia.set(franquicia);
+  }
+
+  protected autofillDaviplata(tipoDoc: string, numDoc: string): void {
+    this.daviplataDocTipo.set(tipoDoc);
+    this.daviplataDocNumero.set(numDoc);
+  }
+
+  private limpiarFormularioDirecto(): void {
+    this.numeroTarjeta.set('');
+    this.fechaExpiracion.set('');
+    this.cvv.set('');
+    this.franquicia.set('');
+    this.daviplataDocNumero.set('');
   }
 }

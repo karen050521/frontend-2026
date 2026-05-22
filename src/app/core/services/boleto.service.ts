@@ -184,9 +184,8 @@ getMisTarjetas(token: string): Observable<any[]> {
   }
 
   obtenerRecorridoViaje(boletoId: number, token: string) {
-    return this.http.get<any>(`${this.apiUrl}/boletos/${boletoId}/recorrido`, {
+    return this.http.get<any>(`${this.apiUrl}/${boletoId}/recorrido`, {
       headers: { Authorization: `Bearer ${token}` }
     });
   }
-
 }

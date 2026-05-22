@@ -58,11 +58,11 @@ export class BoletosComponent implements OnInit {
     this.loadFormData();
   }
 
-  // 🔍 EVALUACIÓN REACTIVA ÚNICA: Mapea tu tarjeta usando 'metodo_pago_id' de tu BD
+  // 🔍 EVALUACIÓN REACTIVA ÚNICA: Mapea tu tarjeta usando 'id' de la tarjeta
   protected get selectedTarjeta() {
     const id = this.abordajeForm.get('metodoPagoCiudadano_id')?.value;
     if (!id) return null;
-    return this.misTarjetas().find(t => t.metodo_pago_id == id) || null;
+    return this.misTarjetas().find(t => t.id == id) || null;
   }
 
   private loadFormData(): void {
@@ -311,25 +311,35 @@ protected finishTravel(boleto: Boleto): void {
     const mapContainer = document.getElementById('mapa-recorrido-container');
     if (!mapContainer) return;
 
-    this.mapRecorrido = L.map(mapContainer).setView([4.6097, -74.0817], 13);
+    this.mapRecorrido = L.map(mapContainer).setView([5.0689, -75.5173], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(this.mapRecorrido);
 
+    // Forzar redibujado de Leaflet para dimensiones dinámicas del modal
+    this.mapRecorrido.invalidateSize();
+
     // 1. Dibujamos la línea de la ruta completa (El trayecto del bus)
-    const coordenadasRuta: L.LatLngTuple[] = data.ruta.coordenadasMapa.map(
-      (c: any) => [c.latitud, c.longitud] as L.LatLngTuple
+    const coordenadasRuta: L.LatLngTuple[] = (data.ruta?.coordenadasMapa || []).map(
+      (c: any) => [+c.latitud, +c.longitud] as L.LatLngTuple
     );
 
     if (coordenadasRuta.length > 0) {
-      const polyline = L.polyline(coordenadasRuta, { 
+      L.polyline(coordenadasRuta, { 
         color: '#3b82f6', weight: 4, opacity: 0.7 
       }).addTo(this.mapRecorrido);
-      this.mapRecorrido.fitBounds(polyline.getBounds(), { padding: [30, 30] });
     }
 
     // 2. Dibujamos los puntos exactos donde el usuario validó (Abordaje / Descenso)
-    data.validaciones.forEach((v: any) => {
+    const allPoints: L.LatLngTuple[] = [...coordenadasRuta];
+
+    (data.validaciones || []).forEach((v: any) => {
+      if (!v.paradero?.latitud || !v.paradero?.longitud) return;
+      
+      const lat = +v.paradero.latitud;
+      const lng = +v.paradero.longitud;
+      allPoints.push([lat, lng]);
+
       const isAbordaje = v.tipo === 'abordaje';
       const color = isAbordaje ? '#10b981' : '#ef4444'; // Verde para subir, Rojo para bajar
       
@@ -341,15 +351,23 @@ protected finishTravel(boleto: Boleto): void {
       const customIcon = L.divIcon({ html: markerHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
       const horaFormateada = new Date(v.horaExacta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-      L.marker([v.paradero.latitud, v.paradero.longitud], { icon: customIcon })
+      L.marker([lat, lng], { icon: customIcon })
         .bindPopup(`
           <div class="text-sm">
-            <strong class="${isAbordaje ? 'text-green-600' : 'text-red-600'}">${v.tipo.toUpperCase()}</strong><br>
+            <strong style="color: ${color}">${v.tipo.toUpperCase()}</strong><br>
             <b>Paradero:</b> ${v.paradero.nombre}<br>
             <b>Hora exacta:</b> ${horaFormateada}
           </div>
         `)
         .addTo(this.mapRecorrido!);
     });
+
+    // 3. Ajustamos el zoom del mapa para contener todas las coordenadas de la ruta y validaciones
+    if (allPoints.length > 0) {
+      const bounds = L.latLngBounds(allPoints);
+      this.mapRecorrido.fitBounds(bounds, { padding: [40, 40] });
+    } else {
+      this.mapRecorrido.setView([5.0689, -75.5173], 13);
+    }
   }
 }

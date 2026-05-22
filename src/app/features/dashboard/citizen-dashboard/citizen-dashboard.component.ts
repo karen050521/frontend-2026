@@ -5,13 +5,12 @@ import { Router } from '@angular/router';
 import { RutaService } from '../../../core/services/ruta.service';
 import { BusService } from '../../../core/services/bus.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { BoletosComponent } from '../../boletos/boletos.component';
 import { RutaLista } from '../../../core/models/ruta.model';
 
 @Component({
   selector: 'app-citizen-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, BoletosComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './citizen-dashboard.component.html',
   styleUrl: './citizen-dashboard.component.css',
 })
@@ -21,7 +20,6 @@ export class CitizenDashboardComponent implements OnInit {
   protected searchParaderos = signal<string>('');
   protected saldo = signal<number>(45250); // Saldo en pesos COP
   protected recentTrips = signal<any[]>([]);
-  protected activeTab = signal<'rutas' | 'boletos'>('rutas');
 
   constructor(
     private rutaService: RutaService,
@@ -105,12 +103,5 @@ export class CitizenDashboardComponent implements OnInit {
    */
   protected comprarBoleto(route: RutaLista): void {
     this.toastService.info(`Boleto para ${route.nombre} - Redirigiendo...`);
-  }
-
-  /**
-   * Cambia la pestaña activa
-   */
-  protected switchTab(tab: 'rutas' | 'boletos'): void {
-    this.activeTab.set(tab);
   }
 }

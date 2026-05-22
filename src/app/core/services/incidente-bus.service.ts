@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment'; // Ajusta la ruta a tu environment
 
 export interface CreateIncidenteBusDto {
@@ -21,5 +21,14 @@ export class IncidenteBusService {
 
   public reportarIncidente(dto: CreateIncidenteBusDto): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/reportar`, dto);
+  }
+
+  /**
+   * Obtiene alertas para gerente por empresa (incidentes con gravedad 'alto' o 'critico')
+   */
+  public obtenerAlertasGerente(empresaId: number): Observable<any[]> {
+    return this.http
+      .get<any>(`${this.apiUrl}/alertas/${empresaId}`)
+      .pipe(map((res) => res?.data || []));
   }
 }

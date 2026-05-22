@@ -34,6 +34,60 @@
     </div>
   </div>
 
+  @if (esAdmin() || esGerente()) {
+    <div class="mb-6 grid grid-cols-1 gap-4">
+      <div class="bg-[#1e1e1e] p-4 rounded-2xl border border-gray-800">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-pink-500">Alertas de Gerente — Empresa KALA</h3>
+          <span class="text-xs text-gray-400">Mostrando las alertas críticas recientes</span>
+        </div>
+        @if (cargandoAlertas()) {
+          <div class="text-sm text-gray-400">Cargando alertas...</div>
+        } @else {
+          <div class="space-y-2">
+            <div
+              *ngFor="let a of alertasGerente()"
+              class="p-3 bg-[#141414] border border-gray-800 rounded-lg flex justify-between items-start"
+            >
+              <div class="max-w-[70%]">
+                <div class="text-xs text-gray-400">
+                  {{ a.fechaCreacion | date: 'dd/MM/yyyy HH:mm' }}
+                </div>
+                <div class="text-sm font-bold text-white">
+                  {{ a.placaBus }} — {{ a.tipoIncidente }}
+                </div>
+                <div class="text-xs text-gray-400">
+                  Gravedad:
+                  <span
+                    [ngClass]="{
+                      'text-red-400': a.gravedad === 'critico',
+                      'text-orange-400': a.gravedad === 'alto',
+                      'text-emerald-400': a.gravedad === 'medio',
+                    }"
+                    class="font-semibold"
+                    >{{ a.gravedad }}</span
+                  >
+                </div>
+                <div class="text-xs text-gray-300 mt-1 line-clamp-2">{{ a.descripcion }}</div>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <button
+                  (click)="auditarDesdeAlerta(a)"
+                  class="text-xs bg-pink-600 px-3 py-1 rounded-md text-white"
+                >
+                  Auditar
+                </button>
+              </div>
+            </div>
+            <div *ngIf="alertasGerente().length === 0" class="text-sm text-gray-500">
+              No hay alertas críticas para KALA
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   @if (!busSeleccionado()) {
     <div
       class="flex flex-col items-center justify-center text-center py-20 border-2 border-dashed border-gray-800 bg-[#1e1e1e]/30 rounded-2xl max-w-2xl mx-auto animate-in fade-in duration-300"

@@ -1,7 +1,14 @@
 import { Component, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IncidenteAdminService, IncidenteHistorialDto, EstadisticasBusDto } from '../../core/services/incidente-admin.service';
+import {
+  IncidenteAdminService,
+  IncidenteHistorialDto,
+  EstadisticasBusDto,
+} from '../../core/services/incidente-admin.service';
+import { IncidenteBusService } from '../../core/services/incidente-bus.service';
+import { BusService } from '../../core/services/bus.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
@@ -9,19 +16,22 @@ import { ToastService } from '../../core/services/toast.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './incidente-admin.component.html',
-  styleUrl: './incidente-admin.component.css'
+  styleUrl: './incidente-admin.component.css',
 })
 export class IncidenteAdminComponent {
   private readonly adminService = inject(IncidenteAdminService);
+  private readonly busService = inject(IncidenteBusService);
+  private readonly busRegistry = inject(BusService);
   private readonly toastService = inject(ToastService);
+  private readonly authService = inject(AuthService);
 
   // 🚍 Control de búsqueda en la interfaz por Placa
   public readonly placaBusqueda = signal<string>('');
-  
+
   // Guardamos un objeto simulado con la placa para el HTML, pero mantenemos el ID real
   public readonly busSeleccionado = signal<{ placa: string; id: number } | null>(null);
   public readonly busIdSeleccionado = signal<number | null>(null);
-  
+
   // Filtros reactivos (Signals)
   public readonly filtroTipo = signal<string>('');
   public readonly filtroEstado = signal<string>('');
@@ -29,24 +39,78 @@ export class IncidenteAdminComponent {
   // Estados de datos sincronizados con la API
   public readonly incidentes = signal<IncidenteHistorialDto[]>([]);
   public readonly estadisticas = signal<EstadisticasBusDto | null>(null);
-  
+
   // UI States de renderizado
   public readonly cargando = signal<boolean>(false);
   public readonly cargandoStats = signal<boolean>(false);
   public readonly incidenteSeleccionado = signal<IncidenteHistorialDto | null>(null);
-  
+  public readonly alertasGerente = signal<any[]>([]);
+  public readonly cargandoAlertas = signal<boolean>(false);
+
   // Formulario de seguimiento interno
   public readonly nuevoComentario = signal<string>('');
   public readonly procesandoSeguimiento = signal<boolean>(false);
 
   constructor() {
     // 🔄 Efecto reactivo automático: Si cambian los filtros y hay un ID de bus válido, recargamos la lista
-    effect(() => {
-      const busId = this.busIdSeleccionado();
-      if (busId) {
-        this.cargarHistorialIncidentes(busId);
+    effect(
+      () => {
+        const busId = this.busIdSeleccionado();
+        if (busId) {
+          this.cargarHistorialIncidentes(busId);
+        }
+      },
+      { allowSignalWrites: true },
+    );
+
+    // Cargar alertas para gerente solo si el usuario tiene rol admin/gerente
+    try {
+      if (this.esAdmin() || this.esGerente()) {
+        // ID de la empresa KALA (actualizado a 1)
+        this.cargarAlertasGerente(1);
       }
-    }, { allowSignalWrites: true });
+    } catch (e) {
+      // no bloquear inicio si falla el chequeo de roles
+    }
+  }
+
+  // =====================
+  // Control de roles (similar a programacion)
+  // =====================
+  private obtenerRolActual(): string {
+    try {
+      return (this.authService as any).activeRole?.() || localStorage.getItem('user_role') || '';
+    } catch {
+      return localStorage.getItem('user_role') || '';
+    }
+  }
+
+  esAdmin(): boolean {
+    const rol = this.obtenerRolActual().toLowerCase();
+    return rol.includes('admin') || rol.includes('administrador');
+  }
+
+  esGerente(): boolean {
+    const rol = this.obtenerRolActual().toLowerCase();
+    return rol.includes('gerente');
+  }
+
+  // =====================
+  // Cargar alertas
+  // =====================
+  private cargarAlertasGerente(empresaId: number): void {
+    this.cargandoAlertas.set(true);
+    this.busService.obtenerAlertasGerente(empresaId).subscribe({
+      next: (data) => {
+        this.alertasGerente.set(Array.isArray(data) ? data : []);
+        this.cargandoAlertas.set(false);
+      },
+      error: (err) => {
+        console.error('Error cargando alertas gerente:', err);
+        this.toastService.error('No se pudieron obtener las alertas de gerente.');
+        this.cargandoAlertas.set(false);
+      },
+    });
   }
 
   /**
@@ -55,38 +119,69 @@ export class IncidenteAdminComponent {
    */
   protected buscarPorPlaca(): void {
     const entrada = this.placaBusqueda().trim().toUpperCase();
-    
+
     if (!entrada) {
       this.toastService.error('Por favor, ingresa una placa o ID de autobús válido.');
       return;
     }
 
-    // Extraemos el ID numérico si la entrada contiene caracteres como "BUS-002" -> obtenemos el 2.
-    // Si solo es un número (ej: "2"), lo toma directamente.
-    const numeroExtraido = entrada.replace(/\D/g, '');
-    const idNum = Number(numeroExtraido || entrada);
+    // Intentamos resolver el ID consultando el listado de buses por placa
+    this.busRegistry.listarBuses().subscribe({
+      next: (buses) => {
+        console.log(
+          'Buses retornados por listarBuses (parcial):',
+          (buses || []).map((b: any) => ({ id: b.id, placa: b.placa })),
+        );
 
-    if (!idNum || isNaN(idNum)) {
-      this.toastService.error('No se pudo determinar el ID numérico a partir de la placa ingresada.');
-      return;
-    }
+        const encontrado = (buses || []).find(
+          (b: any) => (b.placa || '').toString().toUpperCase() === entrada,
+        );
 
-    // Seteamos los estados reactivos mapeando la placa estética y el ID real para el Backend
-    this.busSeleccionado.set({ placa: entrada, id: idNum });
-    this.busIdSeleccionado.set(idNum);
-    this.incidenteSeleccionado.set(null); // Limpiamos detalles anteriores
-    
-    // Invocamos las peticiones HTTP usando el ID numérico correcto
-    this.cargarEstadisticas(idNum);
-    this.cargarHistorialIncidentes(idNum);
+        console.log('Resultado búsqueda por placa:', {
+          entrada,
+          encontrado: encontrado ? { id: encontrado.id, placa: encontrado.placa } : null,
+        });
+
+        if (encontrado && encontrado.id) {
+          const idNum = Number(encontrado.id);
+          console.log('Usando id encontrado para cargar historial:', idNum);
+          this.busSeleccionado.set({ placa: entrada, id: idNum });
+          this.busIdSeleccionado.set(idNum);
+          this.incidenteSeleccionado.set(null);
+          this.cargarHistorialIncidentes(idNum);
+          return;
+        }
+
+        // Fallback: extraer números de la placa (vieja lógica)
+        const numeroExtraido = entrada.replace(/\D/g, '');
+        const idNum = Number(numeroExtraido || entrada);
+        console.log('Fallback idNum extraido de la placa:', idNum);
+
+        if (!idNum || isNaN(idNum)) {
+          this.toastService.error(
+            'No se pudo determinar el ID numérico a partir de la placa ingresada.',
+          );
+          return;
+        }
+
+        this.busSeleccionado.set({ placa: entrada, id: idNum });
+        this.busIdSeleccionado.set(idNum);
+        this.incidenteSeleccionado.set(null);
+        this.cargarHistorialIncidentes(idNum);
+      },
+      error: (err) => {
+        console.error('Error al buscar buses por placa:', err);
+        this.toastService.error('No se pudo buscar la placa en el registro de buses.');
+      },
+    });
   }
 
-/**
+  /**
    * Carga la lista de incidentes desde el Backend aplicando los filtros de forma limpia
    */
   private cargarHistorialIncidentes(busId: number): void {
     this.cargando.set(true);
-    
+
     // Obtenemos los valores limpios de las Signals
     const tipoValor = this.filtroTipo()?.trim();
     const estadoValor = this.filtroEstado()?.trim();
@@ -96,15 +191,32 @@ export class IncidenteAdminComponent {
     if (tipoValor && tipoValor !== '') filtros.tipo = tipoValor;
     if (estadoValor && estadoValor !== '') filtros.estado = estadoValor;
 
+    console.log('Solicitando historial de incidentes', { busId, filtros });
+
     this.adminService.obtenerHistorialPorBus(busId, filtros).subscribe({
       next: (data) => {
         console.log('Datos recibidos del historial:', data); // 👈 Revisa esto en tu consola para ver cómo vienen los tipos de tu BD
         if (data && Array.isArray(data)) {
           // Ordenamos por fecha de forma descendente
-          const ordenados = data.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+          const ordenados = data.sort(
+            (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
+          );
           this.incidentes.set(ordenados);
+
+          // Calcular estadísticas locales basadas únicamente en los incidentes mostrados
+          const total = ordenados.length;
+          const porTipo: Record<string, number> = {};
+          ordenados.forEach((it) => {
+            const key = (it.tipo || 'otro').toString().toLowerCase();
+            porTipo[key] = (porTipo[key] ?? 0) + 1;
+          });
+          const resueltos = ordenados.filter((i) => i.estado === 'resuelto').length;
+          const tasaResolucion = total > 0 ? Math.round((resueltos / total) * 100).toString() : '0';
+
+          this.estadisticas.set({ totalIncidentes: total, porTipo, tasaResolucion });
         } else {
           this.incidentes.set([]);
+          this.estadisticas.set({ totalIncidentes: 0, porTipo: {}, tasaResolucion: '0' });
         }
         this.cargando.set(false);
       },
@@ -113,7 +225,7 @@ export class IncidenteAdminComponent {
         this.toastService.error('No se pudo recuperar el historial de incidentes.');
         this.cargando.set(false);
         this.incidentes.set([]); // Evitamos estados inconsistentes
-      }
+      },
     });
   }
 
@@ -127,7 +239,7 @@ export class IncidenteAdminComponent {
         this.estadisticas.set(stats);
         this.cargandoStats.set(false);
       },
-      error: () => this.cargandoStats.set(false)
+      error: () => this.cargandoStats.set(false),
     });
   }
 
@@ -147,24 +259,24 @@ export class IncidenteAdminComponent {
     if (!incidenteActual) return;
 
     const comentarioTexto = this.nuevoComentario().trim();
-    
+
     if (!nuevoEstado && !comentarioTexto) {
       this.toastService.error('Escribe un comentario o selecciona un nuevo estado.');
       return;
     }
 
     this.procesandoSeguimiento.set(true);
-    
+
     const payload = {
       ...(nuevoEstado && { estado: nuevoEstado }),
-      ...(comentarioTexto && { comentario: comentarioTexto })
+      ...(comentarioTexto && { comentario: comentarioTexto }),
     };
 
     this.adminService.actualizarSeguimiento(incidenteActual.id, payload).subscribe({
       next: (res) => {
         this.toastService.success('Bitácora de seguimiento actualizada correctamente.');
         this.nuevoComentario.set('');
-        
+
         // Recargamos el panel usando el ID numérico activo
         const idActual = this.busIdSeleccionado();
         if (idActual) {
@@ -173,12 +285,12 @@ export class IncidenteAdminComponent {
         }
 
         // Sincronizamos la UI lateral con el response
-        this.incidenteSeleccionado.update(curr => {
+        this.incidenteSeleccionado.update((curr) => {
           if (!curr) return null;
           return {
             ...curr,
             estado: res.estado || curr.estado,
-            comentarios: res.comentarios || curr.comentarios
+            comentarios: res.comentarios || curr.comentarios,
           };
         });
 
@@ -188,7 +300,14 @@ export class IncidenteAdminComponent {
         console.error(err);
         this.toastService.error('Error al guardar la actualización de seguimiento.');
         this.procesandoSeguimiento.set(false);
-      }
+      },
     });
+  }
+
+  protected auditarDesdeAlerta(alerta: any): void {
+    if (!alerta || !alerta.placaBus) return;
+    this.placaBusqueda.set(alerta.placaBus);
+    // Intentamos iniciar búsqueda por placa (buscarPorPlaca hace extracción numérica)
+    this.buscarPorPlaca();
   }
 }

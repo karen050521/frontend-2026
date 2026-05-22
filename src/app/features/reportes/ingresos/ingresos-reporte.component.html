@@ -1,0 +1,190 @@
+<div class="min-h-screen bg-[#0a0a10] p-6 md:p-8 font-sans">
+
+  <!-- ── Toast ── -->
+  @if (toastMsg()) {
+    <div class="fixed top-20 right-6 z-50 flex items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-900/80 px-5 py-3 text-sm text-rose-200 shadow-2xl backdrop-blur-sm animate-in slide-in-from-right duration-300">
+      ⚠ {{ toastMsg() }}
+    </div>
+  }
+
+  <!-- ── Header ── -->
+  <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <div class="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-purple-400">
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-purple-400"></span>
+        Analytics Financiero
+      </div>
+      <h1 class="text-2xl font-bold text-white md:text-3xl">Ingresos por Método de Pago</h1>
+      <p class="mt-1 text-sm text-white/40">Evolución y distribución de ingresos según instrumento de pago</p>
+    </div>
+    <app-export-buttons
+      tipo="ingresos"
+      [meses]="periodoActivo()"
+      (exportError)="onExportError($event)"
+    />
+  </div>
+
+  <!-- ── Filtros de período ── -->
+  <div class="mb-6 flex gap-2">
+    @for (p of periodos; track p) {
+      <button
+        (click)="cambiarPeriodo(p)"
+        class="rounded-xl px-5 py-2 text-sm font-semibold transition-all duration-200"
+        [class]="periodoActivo() === p
+          ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+          : 'border border-white/10 bg-white/5 text-white/50 hover:border-purple-500/30 hover:text-white/80'"
+      >
+        {{ p }} meses
+      </button>
+    }
+  </div>
+
+  <!-- ── Error state ── -->
+  @if (hasError()) {
+    <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-rose-500/20 bg-rose-900/10 py-20">
+      <span class="text-5xl">📡</span>
+      <p class="text-lg font-semibold text-white">No se pudieron cargar los datos</p>
+      <p class="text-sm text-white/40">Verifica la conexión con el servidor NestJS</p>
+      <button
+        (click)="cargarDatos()"
+        class="rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 transition"
+      >
+        Reintentar
+      </button>
+    </div>
+  }
+
+  @if (!hasError()) {
+    <!-- ── Metric Cards ── -->
+    <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <app-metric-card
+        label="Total ingresos"
+        [value]="isLoading() ? '' : formatCOP(totalIngresos())"
+        icon="💰"
+        variant="purple"
+        [loading]="isLoading()"
+      />
+      <app-metric-card
+        label="Método más usado"
+        [value]="isLoading() ? '' : metodoMasUsado()"
+        icon="🏆"
+        variant="pink"
+        [loading]="isLoading()"
+      />
+      <app-metric-card
+        label="Período analizado"
+        [value]="isLoading() ? '' : (periodoActivo() + ' meses')"
+        [sub]="isLoading() ? '' : (datos()?.periodo ?? '')"
+        icon="📅"
+        variant="cyan"
+        [loading]="isLoading()"
+      />
+      <app-metric-card
+        label="Métodos de pago"
+        [value]="isLoading() ? '' : (metricas().length.toString())"
+        icon="💳"
+        variant="amber"
+        [loading]="isLoading()"
+      />
+    </div>
+
+    <!-- ── Gráfico de Barras ── -->
+    <div class="mb-8 rounded-2xl border border-white/5 bg-[#111118] p-6 shadow-xl">
+      <div class="mb-5 flex items-center justify-between">
+        <h2 class="text-base font-semibold text-white">Evolución Mensual</h2>
+        <span class="rounded-full bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-300">
+          Barras agrupadas
+        </span>
+      </div>
+
+      @if (isLoading()) {
+        <!-- Skeleton Gráfico -->
+        <div class="flex h-72 animate-pulse items-end gap-3 rounded-xl bg-white/[0.02] p-4">
+          @for (h of [70,45,90,55,80,35,65]; track $index) {
+            <div class="flex flex-1 flex-col gap-1">
+              <div class="rounded-t-md bg-white/10" [style.height]="h + '%'"></div>
+              <div class="h-2 w-full rounded bg-white/5"></div>
+            </div>
+          }
+        </div>
+      } @else if (!datos()?.evolucionMensual?.length) {
+        <!-- Empty state -->
+        <div class="flex h-72 flex-col items-center justify-center gap-3">
+          <span class="text-5xl opacity-30">📊</span>
+          <p class="text-sm text-white/30">Sin datos para el período seleccionado</p>
+        </div>
+      } @else {
+        <div style="height: 300px; position: relative;">
+          <canvas baseChart
+            [data]="barChartData"
+            [options]="barChartOptions"
+            [type]="barChartType">
+          </canvas>
+        </div>
+      }
+    </div>
+
+    <!-- ── Tabla Analítica ── -->
+    <div class="rounded-2xl border border-white/5 bg-[#111118] p-6 shadow-xl">
+      <div class="mb-5 flex items-center justify-between">
+        <h2 class="text-base font-semibold text-white">Detalle por Método de Pago</h2>
+        <span class="text-xs text-white/30">Ordenado por total ↓</span>
+      </div>
+
+      @if (isLoading()) {
+        <div class="space-y-3 animate-pulse">
+          @for (i of [1,2,3]; track i) {
+            <div class="flex gap-4 rounded-xl bg-white/5 p-4">
+              <div class="h-4 w-32 rounded bg-white/10"></div>
+              <div class="h-4 w-24 rounded bg-white/10"></div>
+              <div class="h-4 w-16 rounded bg-white/10"></div>
+              <div class="h-4 w-20 rounded bg-white/10"></div>
+            </div>
+          }
+        </div>
+      } @else if (!metricas().length) {
+        <p class="py-10 text-center text-sm text-white/30">Sin datos disponibles</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/5 text-left text-xs uppercase tracking-widest text-white/30">
+                <th class="pb-3 pr-6">Método de Pago</th>
+                <th class="pb-3 pr-6 text-right">Total Ingresos</th>
+                <th class="pb-3 pr-6 text-right">% del Total</th>
+                <th class="pb-3 pr-6 text-right">Variación</th>
+                <th class="pb-3 text-center">Tendencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of metricas(); track m.metodo; let i = $index) {
+                <tr class="group border-b border-white/[0.04] transition hover:bg-white/[0.03]">
+                  <td class="py-3.5 pr-6">
+                    <div class="flex items-center gap-2.5">
+                      <span class="inline-block h-2.5 w-2.5 rounded-full" [style.background]="getColorForIndex(i)"></span>
+                      <span class="font-medium text-white">{{ m.metodo }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3.5 pr-6 text-right font-mono text-white/80">{{ formatCOP(m.total) }}</td>
+                  <td class="py-3.5 pr-6 text-right">
+                    <span class="rounded-full bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/60">
+                      {{ m.porcentaje.toFixed(1) }}%
+                    </span>
+                  </td>
+                  <td class="py-3.5 pr-6 text-right text-xs font-semibold"
+                      [class]="m.tendencia === 'up' ? 'text-emerald-400' : m.tendencia === 'down' ? 'text-rose-400' : 'text-white/30'">
+                    {{ variacionLabel(m.variacionMensual) }}
+                  </td>
+                  <td class="py-3.5 text-center text-lg"
+                      [class]="m.tendencia === 'up' ? 'text-emerald-400' : m.tendencia === 'down' ? 'text-rose-400' : 'text-white/20'">
+                    {{ getTendencia(m) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>

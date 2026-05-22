@@ -151,6 +151,22 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'reporte-ingresos',
+    loadComponent: () =>
+      import('./features/reportes/ingresos/ingresos-reporte.component').then(
+        (m) => m.IngresosReporteComponent,
+      ),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'reporte-demografico',
+    loadComponent: () =>
+      import('./features/reportes/demografico/demografico-reporte.component').then(
+        (m) => m.DemograficoReporteComponent,
+      ),
+    canActivate: [AuthGuard],
+  },
+  {
     path: '403',
     loadComponent: () =>
       import('./shared/components/access-denied/access-denied.component').then(

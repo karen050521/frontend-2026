@@ -28,9 +28,19 @@ export class SidebarComponent {
 
   // FUNCIONES COMPUTED PARA EL HTML CON CONTROL DE ROLES REALES
   public esAdmin = computed(() => {
-    const r = this.userRole().toLowerCase();
+    // Normalizamos el texto quitando acentos y dejándolo en minúsculas 
+    // (aplicamos el mismo blindaje que usaste en esEmpresa)
+    const r = this.userRole()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
     return (
-      ((r.includes('administrador') || r.includes('adminsitrador')) && !r.includes('empresa')) || 
+      (
+        // Evaluamos "admin" genérico para cubrir "administrador", "admin del sistema", etc.
+        (r.includes('administrador') || r.includes('adminsitrador') || r.includes('admin')) && 
+        !r.includes('empresa') // Excluimos al administrador de empresa
+      ) || 
       r === '69b1f1e630276cc75c84424a'
     );
   });

@@ -128,12 +128,17 @@ export class IncidenteAdminComponent {
     // Intentamos resolver el ID consultando el listado de buses por placa
     this.busRegistry.listarBuses().subscribe({
       next: (buses) => {
+        console.log('Buses retornados por listarBuses (parcial):', (buses || []).map((b: any) => ({ id: b.id, placa: b.placa })));
+
         const encontrado = (buses || []).find(
           (b: any) => (b.placa || '').toString().toUpperCase() === entrada,
         );
 
+        console.log('Resultado búsqueda por placa:', { entrada, encontrado: encontrado ? { id: encontrado.id, placa: encontrado.placa } : null });
+
         if (encontrado && encontrado.id) {
           const idNum = Number(encontrado.id);
+          console.log('Usando id encontrado para cargar historial:', idNum);
           this.busSeleccionado.set({ placa: entrada, id: idNum });
           this.busIdSeleccionado.set(idNum);
           this.incidenteSeleccionado.set(null);
@@ -144,6 +149,7 @@ export class IncidenteAdminComponent {
         // Fallback: extraer números de la placa (vieja lógica)
         const numeroExtraido = entrada.replace(/\D/g, '');
         const idNum = Number(numeroExtraido || entrada);
+        console.log('Fallback idNum extraido de la placa:', idNum);
 
         if (!idNum || isNaN(idNum)) {
           this.toastService.error(

@@ -7,6 +7,7 @@ import {
   EstadisticasBusDto,
 } from '../../core/services/incidente-admin.service';
 import { IncidenteBusService } from '../../core/services/incidente-bus.service';
+import { BusService } from '../../core/services/bus.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -20,6 +21,7 @@ import { ToastService } from '../../core/services/toast.service';
 export class IncidenteAdminComponent {
   private readonly adminService = inject(IncidenteAdminService);
   private readonly busService = inject(IncidenteBusService);
+  private readonly busRegistry = inject(BusService);
   private readonly toastService = inject(ToastService);
   private readonly authService = inject(AuthService);
 
@@ -64,8 +66,8 @@ export class IncidenteAdminComponent {
     // Cargar alertas para gerente solo si el usuario tiene rol admin/gerente
     try {
       if (this.esAdmin() || this.esGerente()) {
-        // ID de la empresa KALA según lo indicado (5)
-        this.cargarAlertasGerente(5);
+        // ID de la empresa KALA (actualizado a 1)
+        this.cargarAlertasGerente(1);
       }
     } catch (e) {
       // no bloquear inicio si falla el chequeo de roles
@@ -123,25 +125,43 @@ export class IncidenteAdminComponent {
       return;
     }
 
-    // Extraemos el ID numérico si la entrada contiene caracteres como "BUS-002" -> obtenemos el 2.
-    // Si solo es un número (ej: "2"), lo toma directamente.
-    const numeroExtraido = entrada.replace(/\D/g, '');
-    const idNum = Number(numeroExtraido || entrada);
+    // Intentamos resolver el ID consultando el listado de buses por placa
+    this.busRegistry.listarBuses().subscribe({
+      next: (buses) => {
+        const encontrado = (buses || []).find(
+          (b: any) => (b.placa || '').toString().toUpperCase() === entrada,
+        );
 
-    if (!idNum || isNaN(idNum)) {
-      this.toastService.error(
-        'No se pudo determinar el ID numérico a partir de la placa ingresada.',
-      );
-      return;
-    }
+        if (encontrado && encontrado.id) {
+          const idNum = Number(encontrado.id);
+          this.busSeleccionado.set({ placa: entrada, id: idNum });
+          this.busIdSeleccionado.set(idNum);
+          this.incidenteSeleccionado.set(null);
+          this.cargarHistorialIncidentes(idNum);
+          return;
+        }
 
-    // Seteamos los estados reactivos mapeando la placa estética y el ID real para el Backend
-    this.busSeleccionado.set({ placa: entrada, id: idNum });
-    this.busIdSeleccionado.set(idNum);
-    this.incidenteSeleccionado.set(null); // Limpiamos detalles anteriores
+        // Fallback: extraer números de la placa (vieja lógica)
+        const numeroExtraido = entrada.replace(/\D/g, '');
+        const idNum = Number(numeroExtraido || entrada);
 
-    // Cargamos historial y calculamos estadísticas locales basadas en los incidentes mostrados
-    this.cargarHistorialIncidentes(idNum);
+        if (!idNum || isNaN(idNum)) {
+          this.toastService.error(
+            'No se pudo determinar el ID numérico a partir de la placa ingresada.',
+          );
+          return;
+        }
+
+        this.busSeleccionado.set({ placa: entrada, id: idNum });
+        this.busIdSeleccionado.set(idNum);
+        this.incidenteSeleccionado.set(null);
+        this.cargarHistorialIncidentes(idNum);
+      },
+      error: (err) => {
+        console.error('Error al buscar buses por placa:', err);
+        this.toastService.error('No se pudo buscar la placa en el registro de buses.');
+      },
+    });
   }
 
   /**
@@ -158,6 +178,8 @@ export class IncidenteAdminComponent {
     const filtros: any = {};
     if (tipoValor && tipoValor !== '') filtros.tipo = tipoValor;
     if (estadoValor && estadoValor !== '') filtros.estado = estadoValor;
+
+    console.log('Solicitando historial de incidentes', { busId, filtros });
 
     this.adminService.obtenerHistorialPorBus(busId, filtros).subscribe({
       next: (data) => {

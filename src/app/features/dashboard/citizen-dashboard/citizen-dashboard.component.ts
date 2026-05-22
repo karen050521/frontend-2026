@@ -85,7 +85,7 @@ export class CitizenDashboardComponent implements OnInit {
    * Inicia recarga de saldo
    */
   protected iniciarRecarga(): void {
-    this.toastService.info('Módulo de recarga próximamente disponible');
+    this.router.navigate(['/recarga']);
   }
 
   /**

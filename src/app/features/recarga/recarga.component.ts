@@ -65,7 +65,6 @@ export class RecargaComponent implements OnInit {
   protected readonly comisionEpayco = computed(() => {
     const m = Number(this.monto() ?? 0);
     if (m <= 0) return 0;
-    // Comisión ePayco estándar: 2.99% + $900 COP + 19% IVA de la comisión
     const baseComision = m * 0.0299 + 900;
     const ivaComision = baseComision * 0.19;
     return Math.round(baseComision + ivaComision);
@@ -120,6 +119,10 @@ export class RecargaComponent implements OnInit {
     this.monto.set(Number.isFinite(n) ? n : null);
   }
 
+  /**
+   * Recarga por ePayco (pasarela).
+   * Si el handler de ePayco no está disponible, cambia automáticamente a pago directo.
+   */
   protected pagarRecarga(): void {
     if (!this.tarjetaSeleccionada()) {
       this.toast.warning('Selecciona una tarjeta');
@@ -131,18 +134,25 @@ export class RecargaComponent implements OnInit {
     }
     if (this.isPaying()) return;
 
+    // ── Verificar si ePayco está disponible ───────────────────────────────────
+    const win: any = window;
+    if (!win.ePayco) {
+      this.toast.warning('Pasarela ePayco no disponible. Usa el método de Pago Directo.');
+      this.metodoDePago.set('directo');
+      return;
+    }
+
     const tarjeta = this.tarjetaSeleccionada();
     const monto = Number(this.monto());
     const token = localStorage.getItem(this.tokenStorageKey) || '';
 
     this.isPaying.set(true);
-    console.log('Iniciando recarga con tarjetaId:', tarjeta?.id, 'y monto:', monto) 
+
     this.http
       .post<any>(
         `${this.baseUrl}/iniciar-recarga`,
         { tarjetaId: tarjeta.id, monto },
         { headers: { Authorization: `Bearer ${token}` } },
-        
       )
       .subscribe({
         next: (referencia) => {
@@ -160,30 +170,38 @@ export class RecargaComponent implements OnInit {
             extra2: `RECARGA-${Date.now()}`,
             extra3: String(monto),
             onCompleted: (result) => {
+              this.isPaying.set(false);
               if (String(result.estado) === '1') {
-                this.toast.success('Pago aprobado. El saldo se actualizará automáticamente.');
-                this.isPaying.set(false);
+                this.toast.success('✅ Pago aprobado. El saldo se actualizará automáticamente.');
                 this.monto.set(null);
-                setTimeout(() => this.cargarTarjetas(), 1000);
+                setTimeout(() => this.cargarTarjetas(), 1500);
               } else {
-                this.isPaying.set(false);
                 this.toast.error('Pago no aprobado o cancelado');
               }
             },
             onClosingModal: () => {
+              // SIEMPRE desbloquear el botón al cerrar el modal (cancelar o finalizar)
               this.isPaying.set(false);
               this.cargarTarjetas();
             },
           });
         },
         error: (err) => {
+          // SIEMPRE desbloquear si falla el backend
           this.isPaying.set(false);
           console.error('Error generando referencia:', err);
-          this.toast.error('No se pudo iniciar la recarga. Intente nuevamente.');
+          const msg = err?.error?.message || err?.error?.mensaje || 'No se pudo iniciar la recarga con ePayco.';
+          this.toast.error(msg + ' Intenta con Pago Directo.');
+          // Cambiar automáticamente al método directo como fallback
+          this.metodoDePago.set('directo');
         },
       });
   }
 
+  /**
+   * Pago directo: envía datos de tarjeta o Daviplata al backend.
+   * Funciona sin depender de ePayco — es el método global de fallback.
+   */
   protected pagarDirecto(): void {
     if (!this.tarjetaSeleccionada()) {
       this.toast.warning('Selecciona una tarjeta');
@@ -202,11 +220,11 @@ export class RecargaComponent implements OnInit {
     const payload: any = {
       tarjetaId: tarjeta?.id,
       monto,
-      tipoPago: this.tipoDirecto()
+      tipoPago: this.tipoDirecto(),
     };
 
     if (this.tipoDirecto() === 'tarjeta') {
-      payload.numeroTarjeta = this.numeroTarjeta();
+      payload.numeroTarjeta = this.numeroTarjeta().replace(/\s+/g, '');
       payload.fechaExpiracion = this.fechaExpiracion();
       payload.cvv = this.cvv();
       payload.franquicia = this.franquicia();
@@ -217,33 +235,37 @@ export class RecargaComponent implements OnInit {
 
     this.isPaying.set(true);
 
-    this.http.post<any>(
-      `${this.baseUrl}/pagar-directo`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    ).subscribe({
-      next: (res) => {
-        this.isPaying.set(false);
-        if (res.exito && res.estado === 'Aceptada') {
-          this.toast.success('Pago aprobado. El saldo se actualizará automáticamente.');
-          this.monto.set(null);
-          this.limpiarFormularioDirecto();
-          this.cargarTarjetas();
-        } else if (res.estado === 'Pendiente') {
-          this.toast.warning(res.mensaje || 'Transacción pendiente por validación');
-        } else if (res.estado === 'Fallida') {
-          this.toast.error(res.mensaje || 'Error de comunicación con el centro de autorizaciones');
-        } else {
-          this.toast.error(res.mensaje || 'Transacción rechazada/fondos insuficientes');
-        }
-      },
-      error: (err) => {
-        this.isPaying.set(false);
-        console.error('Error al procesar pago directo:', err);
-        const errMsg = err.error?.message || 'No se pudo procesar el pago directo. Intente nuevamente.';
-        this.toast.error(errMsg);
-      }
-    });
+    this.http
+      .post<any>(`${this.baseUrl}/pagar-directo`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .subscribe({
+        next: (res) => {
+          this.isPaying.set(false);
+          if (res.exito && res.estado === 'Aceptada') {
+            this.toast.success(`✅ Pago aprobado. Nuevo saldo: $${Number(res.nuevoSaldo).toLocaleString('es-CO')} COP`);
+            this.monto.set(null);
+            this.limpiarFormularioDirecto();
+            setTimeout(() => this.cargarTarjetas(), 800);
+          } else if (res.estado === 'Pendiente') {
+            this.toast.warning(res.mensaje || 'Transacción pendiente por validación');
+          } else if (res.estado === 'Fallida') {
+            this.toast.error(res.mensaje || 'Error de comunicación con el centro de autorizaciones');
+          } else {
+            this.toast.error(res.mensaje || 'Transacción rechazada o fondos insuficientes');
+          }
+        },
+        error: (err) => {
+          // SIEMPRE desbloquear el botón
+          this.isPaying.set(false);
+          console.error('Error al procesar pago directo:', err);
+          const errMsg =
+            err?.error?.message ||
+            err?.error?.mensaje ||
+            'No se pudo procesar el pago. Verifica los datos e intenta nuevamente.';
+          this.toast.error(errMsg);
+        },
+      });
   }
 
   protected autofillTarjeta(numero: string, exp: string, cvv: string, franquicia: string): void {

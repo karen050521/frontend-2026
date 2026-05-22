@@ -128,13 +128,19 @@ export class IncidenteAdminComponent {
     // Intentamos resolver el ID consultando el listado de buses por placa
     this.busRegistry.listarBuses().subscribe({
       next: (buses) => {
-        console.log('Buses retornados por listarBuses (parcial):', (buses || []).map((b: any) => ({ id: b.id, placa: b.placa })));
+        console.log(
+          'Buses retornados por listarBuses (parcial):',
+          (buses || []).map((b: any) => ({ id: b.id, placa: b.placa })),
+        );
 
         const encontrado = (buses || []).find(
           (b: any) => (b.placa || '').toString().toUpperCase() === entrada,
         );
 
-        console.log('Resultado búsqueda por placa:', { entrada, encontrado: encontrado ? { id: encontrado.id, placa: encontrado.placa } : null });
+        console.log('Resultado búsqueda por placa:', {
+          entrada,
+          encontrado: encontrado ? { id: encontrado.id, placa: encontrado.placa } : null,
+        });
 
         if (encontrado && encontrado.id) {
           const idNum = Number(encontrado.id);

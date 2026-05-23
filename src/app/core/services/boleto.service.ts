@@ -31,7 +31,7 @@ export class BoletoService {
 
   constructor(private http: HttpClient) {}
 
-getMisTarjetas(token: string): Observable<any[]> {
+  getMisTarjetas(token: string): Observable<any[]> {
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
     });
@@ -62,7 +62,7 @@ getMisTarjetas(token: string): Observable<any[]> {
       .pipe(map((response) => this.normalizeListResponse<ParaderoOption>(response)));
   }
 
-/**
+  /**
    * ✅ REGISTRAR ABORDAJE (Elegante y Dinámico)
    */
   registrarAbordaje(
@@ -81,6 +81,18 @@ getMisTarjetas(token: string): Observable<any[]> {
       .pipe(catchError((error) => this.handleError(error)));
   }
 
+  getParaderosDescenso(boletoId: number, token: string): Observable<any[]> {
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    return this.http
+      .get<any[] | { data?: any[] }>(`${this.apiUrl}/${boletoId}/paraderos-descenso`, { headers })
+      .pipe(
+        map((response) => this.normalizeListResponse<any>(response)),
+        catchError((error) => this.handleError(error)),
+      );
+  }
   /**
    * 🚌 FINALIZAR VIAJE / DESCENSO (Elegante y Dinámico)
    */
@@ -95,16 +107,14 @@ getMisTarjetas(token: string): Observable<any[]> {
     });
 
     // 🌟 Concatenamos limpiamente usando la ruta base de boletos
-    return this.http
-      .post<any>(`${this.apiUrl}/finalizar-viaje`, payload, { headers })
-      .pipe(
-        tap(() => {
-          this.getBoletosDelUsuario().subscribe();
-        }),
-        catchError((error) => this.handleError(error))
-      );
+    return this.http.post<any>(`${this.apiUrl}/finalizar-viaje`, payload, { headers }).pipe(
+      tap(() => {
+        this.getBoletosDelUsuario().subscribe();
+      }),
+      catchError((error) => this.handleError(error)),
+    );
   }
-  
+
   getBoletosDelUsuario(): Observable<Boleto[]> {
     this.loadingState.set(true);
     this.errorState.set(null);
@@ -185,7 +195,7 @@ getMisTarjetas(token: string): Observable<any[]> {
 
   obtenerRecorridoViaje(boletoId: number, token: string) {
     return this.http.get<any>(`${this.apiUrl}/${boletoId}/recorrido`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 }

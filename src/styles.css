@@ -400,3 +400,26 @@ app-root, .main-container, main, .content-wrapper {
 .container, .container-fluid, .page-container {
   margin-top: 0 !important;
 }
+
+/* Marcadores del mapa de monitoreo */
+.bus-marker {
+  background: #2563eb;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.bus-marker.retrasado {
+  background: #dc2626;
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

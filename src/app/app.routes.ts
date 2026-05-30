@@ -178,7 +178,13 @@ export const routes: Routes = [
     redirectTo: 'home',
   },
 
-  // En app.routes.ts
+  {
+  path: 'monitoreo/:rutaId',
+  loadComponent: () =>
+    import('./features/monitoreo/monitoreo.component').then((m) => m.MonitoreoComponent),
+  canActivate: [AuthGuard],
+},
+
 { 
   path: 'rutas/consulta', 
   loadComponent: () => import('./features/rutas/consulta-rutas.component').then(m => m.ConsultaRutasComponent) 

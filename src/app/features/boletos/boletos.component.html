@@ -210,9 +210,9 @@
                             [(ngModel)]="paraderoDescensoSeleccionado" 
                             class="w-full bg-[#2a2a2a] border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all cursor-pointer">
                             <option [ngValue]="null" disabled selected>Selecciona la estación de bajada...</option>
-                            @for (rp of boleto.ruta?.rutaParaderos; track rp.id) {
-                              <option [value]="rp.paradero?.id" class="bg-[#1e1e1e]">
-                                Secuencia {{ rp.orden_secuencial }} - {{ rp.paradero?.nombre || 'Paradero ' + rp.paradero_id }}
+                            @for (paradero of getParaderosDescenso(boleto.id); track paradero.id) {
+                              <option [value]="paradero.id" class="bg-[#1e1e1e]">
+                                {{ paradero.nombre || paradero.direccion || 'Paradero ' + paradero.id }}
                               </option>
                             }
                           </select>

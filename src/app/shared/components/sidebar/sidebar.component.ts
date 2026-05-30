@@ -26,63 +26,61 @@ export class SidebarComponent {
     return this.authService.activeRole() || localStorage.getItem('user_role') || '';
   });
 
+  private normalizedRole(): string {
+    return this.userRole()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
   // FUNCIONES COMPUTED PARA EL HTML CON CONTROL DE ROLES REALES
   public esAdmin = computed(() => {
-    // Normalizamos el texto quitando acentos y dejándolo en minúsculas 
-    // (aplicamos el mismo blindaje que usaste en esEmpresa)
-    const r = this.userRole()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    const r = this.normalizedRole();
 
     return (
-      (
-        // Evaluamos "admin" genérico para cubrir "administrador", "admin del sistema", etc.
-        (r.includes('administrador') || r.includes('adminsitrador') || r.includes('admin')) && 
-        !r.includes('empresa') // Excluimos al administrador de empresa
-      ) || 
+      ((r.includes('administrador') || r.includes('adminsitrador') || r === 'admin') &&
+        !r.includes('empresa') &&
+        !r.includes('financiero') &&
+        !r.includes('marketing') &&
+        !r.includes('operaciones')) ||
       r === '69b1f1e630276cc75c84424a'
     );
   });
 
   public esEmpresa = computed(() => {
-    // Normalizamos el texto quitando acentos y dejándolo en minúsculas
-    const r = this.userRole()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    const r = this.normalizedRole();
 
     return (
-      r.includes('administrador de empresa') || 
-      r.includes('adminsitrador de empresa') || // 👈 Blindaje contra el typo de la Base de Datos
-      r.includes('company') || 
-      r.includes('gerente') || 
-      r.includes('empresa')
+      r.includes('administrador de empresa') ||
+      r.includes('adminsitrador de empresa') ||
+      r.includes('gerente de empresa') ||
+      r.includes('company')
     );
   });
 
   public esConductor = computed(() => {
-    const r = this.userRole().toLowerCase();
+    const r = this.normalizedRole();
     return r.includes('conductor');
   });
 
   public esCiudadano = computed(() => {
-    const r = this.userRole().toLowerCase();
+    const r = this.normalizedRole();
     return r.includes('ciudadano');
   });
 
   public esAnalista = computed(() => {
-    const r = this.userRole().toLowerCase();
+    const r = this.normalizedRole();
     return r.includes('analista');
   });
 
   public esFinanciero = computed(() => {
-    const r = this.userRole().toLowerCase();
+    const r = this.normalizedRole();
     return r.includes('financiero');
   });
 
   public esGerente = computed(() => {
-    const r = this.userRole().toLowerCase();
+    const r = this.normalizedRole();
     return r.includes('gerente');
   });
 
@@ -105,7 +103,7 @@ export class SidebarComponent {
     if (currentRole?.includes('admin') || currentRole?.includes('sitrador')) {
       this.router.navigate(['/roles']);
     } else if (currentRole?.includes('conductor')) {
-      this.router.navigate(['/features/turno-conductor']); 
+      this.router.navigate(['/features/turno-conductor']);
     } else {
       this.router.navigate(['/dashboard']);
     }

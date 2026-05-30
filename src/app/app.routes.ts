@@ -12,41 +12,48 @@ export const routes: Routes = [
   // VISTA DEL CIUDADANO (La que ya tenías del boleto)
   {
     path: 'dashboard',
-    loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [AuthGuard],
   },
   // 🎫 NUEVA RUTA: Gestión de Boletos y Abordaje del Ciudadano
   {
     path: 'boletos',
-    loadComponent: () => import('./features/boletos/boletos.component').then((m) => m.BoletosComponent),
+    loadComponent: () =>
+      import('./features/boletos/boletos.component').then((m) => m.BoletosComponent),
     canActivate: [AuthGuard],
   },
   // VISTA DEL ADMINISTRADOR / GERENTE DE EMPRESA
   {
     path: 'registro-bus',
-    loadComponent: () => import('./features/buses/bus-registro.component').then((m) => m.BusRegistroComponent),
+    loadComponent: () =>
+      import('./features/buses/bus-registro.component').then((m) => m.BusRegistroComponent),
     canActivate: [AuthGuard],
   },
   {
     path: 'programacion',
-    loadComponent: () => import('./features/programacion/programacion.component').then((m) => m.ProgramacionComponent),
+    loadComponent: () =>
+      import('./features/programacion/programacion.component').then((m) => m.ProgramacionComponent),
     canActivate: [AuthGuard],
   },
   {
     path: 'auditoria-incidentes', // 🚨 NUEVA RUTA: Consulta y seguimiento de incidentes por Bus
-    loadComponent: () => 
-      import('./features/incidente-admin/incidente-admin.component').then((m) => m.IncidenteAdminComponent),
+    loadComponent: () =>
+      import('./features/incidente-admin/incidente-admin.component').then(
+        (m) => m.IncidenteAdminComponent,
+      ),
     canActivate: [AuthGuard],
   },
   // VISTA DEL CONDUCTOR (Sincronizada con el Sidebar)
   {
     path: 'features/turno-conductor',
-    loadComponent: () => import('./features/turnos/turno-conductor.component').then((m) => m.TurnoConductorComponent),
+    loadComponent: () =>
+      import('./features/turnos/turno-conductor.component').then((m) => m.TurnoConductorComponent),
     canActivate: [AuthGuard],
   },
   {
     path: 'reportar-incidente', // VISTA DEL CONDUCTOR: Reporte rápido
-    loadComponent: () => 
+    loadComponent: () =>
       import('./features/incidentes/incidente-bus.component').then((m) => m.IncidenteBusComponent),
     canActivate: [AuthGuard],
   },
@@ -116,22 +123,28 @@ export const routes: Routes = [
   {
     path: 'paraderos-cercanos',
     loadComponent: () =>
-      import('./features/rutas/paraderos-cercanos/paraderos-cercanos.component').then((m) => m.ParaderosCercanosComponent),
+      import('./features/rutas/paraderos-cercanos/paraderos-cercanos.component').then(
+        (m) => m.ParaderosCercanosComponent,
+      ),
     canActivate: [AuthGuard],
   },
   {
     path: 'dashboard-servicios',
     loadComponent: () =>
-      import('./features/dashboard-servicios/dashboard-servicios.component').then((m) => m.DashboardServiciosComponent),
+      import('./features/dashboard-servicios/dashboard-servicios.component').then(
+        (m) => m.DashboardServiciosComponent,
+      ),
     canActivate: [AuthGuard],
   },
-{
+  {
     path: 'tendencia-incidentes', // 📊 Gráfico de líneas para el Gerente
-    loadComponent: () => 
-      import('./features/incidente-admin/tendencia-incidentes/tendencia-incidentes').then((m) => m.TendenciaIncidentes),
+    loadComponent: () =>
+      import('./features/incidente-admin/tendencia-incidentes/tendencia-incidentes').then(
+        (m) => m.TendenciaIncidentes,
+      ),
     canActivate: [AuthGuard],
   },
-  { path: 'buses/publico/:placa', component: BusRegistroComponent },//QR del bus
+  { path: 'buses/publico/:placa', component: BusRegistroComponent }, //QR del bus
   {
     path: 'recarga',
     loadComponent: () =>
@@ -147,7 +160,9 @@ export const routes: Routes = [
   {
     path: 'crear-paradero',
     loadComponent: () =>
-      import('./features/rutas/crear-paradero/crear-paradero.component').then((m) => m.CrearParaderoComponent),
+      import('./features/rutas/crear-paradero/crear-paradero.component').then(
+        (m) => m.CrearParaderoComponent,
+      ),
     canActivate: [AuthGuard],
   },
   {
@@ -173,10 +188,17 @@ export const routes: Routes = [
         (m) => m.AccessDeniedComponent,
       ),
   },
+  // En app.routes.ts
+  {
+    path: 'rutas/consulta',
+    loadComponent: () =>
+      import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
+  },
   {
     path: '**',
     redirectTo: 'home',
   },
+<<<<<<< HEAD
 
   {
   path: 'monitoreo/:rutaId',
@@ -190,3 +212,6 @@ export const routes: Routes = [
   loadComponent: () => import('./features/rutas/consulta-rutas.component').then(m => m.ConsultaRutasComponent) 
 },
 ];
+=======
+];
+>>>>>>> 8b790621716334bf3589bfa134700fbb86b1c582

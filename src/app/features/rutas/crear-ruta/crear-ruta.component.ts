@@ -14,7 +14,6 @@ import * as L from 'leaflet'; // 👈 Importar Leaflet
     <div class="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
       <div class="mb-8">
         <h1 class="text-3xl font-black theme-text-primary tracking-tight">Crear Ruta</h1>
-        <p class="theme-text-secondary mt-2">HU-009: Configura una nueva ruta y asigna sus paraderos secuenciales.</p>
       </div>
 
       <div class="theme-card p-8 rounded-2xl shadow-xl border border-white/10 bg-white/5 backdrop-blur-sm">

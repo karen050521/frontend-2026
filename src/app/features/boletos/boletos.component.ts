@@ -27,7 +27,8 @@ export class BoletosComponent implements OnInit {
   protected sortBy = signal<'recent' | 'oldest'>('recent');
   protected buses = signal<BusOption[]>([]);
   protected paraderos = signal<ParaderoOption[]>([]);
-  protected misTarjetas = signal<any[]>([]); 
+  protected paraderosDescensoPorBoleto = signal<Record<number, ParaderoOption[]>>({});
+  protected misTarjetas = signal<any[]>([]);
   protected isSubmitting = signal<boolean>(false);
   protected showRecorridoModal = signal<boolean>(false);
   protected loadingRecorrido = signal<boolean>(false);
@@ -62,7 +63,7 @@ export class BoletosComponent implements OnInit {
   protected get selectedTarjeta() {
     const id = this.abordajeForm.get('metodoPagoCiudadano_id')?.value;
     if (!id) return null;
-    return this.misTarjetas().find(t => t.id == id) || null;
+    return this.misTarjetas().find((t) => t.id == id) || null;
   }
 
   private loadFormData(): void {
@@ -73,13 +74,13 @@ export class BoletosComponent implements OnInit {
       return;
     }
 
-forkJoin({
+    forkJoin({
       // 🚌 FILTRADO QUIRÚRGICO: El backend ya calcula 'enRuta' basándose en los turnos 'en_curso'
       buses: this.boletoServiceInst.getBuses().pipe(
         map((allBuses: any[]) => {
-          return allBuses.filter(bus => bus.enRuta === true);
+          return allBuses.filter((bus) => bus.enRuta === true);
         }),
-        catchError(() => of([]))
+        catchError(() => of([])),
       ),
       paraderos: this.boletoServiceInst.getParaderos().pipe(catchError(() => of([]))),
       tarjetas: this.boletoServiceInst.getMisTarjetas(token).pipe(catchError(() => of([]))),
@@ -113,8 +114,8 @@ forkJoin({
         destination: b.ruta?.destino || 'Destino no definido',
         driverName: b.programacion?.empleado?.nombre || 'Conductor asignado',
         vehiclePlate: b.programacion?.bus?.placa || 'N/A',
-        scheduledTime: b.programacion?.horaSalida || b.inicioViaje
-      }
+        scheduledTime: b.programacion?.horaSalida || b.inicioViaje,
+      },
     }));
 
     if (status !== 'TODOS') {
@@ -122,10 +123,11 @@ forkJoin({
     }
 
     if (query) {
-      mapped = mapped.filter((b: any) => 
-        b.travelDetails.origin.toLowerCase().includes(query) ||
-        b.travelDetails.destination.toLowerCase().includes(query) ||
-        b.numeroBoleto?.toLowerCase().includes(query)
+      mapped = mapped.filter(
+        (b: any) =>
+          b.travelDetails.origin.toLowerCase().includes(query) ||
+          b.travelDetails.destination.toLowerCase().includes(query) ||
+          b.numeroBoleto?.toLowerCase().includes(query),
       );
     }
 
@@ -137,7 +139,35 @@ forkJoin({
   });
 
   private loadBoletos(): void {
-    this.boletoServiceInst.getBoletosDelUsuario().subscribe();
+    this.boletoServiceInst.getBoletosDelUsuario().subscribe({
+      next: (boletos) => {
+        const token = localStorage.getItem(this.tokenStorageKey) || '';
+        if (!token) return;
+
+        const boletosActivos = (boletos || []).filter((boleto: any) => {
+          const estado = (boleto.estado || boleto.status || '').toString().toUpperCase();
+          return estado === 'ACTIVO' && !!boleto.id;
+        });
+
+        boletosActivos.forEach((boleto: any) => {
+          this.boletoServiceInst.getParaderosDescenso(Number(boleto.id), token).subscribe({
+            next: (paraderosDescenso) => {
+              this.paraderosDescensoPorBoleto.update((actual) => ({
+                ...actual,
+                [Number(boleto.id)]: paraderosDescenso || [],
+              }));
+            },
+            error: (err) => {
+              console.error(`Error cargando paraderos de descenso para boleto ${boleto.id}:`, err);
+            },
+          });
+        });
+      },
+    });
+  }
+
+  protected getParaderosDescenso(boletoId: number): ParaderoOption[] {
+    return this.paraderosDescensoPorBoleto()[boletoId] || [];
   }
 
   protected hasFieldError(fieldName: string): boolean {
@@ -145,7 +175,7 @@ forkJoin({
     return !!field && field.invalid && (field.touched || field.dirty);
   }
 
-protected getBusLabel(bus: BusOption): string {
+  protected getBusLabel(bus: BusOption): string {
     return bus.placa ? `🚌 ${bus.placa} - ${bus.nombre || 'Unidad en Ruta'}` : `Bus ${bus.id}`;
   }
 
@@ -163,7 +193,7 @@ protected getBusLabel(bus: BusOption): string {
 
     this.isSubmitting.set(true);
     const val = this.abordajeForm.value;
-    
+
     const payload = {
       bus_id: Number(val.bus_id),
       paraderoAbordaje_id: Number(val.paraderoAbordaje_id),
@@ -181,13 +211,13 @@ protected getBusLabel(bus: BusOption): string {
       error: (err) => {
         this.toastService.error(err.message || 'Error en el abordaje');
         this.isSubmitting.set(false);
-      }
+      },
     });
   }
 
-protected finishTravel(boleto: Boleto): void {
+  protected finishTravel(boleto: Boleto): void {
     if (!boleto.id) return;
-    
+
     const token = localStorage.getItem(this.tokenStorageKey);
     if (!token) return;
 
@@ -199,25 +229,27 @@ protected finishTravel(boleto: Boleto): void {
 
     const payload = {
       boleto_id: Number(boleto.id),
-      paraderoDescenso_id: Number(this.paraderoDescensoSeleccionado)
+      paraderoDescenso_id: Number(this.paraderoDescensoSeleccionado),
     };
 
     // 🔥 Enviamos el payload a tu endpoint especializado de descenso
     this.boletoServiceInst.finalizarViaje(payload, token).subscribe({
       next: (res) => {
         // 🎯 CUMPLIMIENTO HU: Mensaje corporativo exacto de la historia
-        this.toastService.success(res.mensaje || 'Viaje completado - Gracias por usar nuestro servicio');
-        
+        this.toastService.success(
+          res.mensaje || 'Viaje completado - Gracias por usar nuestro servicio',
+        );
+
         // Limpiamos la variable para el próximo viaje
         this.paraderoDescensoSeleccionado = null;
-        
+
         // Refrescamos pantallas y estados
         this.loadBoletos();
         this.loadFormData();
       },
       error: (err) => {
         this.toastService.error(err.message || 'Error al procesar el descenso');
-      }
+      },
     });
   }
 
@@ -235,16 +267,16 @@ protected finishTravel(boleto: Boleto): void {
     const boleto = this.selectedBoleto();
     if (!boleto || !boleto.id) return;
     this.boletoServiceInst.updateBoleto(Number(boleto.id), { estado: 'cancelado' }).subscribe({
-      next: () => { 
-        this.toastService.success('Boleto cancelado correctamente'); 
-        this.loadBoletos(); 
-        this.loadFormData(); 
-        this.closeCancelModal(); 
+      next: () => {
+        this.toastService.success('Boleto cancelado correctamente');
+        this.loadBoletos();
+        this.loadFormData();
+        this.closeCancelModal();
       },
-      error: () => { 
-        this.toastService.error('No se pudo cancelar el boleto'); 
-        this.closeCancelModal(); 
-      }
+      error: () => {
+        this.toastService.error('No se pudo cancelar el boleto');
+        this.closeCancelModal();
+      },
     });
   }
 
@@ -262,8 +294,11 @@ protected finishTravel(boleto: Boleto): void {
 
   protected formatDate(date: any): string {
     if (!date) return '-';
-    return new Date(date).toLocaleString('es-ES', { 
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+    return new Date(date).toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
@@ -289,7 +324,7 @@ protected finishTravel(boleto: Boleto): void {
         this.loadingRecorrido.set(false);
         this.toastService.error('No se pudo cargar el recorrido de este viaje.');
         this.cerrarRecorridoModal();
-      }
+      },
     });
   }
 
@@ -313,7 +348,7 @@ protected finishTravel(boleto: Boleto): void {
 
     this.mapRecorrido = L.map(mapContainer).setView([5.0689, -75.5173], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
     }).addTo(this.mapRecorrido);
 
     // Forzar redibujado de Leaflet para dimensiones dinámicas del modal
@@ -321,12 +356,14 @@ protected finishTravel(boleto: Boleto): void {
 
     // 1. Dibujamos la línea de la ruta completa (El trayecto del bus)
     const coordenadasRuta: L.LatLngTuple[] = (data.ruta?.coordenadasMapa || []).map(
-      (c: any) => [+c.latitud, +c.longitud] as L.LatLngTuple
+      (c: any) => [+c.latitud, +c.longitud] as L.LatLngTuple,
     );
 
     if (coordenadasRuta.length > 0) {
-      L.polyline(coordenadasRuta, { 
-        color: '#3b82f6', weight: 4, opacity: 0.7 
+      L.polyline(coordenadasRuta, {
+        color: '#3b82f6',
+        weight: 4,
+        opacity: 0.7,
       }).addTo(this.mapRecorrido);
     }
 
@@ -335,30 +372,40 @@ protected finishTravel(boleto: Boleto): void {
 
     (data.validaciones || []).forEach((v: any) => {
       if (!v.paradero?.latitud || !v.paradero?.longitud) return;
-      
+
       const lat = +v.paradero.latitud;
       const lng = +v.paradero.longitud;
       allPoints.push([lat, lng]);
 
       const isAbordaje = v.tipo === 'abordaje';
       const color = isAbordaje ? '#10b981' : '#ef4444'; // Verde para subir, Rojo para bajar
-      
+
       const markerHtml = `
         <div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4);">
           <svg style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isAbordaje ? 'M5 10l7-7m0 0l7 7m-7-7v18' : 'M19 14l-7 7m0 0l-7-7m7 7V3'}"></path></svg>
         </div>`;
-      
-      const customIcon = L.divIcon({ html: markerHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
-      const horaFormateada = new Date(v.horaExacta).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+      const customIcon = L.divIcon({
+        html: markerHtml,
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      const horaFormateada = new Date(v.horaExacta).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
       L.marker([lat, lng], { icon: customIcon })
-        .bindPopup(`
+        .bindPopup(
+          `
           <div class="text-sm">
             <strong style="color: ${color}">${v.tipo.toUpperCase()}</strong><br>
             <b>Paradero:</b> ${v.paradero.nombre}<br>
             <b>Hora exacta:</b> ${horaFormateada}
           </div>
-        `)
+        `,
+        )
         .addTo(this.mapRecorrido!);
     });
 

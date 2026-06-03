@@ -1,0 +1,146 @@
+<div class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400">
+      Gestión de Grupos de Comunicación
+    </h1>
+    <p class="text-gray-400 mt-2">
+      Crea y organiza comunidades para compartir intereses comunes.
+    </p>
+  </div>
+
+  @if (mensajeExito) {
+    <div class="mb-6 p-4 bg-emerald-950 border border-emerald-500/30 text-emerald-400 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+      <span class="text-xl">✓</span> {{ mensajeExito }}
+    </div>
+  }
+  @if (mensajeError) {
+    <div class="mb-6 p-4 bg-rose-950 border border-rose-500/30 text-rose-400 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+      <span class="text-xl">⚠</span> {{ mensajeError }}
+    </div>
+  }
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl h-fit">
+      <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-pink-500">
+        <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+        Nuevo Grupo
+      </h2>
+
+      <form (ngSubmit)="crearGrupo()" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Nombre del Grupo *</label>
+          <input type="text" [(ngModel)]="grupoData.nombre" name="nombre" required placeholder="Ej: Vecinos Ruta Norte"
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Descripción</label>
+          <textarea [(ngModel)]="grupoData.descripcion" name="descripcion" rows="3"
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors"
+            placeholder="¿De qué trata este grupo?"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Privacidad</label>
+            <select [(ngModel)]="grupoData.esPublico" name="esPublico"
+              class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors">
+              <option [ngValue]="true">Público</option>
+              <option [ngValue]="false">Privado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Icono del Grupo</label>
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center overflow-hidden bg-[#2a2a2a]">
+                @if (previewImagen) {
+                  <img [src]="previewImagen" class="w-full h-full object-cover">
+                } @else {
+                  <span class="text-xs text-gray-500">📷</span>
+                }
+              </div>
+              <label class="cursor-pointer bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-2 rounded-xl text-xs transition-colors flex-1 text-center">
+                Subir Foto
+                <input type="file" (change)="onFileSelected($event)" accept="image/*" class="hidden">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-800">
+          <label class="block text-sm font-medium text-pink-400 mb-2">Añadir Miembros (Mín. 2 adicionales)</label>
+          <div class="relative">
+            <input type="text" (input)="buscarPersonas($event)" placeholder="Buscar por nombre..."
+              class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-fuchsia-500 transition-colors">
+            
+            @if (resultadosBusqueda.length > 0) {
+              <ul class="absolute z-10 w-full mt-2 bg-[#2a2a2a] border border-gray-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
+                @for (persona of resultadosBusqueda; track persona.id) {
+                  <li (click)="agregarMiembro(persona)" 
+                    class="p-3 hover:bg-fuchsia-600/20 cursor-pointer border-b border-gray-800 last:border-0 flex justify-between items-center">
+                    <span>{{ persona.nombre }}</span>
+                    <span class="text-xs text-gray-500">{{ persona.cedula }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div class="flex flex-wrap gap-2 mt-4">
+            @for (m of miembrosSeleccionados; track m.id) {
+              <span class="px-3 py-1 bg-fuchsia-950/40 border border-fuchsia-500/50 text-fuchsia-300 rounded-full text-xs flex items-center gap-2">
+                {{ m.nombre }}
+                <button type="button" (click)="removerMiembro(m.id)" class="hover:text-white text-lg">&times;</button>
+              </span>
+            }
+          </div>
+        </div>
+
+<button type="submit" 
+  [disabled]="miembrosSeleccionados.length < 2 || !grupoData.nombre"
+  class="w-full mt-6 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 
+         disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed 
+         text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] 
+         transition-all cursor-pointer text-sm uppercase tracking-wide">
+  🚀 Crear Grupo de Comunicación
+</button>
+      </form>
+    </div>
+
+    <div class="lg:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl overflow-hidden flex flex-col">
+      <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-fuchsia-400">
+        <span class="w-2 h-6 bg-fuchsia-400 rounded-full inline-block"></span>
+        Mis Grupos y Comunidades
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (grupo of grupos; track grupo.id) {
+          <div class="p-4 bg-[#262626] border border-gray-800 rounded-xl hover:border-pink-500/50 transition-all group">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center text-xl shadow-lg overflow-hidden">
+                @if (grupo.imagenUrl) {
+                  <span class="font-bold">{{ grupo.nombre.charAt(0) }}</span>
+                } @else {
+                  {{ grupo.nombre.charAt(0) }}
+                }
+              </div>
+              <div class="flex-1">
+                <h3 class="font-bold text-gray-100 group-hover:text-pink-400 transition-colors">{{ grupo.nombre }}</h3>
+                <p class="text-xs text-gray-500 line-clamp-1">{{ grupo.descripcion }}</p>
+              </div>
+              <span [class]="grupo.esPublico ? 'text-emerald-400 bg-emerald-400/10' : 'text-amber-400 bg-amber-400/10'" 
+                    class="text-[10px] uppercase font-bold px-2 py-1 rounded border border-current">
+                {{ grupo.esPublico ? 'Público' : 'Privado' }}
+              </span>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-800 rounded-2xl">
+            <span class="text-4xl">👥</span>
+            <p class="text-gray-500 mt-2 font-medium">Aún no perteneces a ningún grupo.</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

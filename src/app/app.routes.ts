@@ -23,6 +23,11 @@ export const routes: Routes = [
       import('./features/boletos/boletos.component').then((m) => m.BoletosComponent),
     canActivate: [AuthGuard],
   },
+  {
+  path: 'grupos',
+  loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent),
+  // canActivate: [authGuard] // Si tienes un guard de rutas
+  },
   // VISTA DEL ADMINISTRADOR / GERENTE DE EMPRESA
   {
     path: 'registro-bus',
@@ -198,20 +203,4 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'home',
   },
-<<<<<<< HEAD
-
-  {
-  path: 'monitoreo/:rutaId',
-  loadComponent: () =>
-    import('./features/monitoreo/monitoreo.component').then((m) => m.MonitoreoComponent),
-  canActivate: [AuthGuard],
-},
-
-{ 
-  path: 'rutas/consulta', 
-  loadComponent: () => import('./features/rutas/consulta-rutas.component').then(m => m.ConsultaRutasComponent) 
-},
 ];
-=======
-];
->>>>>>> 8b790621716334bf3589bfa134700fbb86b1c582

@@ -520,4 +520,16 @@ export class AuthService {
       return null;
     }
   }
+
+  /**
+   * Valida si el rol activo tiene los privilegios necesarios para un módulo
+   * Útil para modularizar la seguridad en el Frontend sin harcodeos extensos
+   */
+  tienePermisoModulo(rolRequerido: string): boolean {
+    const rolActual = this._activeRole();
+    if (!rolActual) return false;
+    
+    return rolActual.toLowerCase().trim() === rolRequerido.toLowerCase().trim();
+  }
+  
 }

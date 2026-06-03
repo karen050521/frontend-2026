@@ -1,8 +1,9 @@
-import { Component, signal, output, inject, effect, OnInit } from '@angular/core';
+import { Component, signal, output, inject, effect, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-search-bar',
@@ -11,10 +12,13 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './search-bar.component.html',
   styleUrl: './search-bar.component.css'
 })
-export class SearchBarComponent {
+export class SearchBarComponent implements OnInit, OnDestroy {
   // Inyecciones
   private readonly notiService = inject(NotificacionService);
   private readonly authService = inject(AuthService);
+
+  // Suscripciones
+  private refreshSub?: Subscription;
 
   // Signals y Estado
   protected readonly searchQuery = signal('');
@@ -25,21 +29,34 @@ export class SearchBarComponent {
   public readonly search = output<string>();
 
   constructor() {
-    // Definimos el efecto aquí para cumplir con el Injection Context
+    // Efecto para carga inicial o cambios de usuario
     effect(() => {
       const user = this.authService.currentUser() as any;
       
-      console.log('🔍 [SearchBar] Usuario detectado:', user);
-      
       if (user && (user.id || user._id)) {
-        // Manejamos ambos posibles casos: id o _id
         const userId = user.id || user._id;
-        console.log('🔔 [SearchBar] Cargando notificaciones para ID:', userId);
         this.cargarNotificaciones(userId);
-      } else {
-        console.warn('⚠️ [SearchBar] No se encontró ID en el objeto de usuario');
       }
     }, { allowSignalWrites: true });
+  }
+
+  ngOnInit(): void {
+    // Escuchamos el "timbre" del servicio para recargar cuando se una a un grupo
+    this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
+      const user = this.authService.currentUser() as any;
+      if (user) {
+        const userId = user.id || user._id;
+        console.log('🔄 [SearchBar] Recargando notificaciones por evento externo...');
+        this.cargarNotificaciones(userId);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // Limpieza de suscripción para evitar memory leaks
+    if (this.refreshSub) {
+      this.refreshSub.unsubscribe();
+    }
   }
 
   private cargarNotificaciones(userId: string): void {
@@ -54,7 +71,7 @@ export class SearchBarComponent {
     // 2. Obtener lista de notificaciones
     this.notiService.getNotificaciones(userId).subscribe({
       next: (notis: any[]) => {
-        console.log('📋 Notificaciones recibidas de la BD:', notis);
+        console.log('📋 Notificaciones actualizadas:', notis);
         this.notificaciones.set(notis);
       },
       error: (err) => console.error('❌ Error al obtener notificaciones:', err)
@@ -67,7 +84,6 @@ export class SearchBarComponent {
 
   protected marcarLeida(noti: any): void {
     if (!noti.leida) {
-      // Usamos el ID que venga de la base de datos (id o _id)
       const notiId = noti.id || noti._id;
       this.notiService.marcarComoLeida(notiId).subscribe({
         next: () => {

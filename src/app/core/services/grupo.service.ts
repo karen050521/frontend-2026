@@ -10,20 +10,27 @@ export class GrupoService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiNestUrl}/grupo`;
 
-  // QUITAMOS las inyecciones de grupoService y personaService de aquí.
-  // Un servicio solo debe inyectar lo que REALMENTE usa (como HttpClient).
-
-  /**
-   * Crea un nuevo grupo (Comunidad)
-   */
   public crearGrupo(grupo: any): Observable<any> {
     return this.http.post<any>(this.apiUrl, grupo);
   }
 
-  /**
-   * Obtiene los grupos a los que pertenece una persona
-   */
   public getGruposPorPersona(personaId: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/persona/${personaId}`);
+  }
+
+  // NUEVO: Obtener grupos donde NO estoy
+  public getPublicosDisponibles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/publicos/disponibles`);
+  }
+
+  // NUEVO: Unirse a un grupo
+  public unirseAGrupo(grupoId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${grupoId}/unirse`, {});
+  }
+
+  // AÑADE ESTO:
+  public enviarMensaje(mensaje: any): Observable<any> {
+    // Ajusta la URL si en tu backend es diferente (ej: ${this.apiUrl}/mensajes)
+    return this.http.post<any>(`${this.apiUrl}/mensajes`, mensaje);
   }
 }

@@ -3,10 +3,15 @@
   @if (isOpen()) {
     <div class="chat-window bg-[#1e1e1e] border border-gray-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
       
-      <!-- ENCABEZADO -->
       <div class="bg-gradient-to-r from-pink-600 to-fuchsia-600 p-4 flex justify-between items-center shadow-md">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+        <div class="flex items-center gap-3">
+@if (grupoSeleccionado()?.imagenUrl && (grupoSeleccionado().imagenUrl.includes('.') || grupoSeleccionado().imagenUrl.endsWith('.jpg') || grupoSeleccionado().imagenUrl.endsWith('.png'))) {
+  <div class="w-8 h-8 rounded-full overflow-hidden border border-white/30 shadow-sm flex-shrink-0">
+<img [src]="srvUrl + '/uploads/' + grupoSeleccionado().imagenUrl" class="w-full h-full object-cover">  </div>
+} @else {
+  <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+}
+
           <h3 class="font-bold text-white text-sm tracking-wide">
             {{ grupoSeleccionado() ? grupoSeleccionado().nombre : 'Comunidades' }}
           </h3>
@@ -14,9 +19,7 @@
         <button (click)="toggleChat()" class="text-white/80 hover:text-white transition-colors bg-transparent border-none cursor-pointer">✕</button>
       </div>
 
-      <!-- VISTA A: LISTADO DE GRUPOS (Se muestra si no hay un grupo seleccionado) -->
       @if (!grupoSeleccionado()) {
-        <!-- Pestañas Mis Grupos / Descubrir -->
         <div class="flex bg-[#121212] border-b border-gray-800">
           <button (click)="tabActiva.set('mis-grupos')" 
             [class]="tabActiva() === 'mis-grupos' ? 'border-b-2 border-pink-500 text-pink-500' : 'text-gray-500'"
@@ -30,26 +33,29 @@
           </button>
         </div>
 
-        <!-- Buscador -->
         <div class="p-3 bg-[#121212]">
           <input type="text" [ngModel]="filtroBusqueda()" (ngModelChange)="filtroBusqueda.set($event)"
                  placeholder="Buscar por nombre o descripción..."
                  class="w-full bg-[#1e1e1e] border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500/50" />
         </div>
 
-        <!-- Lista de Comunidades Filtradas -->
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#121212]">
           @for (g of gruposFiltrados; track g.id) {
             <div class="p-3 bg-[#1e1e1e] border border-gray-800/60 rounded-xl flex flex-col gap-2 group transition-all hover:border-pink-500/30 shadow-sm">
               
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-base">👥</span>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border border-gray-600 flex items-center justify-center">
+  @if (g.imagenUrl && (g.imagenUrl.includes('.') || g.imagenUrl.endsWith('.jpg') || g.imagenUrl.endsWith('.png'))) {
+<img [src]="srvUrl + '/uploads/' + g.imagenUrl" class="w-full h-full object-cover" alt="Grupo">  } @else {
+    <div class="text-lg">👥</div>
+  }
+</div>
+                  
                   <div class="flex flex-col">
                     <span class="text-sm font-bold text-gray-200 group-hover:text-pink-400 transition-colors">
                       {{ g.nombre }}
                     </span>
-                    <!-- Cantidad de personas limpia sin el texto "activos" -->
                     <span class="text-[10px] text-gray-500 font-medium">
                       {{ g.cantidadMiembros || 0 }} {{ (g.cantidadMiembros === 1) ? 'persona' : 'personas' }} en el grupo
                     </span>
@@ -67,7 +73,6 @@
                 }
               </div>
 
-              <!-- Descripción Completa -->
               <div class="px-1">
                 <p class="text-[11px] text-gray-400 leading-relaxed italic">
                   {{ g.descripcion || 'Sin descripción disponible para esta comunidad.' }}
@@ -83,10 +88,9 @@
         </div>
       }
 
-      <!-- VISTA B: CHAT INTERNO (Se muestra si hay un grupo seleccionado) -->
       @if (grupoSeleccionado()) {
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#121212] flex flex-col">
-          <button (click)="grupoSeleccionado.set(null)" class="text-xs text-pink-500 font-bold mb-1 flex items-center gap-1 cursor-pointer bg-transparent border-none self-start hover:text-pink-400">
+          <button (click)="volverAListado()" class="text-xs text-pink-500 font-bold mb-1 flex items-center gap-1 cursor-pointer bg-transparent border-none self-start hover:text-pink-400">
             ← VOLVER A GRUPOS
           </button>
           
@@ -103,7 +107,6 @@
           </div>
         </div>
 
-        <!-- Área de entrada del mensaje -->
         <div class="p-3 bg-[#1e1e1e] border-t border-gray-800 flex gap-2 items-center">
           <input type="text" [(ngModel)]="mensajeActual" placeholder="Escribe un mensaje..." (keyup.enter)="enviarMensaje()"
                  class="flex-1 bg-[#2a2a2a] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-all" />
@@ -116,7 +119,6 @@
     </div>
   }
 
-  <!-- BOTÓN FLOTANTE DE LA BURBUJA -->
   <button class="chat-button bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white flex items-center justify-center shadow-2xl cursor-pointer border-none"
           [ngClass]="isOpen() ? 'rotate-90' : ''" (click)="toggleChat()">
     @if (isOpen()) { ✕ } @else { ✉ }

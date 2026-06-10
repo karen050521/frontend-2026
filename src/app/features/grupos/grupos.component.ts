@@ -4,7 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { GrupoService } from '../../core/services/grupo.service';
 import { PersonaService } from '../../core/services/persona.service';
 import { AuthService } from '../../core/services/auth.service';
-import { ToastService } from '../../core/services/toast.service'; // Ajusta la ruta según tu proyecto
+import { ToastService } from '../../core/services/toast.service'; 
+import { NotificacionService } from '../../core/services/notificacion.service'; // <-- 1. IMPORTAMOS EL SERVICIO
+import { ChatSocketService } from '../../core/services/chat-socket.service';
+import { environment } from '../../../environments/environment';
+
 @Component({
   selector: 'app-grupos',
   standalone: true,
@@ -16,6 +20,10 @@ export class GruposComponent implements OnInit {
   private readonly personaService = inject(PersonaService);
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
+  private readonly notiService = inject(NotificacionService); // <-- 2. INYECTAMOS EL SERVICIO
+  private readonly chatSocketService = inject(ChatSocketService); // <-- ¡ESTA ES LA LÍNEA QUE FALTA AGREGAR!
+  protected readonly srvUrl = environment.apiNestUrl;
+  
   // Modelo de datos para el formulario
   grupoData = {
     nombre: '',
@@ -43,7 +51,6 @@ export class GruposComponent implements OnInit {
     }
   }
 
-  // Captura y procesa la imagen
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
     if (file) {
@@ -64,10 +71,9 @@ export class GruposComponent implements OnInit {
     });
   }
 
-buscarPersonas(event: any) {
+  buscarPersonas(event: any) {
     const termino = event.target.value;
     if (termino && termino.length > 2) {
-      // Pasamos el término y el ID del creador actual para que el Back nos ignore
       this.personaService.buscarPorNombre(termino, this.grupoData.creadorId).subscribe({
         next: (res: any[]) => {
           this.resultadosBusqueda = res;
@@ -91,18 +97,19 @@ buscarPersonas(event: any) {
   }
 
 crearGrupo() {
-    // Validation de Nombre
+    // 1. Validación de Nombre
     if (!this.grupoData.nombre) {
       this.toastService.error('El nombre del grupo es obligatorio');
       return;
     }
 
-    // Validation de Miembros
+    // 2. Validación de Miembros Mínimos
     if (this.miembrosSeleccionados.length < 2) {
       this.toastService.warning('Debes añadir al menos 2 miembros adicionales');
       return;
     }
 
+    // 3. Construcción del Payload para el Backend HTTP
     const payload = {
       ...this.grupoData,
       miembrosIds: this.miembrosSeleccionados.map(m => m.id)
@@ -111,6 +118,19 @@ crearGrupo() {
     this.grupoService.crearGrupo(payload).subscribe({
       next: () => {
         this.toastService.success('¡Comunidad creada con éxito!');
+        
+        // Notifica de forma local a la pantalla de este usuario
+        this.notiService.triggerRefresh(); 
+
+        // === MODIFICACIÓN WEBOSCKET EN TIEMPO REAL ===
+        // Juntamos los IDs de los miembros agregados y el ID del creador
+        const todosLosMiembrosIds = [...payload.miembrosIds, this.grupoData.creadorId];
+        
+        // Emitimos el aviso por WebSockets para que impacte en los otros usuarios conectados
+        this.chatSocketService.emitirNuevoGrupo(todosLosMiembrosIds);
+        // =============================================
+
+        // 4. Limpieza e inicio del componente
         this.limpiarFormulario();
         if (this.grupoData.creadorId) this.cargarMisGrupos(this.grupoData.creadorId);
       },

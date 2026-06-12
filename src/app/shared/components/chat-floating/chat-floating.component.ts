@@ -8,11 +8,11 @@ import { NotificacionService } from '../../../core/services/notificacion.service
 import { ChatSocketService } from '../../../core/services/chat-socket.service'; // <-- 1. IMPORTAR NUEVO SERVICIO
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-
+import { GrupoAdminModalComponent } from '../../../features/grupo-admin-modal/grupo-admin-modal.component';
 @Component({
   selector: 'app-chat-floating',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, GrupoAdminModalComponent],
   templateUrl: './chat-floating.component.html',
   styleUrl: './chat-floating.component.css'
 })
@@ -37,7 +37,9 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected mensajes = signal<any[]>([]);
 
   protected readonly srvUrl = environment.apiNestUrl;
-  
+
+  protected isAdminModalOpen = signal(false);
+
   constructor() {
     effect(() => {
       const user = this.authService.currentUser();

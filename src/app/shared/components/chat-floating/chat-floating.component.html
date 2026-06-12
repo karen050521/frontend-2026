@@ -5,18 +5,24 @@
       
       <div class="bg-gradient-to-r from-pink-600 to-fuchsia-600 p-4 flex justify-between items-center shadow-md">
         <div class="flex items-center gap-3">
-@if (grupoSeleccionado()?.imagenUrl && (grupoSeleccionado().imagenUrl.includes('.') || grupoSeleccionado().imagenUrl.endsWith('.jpg') || grupoSeleccionado().imagenUrl.endsWith('.png'))) {
-  <div class="w-8 h-8 rounded-full overflow-hidden border border-white/30 shadow-sm flex-shrink-0">
-<img [src]="srvUrl + '/uploads/' + grupoSeleccionado().imagenUrl" class="w-full h-full object-cover">  </div>
-} @else {
-  <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
-}
+          @if (grupoSeleccionado()?.imagenUrl && (grupoSeleccionado().imagenUrl.includes('.') || grupoSeleccionado().imagenUrl.endsWith('.jpg') || grupoSeleccionado().imagenUrl.endsWith('.png'))) {
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-white/30 shadow-sm flex-shrink-0">
+              <img [src]="srvUrl + '/uploads/' + grupoSeleccionado().imagenUrl" class="w-full h-full object-cover">  
+            </div>
+          } @else {
+            <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+          }
 
           <h3 class="font-bold text-white text-sm tracking-wide">
             {{ grupoSeleccionado() ? grupoSeleccionado().nombre : 'Comunidades' }}
           </h3>
         </div>
-        <button (click)="toggleChat()" class="text-white/80 hover:text-white transition-colors bg-transparent border-none cursor-pointer">✕</button>
+        <div class="flex items-center gap-3">
+          @if (grupoSeleccionado() && grupoSeleccionado().rol === 'administrador') {
+            <button (click)="isAdminModalOpen.set(true)" class="text-white/80 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-base" title="Administrar miembros">⚙️</button>
+          }
+          <button (click)="toggleChat()" class="text-white/80 hover:text-white transition-colors bg-transparent border-none cursor-pointer">✕</button>
+        </div>
       </div>
 
       @if (!grupoSeleccionado()) {
@@ -45,12 +51,13 @@
               
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border border-gray-600 flex items-center justify-center">
-  @if (g.imagenUrl && (g.imagenUrl.includes('.') || g.imagenUrl.endsWith('.jpg') || g.imagenUrl.endsWith('.png'))) {
-<img [src]="srvUrl + '/uploads/' + g.imagenUrl" class="w-full h-full object-cover" alt="Grupo">  } @else {
-    <div class="text-lg">👥</div>
-  }
-</div>
+                  <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border border-gray-600 flex items-center justify-center">
+                    @if (g.imagenUrl && (g.imagenUrl.includes('.') || g.imagenUrl.endsWith('.jpg') || g.imagenUrl.endsWith('.png'))) {
+                      <img [src]="srvUrl + '/uploads/' + g.imagenUrl" class="w-full h-full object-cover" alt="Grupo">  
+                    } @else {
+                      <div class="text-lg">👥</div>
+                    }
+                  </div>
                   
                   <div class="flex flex-col">
                     <span class="text-sm font-bold text-gray-200 group-hover:text-pink-400 transition-colors">
@@ -74,7 +81,7 @@
               </div>
 
               <div class="px-1">
-                <p class="text-[11px] text-gray-400 leading-relaxed italic">
+                                <p class="text-[11px] text-gray-400 leading-relaxed italic">
                   {{ g.descripcion || 'Sin descripción disponible para esta comunidad.' }}
                 </p>
               </div>
@@ -125,3 +132,10 @@
   </button>
 
 </div>
+
+@if (isAdminModalOpen() && grupoSeleccionado()) {
+  <app-grupo-admin-modal 
+    [grupoId]="grupoSeleccionado().id" 
+    (closeModal)="isAdminModalOpen.set(false)">
+  </app-grupo-admin-modal>
+}

@@ -8,6 +8,7 @@ import { NotificacionService } from '../../../core/services/notificacion.service
 import { ChatSocketService } from '../../../core/services/chat-socket.service'; // <-- 1. IMPORTAR NUEVO SERVICIO
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+// Cambiar la ruta hacia la ubicación real en shared/components
 import { GrupoAdminModalComponent } from '../../../features/grupo-admin-modal/grupo-admin-modal.component';
 @Component({
   selector: 'app-chat-floating',
@@ -26,6 +27,8 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private refreshSub?: Subscription; 
   private socketSub?: Subscription; // <-- Para controlar la escucha del socket
 
+  private socketBloqueoSub?: Subscription; // 🚨 NUEVO: Para desuscribir el evento de bloqueo
+
   protected isOpen = signal(false);
   protected tabActiva = signal<'mis-grupos' | 'descubrir'>('mis-grupos');
   protected filtroBusqueda = signal('');
@@ -35,6 +38,8 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected gruposPublicos = signal<any[]>([]); 
   protected grupoSeleccionado = signal<any>(null);
   protected mensajes = signal<any[]>([]);
+
+  protected estaBloqueado = signal<boolean>(false); // 🚨 NUEVO SIGNAL: Controla el estado de bloqueo
 
   protected readonly srvUrl = environment.apiNestUrl;
 
@@ -104,14 +109,21 @@ ngOnInit(): void {
       }
     });
 
-    // Guardamos la suscripción del nuevo socket en el ciclo de vida por si necesitas limpiarla
-    // Nota: Si quieres destruirla formalmente en ngOnDestroy, puedes declarar "private socketGrupoSub?: Subscription;" arriba en tu clase.
-  }
+  this.socketBloqueoSub = this.chatSocketService.escucharUsuarioBloqueado().subscribe((data: any) => {
+      const grupoActual = this.grupoSeleccionado();
+      if (grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
+        this.estaBloqueado.set(true);
+        this.mensajes.set([]); // Limpia la pantalla al ser bloqueado en tiempo real
+      }
+    });
+  
+}
 
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
     this.socketSub?.unsubscribe(); // <-- Limpiamos suscripción al destruir el componente
-    
+    this.socketBloqueoSub?.unsubscribe(); 
+
     const grupo = this.grupoSeleccionado();
     if (grupo) {
       this.chatSocketService.salirDeGrupo(grupo.id);
@@ -151,6 +163,11 @@ ngOnInit(): void {
   }
 
   seleccionarGrupo(grupo: any): void {
+    // Inspecciona este log en la consola del navegador al seleccionar un grupo
+    console.log('Estructura completa del grupo seleccionado:', grupo);
+    
+    this.estaBloqueado.set(grupo.rol === 'bloqueado');
+
     // Si ya había un grupo seleccionado antes, salimos de su sala de sockets
     const grupoAnterior = this.grupoSeleccionado();
     if (grupoAnterior) {
@@ -159,8 +176,12 @@ ngOnInit(): void {
 
     this.grupoSeleccionado.set(grupo);
     
-    // <-- 4. UNIRSE A LA SALA DEL NUEVO GRUPO EN WEBSOCKETS
-    this.chatSocketService.unirseAGrupo(grupo.id);
+    // 🚨 MODIFICACIÓN AQUÍ: Solo unirse a la sala de sockets si NO está bloqueado
+    if (!this.estaBloqueado()) {
+      const user = this.authService.currentUser();
+      // Le enviamos el grupoId y tu personaId actual al servicio
+      this.chatSocketService.unirseAGrupo(grupo.id, user?.id); 
+    }
     
     this.cargarMensajes(grupo.id);
   }
@@ -191,6 +212,12 @@ ngOnInit(): void {
     const grupoActual = this.grupoSeleccionado();
 
     this.mensajeService.getHistorialGrupo(grupoId).subscribe((data: any[]) => {
+      
+      if (this.estaBloqueado()) {
+        this.mensajes.set([]);
+        return;
+      }
+      
       const fechaUnionStr = grupoActual?.fechaUnion;
       let mensajesFiltrados = data;
 
@@ -210,6 +237,7 @@ ngOnInit(): void {
   }
 
   enviarMensaje(): void {
+    if (this.estaBloqueado()) return;
     const user = this.authService.currentUser();
     const msg = this.mensajeActual.trim();
     const grupo = this.grupoSeleccionado();

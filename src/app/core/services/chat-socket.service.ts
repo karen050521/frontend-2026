@@ -33,8 +33,8 @@ export class ChatSocketService {
   }
 
   // Permite al usuario entrar a la sala virtual de un grupo específico
-  unirseAGrupo(grupoId: number): void {
-    this.socket.emit('unirseAGrupo', { grupoId });
+  unirseAGrupo(grupoId: number, personaId?: string): void {
+    this.socket.emit('unirseAGrupo', { grupoId, personaId });
   }
 
   // Permite al usuario salir de la sala del grupo al cerrar el chat
@@ -61,6 +61,15 @@ export class ChatSocketService {
   escucharNuevosGrupos(): Observable<any> {
     return new Observable(observer => {
       this.socket.on('grupoCreadoRemoto', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  // ⚡ NUEVO: Escuchar cuando el backend emite que el usuario fue bloqueado en un grupo
+  escucharUsuarioBloqueado(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('usuarioBloqueado', (data: any) => {
         observer.next(data);
       });
     });

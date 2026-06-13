@@ -20,6 +20,9 @@ export class GrupoAdminModalComponent implements OnInit {
   protected cargando = signal(true);
   protected busqueda = '';
 
+  protected tabActiva = signal<'miembros' | 'historial'>('miembros');
+  protected logs = signal<any[]>([]);
+
   ngOnInit(): void {
     this.cargarMiembros();
   }
@@ -39,6 +42,46 @@ export class GrupoAdminModalComponent implements OnInit {
     this.cargarMiembros();
   }
 
+  cambiarTab(tab: 'miembros' | 'historial'): void {
+    this.tabActiva.set(tab);
+    if (tab === 'historial') {
+      this.cargarLogs();
+    } else {
+      this.cargarMiembros();
+    }
+  }
+
+  cargarLogs(): void {
+    this.cargando.set(true);
+    this.grupoService.obtenerLogsMembresia(this.grupoId).subscribe({
+      next: (data) => {
+        this.logs.set(data);
+        this.cargando.set(false);
+      },
+      error: () => this.cargando.set(false)
+    });
+  }
+
+  mapearTextoLog(log: any): string {
+    const admin = log.usuarioAccion?.nombre || 'Un administrador';
+    const afectado = log.usuarioAfectado?.nombre || 'Usuario';
+
+    switch (log.accion) {
+      case 'UNIRSE':
+        return `<span class="font-bold text-white">${afectado}</span> se unió al grupo de forma voluntaria.`;
+      case 'AÑADIR':
+        return `<span class="font-bold text-pink-400">${admin}</span> añadió a <span class="font-bold text-white">${afectado}</span> al grupo.`;
+      case 'PROMOVER':
+        return `<span class="font-bold text-pink-400">${admin}</span> promovió a <span class="font-bold text-white">${afectado}</span> a Administrador.`;
+      case 'REMOVER':
+        return `<span class="font-bold text-pink-400">${admin}</span> eliminó a <span class="font-bold text-white">${afectado}</span> del grupo.`;
+      case 'BLOQUEAR':
+        return `<span class="font-bold text-red-400">${admin}</span> bloqueó de forma permanente a <span class="font-bold text-white">${afectado}</span>.`;
+      default:
+        return 'Cambio de membresía registrado.';
+    }
+  }
+  
   promover(personaId: string): void {
     if (confirm('¿Seguro que quieres promover a este miembro como administrador?')) {
       this.grupoService.promoverAdmin(this.grupoId, personaId).subscribe(() => this.cargarMiembros());

@@ -6,40 +6,105 @@
       <button (click)="closeModal.emit()" class="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-base">✕</button>
     </div>
 
-    <div class="p-3 bg-[#121212] border-b border-gray-800/50">
-      <input type="text" [(ngModel)]="busqueda" (ngModelChange)="filtrarMiembros()"
-             placeholder="Buscar miembro por nombre..."
-             class="w-full bg-[#1e1e1e] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500/50" />
+    <div class="flex border-b border-gray-800 bg-[#121212] px-2">
+      <button 
+        (click)="cambiarTab('miembros')"
+        [class]="tabActiva() === 'miembros' ? 'border-b-2 border-pink-500 text-pink-500 font-bold' : 'text-gray-400 border-b-2 border-transparent'"
+        class="py-2.5 px-4 text-[11px] uppercase tracking-wider transition-all bg-transparent cursor-pointer">
+        Miembros
+      </button>
+      <button 
+        (click)="cambiarTab('historial')"
+        [class]="tabActiva() === 'historial' ? 'border-b-2 border-pink-500 text-pink-500 font-bold' : 'text-gray-400 border-b-2 border-transparent'"
+        class="py-2.5 px-4 text-[11px] uppercase tracking-wider transition-all bg-transparent cursor-pointer">
+        MEMBRESÍA LOG
+      </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#121212]">
-      @if (cargando()) {
-        <div class="text-center text-xs text-gray-500 py-10">Cargando miembros...</div>
-      } @else {
-        @for (m of miembros(); track m.id) {
-          <div class="p-3 bg-[#1e1e1e] border border-gray-800/60 rounded-xl flex items-center justify-between shadow-sm">
-            <div class="flex flex-col">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-gray-200">{{ m.persona?.nombre }}</span>
-                @if (m.rol === 'administrador') {
-                  <span class="text-[9px] bg-pink-600/20 text-pink-400 px-1.5 py-0.5 rounded-md font-extrabold uppercase">Admin</span>
-                }
-              </div>
-              <span class="text-[10px] text-gray-500">Unido el: {{ m.fechaUnion | date:'dd/MM/yyyy' }}</span>
-            </div>
+    @if (tabActiva() === 'miembros') {
+      
+      <div class="p-3 bg-[#121212] border-b border-gray-800/50">
+        <input type="text" [(ngModel)]="busqueda" (ngModelChange)="filtrarMiembros()"
+               placeholder="Buscar miembro por nombre..."
+               class="w-full bg-[#1e1e1e] border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500/50" />
+      </div>
 
-            @if (m.rol !== 'administrador') {
-              <div class="flex gap-1">
-                <button (click)="promover(m.persona?.id)" class="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Promover a Admin">👑</button>
-                <button (click)="remover(m.persona?.id)" class="bg-orange-600/10 text-orange-400 hover:bg-orange-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Remover miembro">🚪</button>
-                <button (click)="bloquear(m.persona?.id)" class="bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Bloquear permanentemente">🚫</button>
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#121212]">
+        @if (cargando()) {
+          <div class="text-center text-xs text-gray-500 py-10">Cargando miembros...</div>
+        } @else {
+          @for (m of miembros(); track m.id) {
+            <div class="p-3 border rounded-xl flex items-center justify-between shadow-sm transition-all"
+                 [ngClass]="{
+                   'bg-red-950/20 border-red-500/30': m.rol === 'bloqueado',
+                   'bg-[#1e1e1e] border-gray-800/60': m.rol !== 'bloqueado'
+                 }">
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-200">{{ m.persona?.nombre }}</span>
+                  @if (m.rol === 'administrador') {
+                    <span class="text-[9px] bg-pink-600/20 text-pink-400 px-1.5 py-0.5 rounded-md font-extrabold uppercase">Admin</span>
+                  }
+                  @if (m.rol === 'bloqueado') {
+                    <span class="text-[9px] bg-red-600/20 text-red-400 px-1.5 py-0.5 rounded-md font-extrabold uppercase">Bloqueado</span>
+                  }
+                </div>
+                <span class="text-[10px] text-gray-500">Unido el: {{ m.fechaUnion | date:'dd/MM/yyyy' }}</span>
+              </div>
+
+              @if (m.rol !== 'administrador' && m.rol !== 'bloqueado') {
+                <div class="flex gap-1">
+                  <button (click)="promover(m.persona?.id)" class="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Promover a Admin">👑</button>
+                  <button (click)="remover(m.persona?.id)" class="bg-orange-600/10 text-orange-400 hover:bg-orange-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Remover miembro">🚪</button>
+                  <button (click)="bloquear(m.persona?.id)" class="bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white p-1.5 rounded-lg text-xs border-none cursor-pointer transition-all" title="Bloquear permanentemente">🚫</button>
+                </div>
+              }
+            </div>
+          } @empty {
+            <div class="text-center text-xs text-gray-500 py-10">No se encontraron miembros activos.</div>
+          }
+        }
+      </div>
+
+    } @else {
+      
+      <div class="flex-1 overflow-y-auto p-5 bg-[#121212] space-y-4">
+        @if (cargando()) {
+          <div class="text-center text-xs text-gray-500 py-10">Cargando bitácora de auditoría...</div>
+        } @else if (logs().length === 0) {
+          <div class="text-center text-xs text-gray-500 py-10">No se registran cambios de membresía en esta comunidad aún.</div>
+        } @else {
+          
+          <div class="relative border-l border-gray-800 ml-2.5 pl-5 space-y-5 py-1">
+            
+            @for (log of logs(); track log.id) {
+              <div class="relative flex flex-col gap-0.5">
+                
+                <span class="absolute -left-[29px] top-0.5 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] font-extrabold border"
+                  [ngClass]="{
+                    'bg-emerald-950/80 border-emerald-500/50 text-emerald-400': log.accion === 'UNIRSE' || log.accion === 'AÑADIR',
+                    'bg-fuchsia-950/80 border-fuchsia-500/50 text-fuchsia-400': log.accion === 'PROMOVER',
+                    'bg-red-950/80 border-red-500/50 text-red-400': log.accion === 'BLOQUEAR' || log.accion === 'REMOVER'
+                  }">
+                  @if (log.accion === 'PROMOVER') { ★ }
+                  @else if (log.accion === 'BLOQUEAR') { 🚫 }
+                  @else if (log.accion === 'REMOVER') { 🚪 }
+                  @else { ✓ }
+                </span>
+
+                <p class="text-xs text-gray-300 leading-relaxed" [innerHTML]="mapearTextoLog(log)"></p>
+                
+                <span class="text-[9px] text-gray-500 font-medium uppercase tracking-wider">
+                  {{ log.fecha | date:'dd/MM/yyyy • h:mm a' }}
+                </span>
+
               </div>
             }
+
           </div>
-        } @empty {
-          <div class="text-center text-xs text-gray-500 py-10">No se encontraron miembros activos.</div>
         }
-      }
-    </div>
+      </div>
+    }
+
   </div>
 </div>

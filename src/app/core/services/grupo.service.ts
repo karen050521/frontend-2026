@@ -57,4 +57,9 @@ export class GrupoService {
   bloquearMiembro(grupoId: number, personaId: string) {
     return this.http.patch(`${this.apiUrl}/${grupoId}/miembros/${personaId}/bloquear`, {}); // <-- Corregido
   }
+
+  obtenerLogsMembresia(grupoId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${grupoId}/membresia-logs`);
+  }
+  
 }

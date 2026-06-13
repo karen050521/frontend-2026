@@ -5,11 +5,11 @@ import { AuthService } from '../../../core/services/auth.service';
 import { MensajeService } from '../../../core/services/mensaje.service';
 import { GrupoService } from '../../../core/services/grupo.service';
 import { NotificacionService } from '../../../core/services/notificacion.service';
-import { ChatSocketService } from '../../../core/services/chat-socket.service'; // <-- 1. IMPORTAR NUEVO SERVICIO
+import { ChatSocketService } from '../../../core/services/chat-socket.service';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-// Cambiar la ruta hacia la ubicación real en shared/components
 import { GrupoAdminModalComponent } from '../../../features/grupo-admin-modal/grupo-admin-modal.component';
+
 @Component({
   selector: 'app-chat-floating',
   standalone: true,
@@ -22,12 +22,12 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private readonly mensajeService = inject(MensajeService);
   private readonly grupoService = inject(GrupoService);
   private readonly notiService = inject(NotificacionService);
-  private readonly chatSocketService = inject(ChatSocketService); // <-- 2. INYECTAR NUEVO SERVICIO
+  private readonly chatSocketService = inject(ChatSocketService);
   
   private refreshSub?: Subscription; 
-  private socketSub?: Subscription; // <-- Para controlar la escucha del socket
-
-  private socketBloqueoSub?: Subscription; // 🚨 NUEVO: Para desuscribir el evento de bloqueo
+  private socketSub?: Subscription; 
+  private socketBloqueoSub?: Subscription; 
+  private socketAbandonoSub?: Subscription; // 🚨 NUEVO: Para desuscribir eventos de abandono remoto
 
   protected isOpen = signal(false);
   protected tabActiva = signal<'mis-grupos' | 'descubrir'>('mis-grupos');
@@ -39,10 +39,10 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected grupoSeleccionado = signal<any>(null);
   protected mensajes = signal<any[]>([]);
 
-  protected estaBloqueado = signal<boolean>(false); // 🚨 NUEVO SIGNAL: Controla el estado de bloqueo
+  protected estaBloqueado = signal<boolean>(false); 
+  protected estaAbandonado = signal<boolean>(false); // 🚨 CONTROL REACTIVO: Evita el efecto espejo del rol
 
   protected readonly srvUrl = environment.apiNestUrl;
-
   protected isAdminModalOpen = signal(false);
 
   constructor() {
@@ -55,7 +55,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     });
   }
 
-ngOnInit(): void {
+  ngOnInit(): void {
     // 1. ESCUCHAR EL SUBJECT LOCAL (Campana / Actualizaciones del mismo usuario)
     this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
       const user = this.authService.currentUser();
@@ -70,59 +70,60 @@ ngOnInit(): void {
       const grupoActual = this.grupoSeleccionado();
       const user = this.authService.currentUser();
 
-      // Solo añadimos el mensaje si corresponde al grupo que el usuario tiene abierto en pantalla
       if (grupoActual && nuevoMensaje.grupoId === grupoActual.id) {
-        
-        // Mantenemos tu misma lógica exacta para saber si el mensaje es propio o de otro usuario
         const mensajeMapeado = {
           ...nuevoMensaje,
           esMio: nuevoMensaje.emisorId === user?.id || nuevoMensaje.emisor?.id === user?.id
         };
 
-        // Verificamos si aplica el filtro de fechaUnion que programaste
         const fechaUnionStr = grupoActual?.fechaUnion;
         if (fechaUnionStr) {
           const fechaLimite = new Date(fechaUnionStr);
           const fechaMsg = new Date(nuevoMensaje.fechaEnvio);
-          if (fechaMsg < fechaLimite) return; // Si es antiguo no se renderiza
+          if (fechaMsg < fechaLimite) return;
         }
 
-        // Actualizamos el signal concatenando el mensaje entrante en tiempo real
         this.mensajes.update(list => [...list, mensajeMapeado]);
       }
     });
 
-    // 3. NUEVO: ESCUCHAR CREACIÓN DE GRUPOS REMOTOS (Para usuarios añadidos por otros)
+    // 3. ESCUCHAR CREACIÓN DE GRUPOS REMOTOS
     const socketGrupoSub = this.chatSocketService.escucharNuevosGrupos().subscribe((data: any) => {
       const user = this.authService.currentUser();
-      
-      // Si el servidor avisa que se creó un grupo y mi ID está en la lista de miembros...
       if (user && data.miembrosIds && data.miembrosIds.includes(user.id)) {
         console.log('Fuiste añadido a una nueva comunidad en tiempo real. Actualizando listas...');
-        
-        // Recargamos los signals en vivo para que aparezca el nuevo chat
         this.cargarMisGrupos(user.id);
         this.cargarGruposPublicos();
-        
-        // Disparamos opcionalmente tu servicio de notificaciones local por si afecta a otros componentes
         this.notiService.triggerRefresh();
       }
     });
 
-  this.socketBloqueoSub = this.chatSocketService.escucharUsuarioBloqueado().subscribe((data: any) => {
+    // 4. ESCUCHAR BLOQUEOS EN TIEMPO REAL
+    this.socketBloqueoSub = this.chatSocketService.escucharUsuarioBloqueado().subscribe((data: any) => {
       const grupoActual = this.grupoSeleccionado();
       if (grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
         this.estaBloqueado.set(true);
-        this.mensajes.set([]); // Limpia la pantalla al ser bloqueado en tiempo real
+        this.mensajes.set([]); 
       }
     });
-  
-}
+
+    // 5. ⚡ NUEVO: ESCUCHAR ABANDONOS EN TIEMPO REAL (Para actualizar contadores si eres admin/miembro)
+    this.socketAbandonoSub = this.chatSocketService.escucharUsuarioAbandono().subscribe((data: any) => {
+      const user = this.authService.currentUser();
+      if (user && user.id) {
+        this.cargarMisGrupos(user.id);
+        this.cargarGruposPublicos();
+
+        this.notiService.triggerRefresh();
+      }
+    });
+  }
 
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
-    this.socketSub?.unsubscribe(); // <-- Limpiamos suscripción al destruir el componente
+    this.socketSub?.unsubscribe(); 
     this.socketBloqueoSub?.unsubscribe(); 
+    this.socketAbandonoSub?.unsubscribe();
 
     const grupo = this.grupoSeleccionado();
     if (grupo) {
@@ -162,13 +163,13 @@ ngOnInit(): void {
     });
   }
 
-  seleccionarGrupo(grupo: any): void {
-    // Inspecciona este log en la consola del navegador al seleccionar un grupo
+seleccionarGrupo(grupo: any): void {
     console.log('Estructura completa del grupo seleccionado:', grupo);
     
+    // Sincronizar estados locales de forma estricta para el HTML
     this.estaBloqueado.set(grupo.rol === 'bloqueado');
+    this.estaAbandonado.set(grupo.rol === 'abandonado'); 
 
-    // Si ya había un grupo seleccionado antes, salimos de su sala de sockets
     const grupoAnterior = this.grupoSeleccionado();
     if (grupoAnterior) {
       this.chatSocketService.salirDeGrupo(grupoAnterior.id);
@@ -176,10 +177,10 @@ ngOnInit(): void {
 
     this.grupoSeleccionado.set(grupo);
     
-    // 🚨 MODIFICACIÓN AQUÍ: Solo unirse a la sala de sockets si NO está bloqueado
-    if (!this.estaBloqueado()) {
+    // MODIFICACIÓN AQUÍ: Si no está bloqueado, permitimos que se conecte si es un miembro activo
+    // O si su rol en la base de datos es 'administrador' (así el admin siempre escucha los eventos en vivo).
+    if (!this.estaBloqueado() && (!this.estaAbandonado() || grupo.rol === 'administrador')) {
       const user = this.authService.currentUser();
-      // Le enviamos el grupoId y tu personaId actual al servicio
       this.chatSocketService.unirseAGrupo(grupo.id, user?.id); 
     }
     
@@ -189,7 +190,6 @@ ngOnInit(): void {
   toggleChat(): void {
     this.isOpen.update(v => !v);
     if (!this.isOpen()) {
-      // Si cierra la burbuja, salimos de la sala del socket para ahorrar recursos
       const grupo = this.grupoSeleccionado();
       if (grupo) {
         this.chatSocketService.salirDeGrupo(grupo.id);
@@ -198,7 +198,6 @@ ngOnInit(): void {
     }
   }
 
-  // Al presionar el botón "VOLVER A GRUPOS" en la UI
   volverAListado(): void {
     const grupo = this.grupoSeleccionado();
     if (grupo) {
@@ -207,29 +206,80 @@ ngOnInit(): void {
     this.grupoSeleccionado.set(null);
   }
 
-  cargarMensajes(grupoId: number): void {
+  abandonarGrupoActual(): void {
+    const grupo = this.grupoSeleccionado();
     const user = this.authService.currentUser();
-    const grupoActual = this.grupoSeleccionado();
+    
+    if (!grupo || !user?.id) return;
 
-    this.mensajeService.getHistorialGrupo(grupoId).subscribe((data: any[]) => {
-      
+    const seguro = confirm(`¿Estás seguro de que deseas abandonar el grupo "${grupo.nombre}"? Conservarás tu historial de mensajes.`);
+    
+    if (seguro) {
+      this.grupoService.abandonarGrupo(grupo.id).subscribe({
+        next: () => {
+          alert('Has abandonado el grupo correctamente.');
+          
+          // 1. Cortar canal en vivo inmediatamente
+          this.chatSocketService.salirDeGrupo(grupo.id);
+          
+          // 2. Mudar estados visuales para congelar UI
+          this.estaAbandonado.set(true);
+          this.grupoSeleccionado.update(g => g ? { ...g, rol: 'abandonado' } : null);
+          
+          // 3. Refrescar listas por debajo
+          this.cargarMisGrupos(user.id);
+          this.cargarGruposPublicos();
+          this.notiService.triggerRefresh();
+        },
+        error: (err) => {
+          alert(err.error?.message || 'Hubo un error al intentar abandonar el grupo.');
+        }
+      });
+    }
+  }
+
+  reunirseAlGrupoActual(): void {
+    const grupo = this.grupoSeleccionado();
+    const user = this.authService.currentUser();
+    if (!grupo || !user?.id) return;
+
+    this.grupoService.unirseAGrupo(grupo.id).subscribe({
+      next: () => {
+        alert('Te has unido nuevamente al grupo.');
+        
+        this.estaAbandonado.set(false);
+        this.grupoSeleccionado.update(g => g ? { ...g, rol: 'miembro' } : null);
+        
+        this.chatSocketService.unirseAGrupo(grupo.id, user.id);
+        
+        this.cargarMisGrupos(user.id);
+        this.cargarGruposPublicos();
+        this.cargarMensajes(grupo.id);
+        this.notiService.triggerRefresh();
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Hubo un error al intentar unirse al grupo.');
+      }
+    });
+  }
+
+cargarMensajes(grupoId: number): void {
+    const user = this.authService.currentUser();
+    
+    // 1. 🚀 PASO CLAVE: Capturamos el ID del usuario logueado
+    const personaId = user?.id; 
+
+    // 2. Pasamos el personaId como segundo parámetro al servicio para corregir el 'undefined'
+    this.mensajeService.getHistorialGrupo(grupoId, personaId).subscribe((data: any[]) => {
       if (this.estaBloqueado()) {
         this.mensajes.set([]);
         return;
       }
       
-      const fechaUnionStr = grupoActual?.fechaUnion;
-      let mensajesFiltrados = data;
-
-      if (fechaUnionStr) {
-        const fechaLimite = new Date(fechaUnionStr);
-        mensajesFiltrados = data.filter(m => {
-          const fechaMsg = new Date(m.fechaEnvio);
-          return fechaMsg >= fechaLimite;
-        });
-      }
-
-      this.mensajes.set(mensajesFiltrados.map(m => ({ 
+      // 3. 🚨 REMOVEMOS el filtro manual de 'fechaUnion' que borraba el chat viejo.
+      // El backend ya hace el filtrado perfecto y seguro con la base de datos, 
+      // así que mapeamos directamente la respuesta del servidor.
+      this.mensajes.set(data.map(m => ({ 
         ...m, 
         esMio: m.emisorId === user?.id || m.emisor?.id === user?.id 
       })));
@@ -237,16 +287,14 @@ ngOnInit(): void {
   }
 
   enviarMensaje(): void {
-    if (this.estaBloqueado()) return;
+    if (this.estaBloqueado() || this.estaAbandonado()) return;
     const user = this.authService.currentUser();
     const msg = this.mensajeActual.trim();
     const grupo = this.grupoSeleccionado();
     
     if (msg && grupo && user?.id) {
-      // <-- 5. ENVIAR A TRAVÉS DE WEBSOCKET EN VEZ DE HTTP
-      // Ya no hacemos el .subscribe() de HTTP. El Gateway procesará todo, guardará en DB y nos lo regresará vía socket.
       this.chatSocketService.enviarMensaje(user.id, grupo.id, msg);
-      this.mensajeActual = ''; // Limpiamos el input de inmediato para una experiencia fluida
+      this.mensajeActual = ''; 
     }
   }
 }

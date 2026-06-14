@@ -61,5 +61,9 @@ export class GrupoService {
   obtenerLogsMembresia(grupoId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/${grupoId}/membresia-logs`);
   }
-  
+
+  abandonarGrupo(grupoId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${grupoId}/abandonar`, {});
+  }
+
 }

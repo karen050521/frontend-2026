@@ -75,6 +75,15 @@ export class ChatSocketService {
     });
   }
 
+  // ⚡ NUEVO: Escuchar cuando un usuario abandona voluntariamente una comunidad
+  escucharUsuarioAbandono(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('usuario_abandono', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
+
   // Limpieza al destruir el servicio si fuera necesario
   desconectar(): void {
     if (this.socket) {

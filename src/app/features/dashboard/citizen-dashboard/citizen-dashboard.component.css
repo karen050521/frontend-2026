@@ -38,4 +38,29 @@
   :host {
     padding: 1rem;
   }
+
+  /* --- CORRECCIÓN DE LEAFLET --- */
+/* Asegura que el contenedor del mapa ocupe el espacio definido en el HTML */
+#mapaFijo, .leaflet-container {
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Asegura que esté por encima de fondos oscuros */
+}
+
+/* Evita que los estilos de Tailwind deformen los tiles del mapa */
+.leaflet-tile {
+    max-width: none !important;
+}
+
+/* Asegura que los controles de zoom se vean bien */
+.leaflet-control-zoom {
+    border: none !important;
+}
+
+.leaflet-control-zoom a {
+    background-color: white !important;
+    color: #db2777 !important; /* Color fucsia de tu marca KALA */
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
 }

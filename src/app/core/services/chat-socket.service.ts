@@ -81,4 +81,36 @@ export class ChatSocketService {
       this.socket.disconnect();
     }
   }
+
+  // ✨ NUEVO: Escuchar cuando el backend avisa que el bus está llegando
+  escucharAlertaBus(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('alertaBusProximo', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  // ✨ NUEVO: Enviar mensaje directo a otra persona (HU-ENTR-3-004)
+  enviarMensajePrivado(emisorId: string, receptorId: string, contenido: string): void {
+    this.socket.emit('enviarMensajePrivado', { emisorId, receptorId, contenido });
+  }
+
+  // ✨ NUEVO: Escuchar mensajes directos entrantes en tiempo real
+  escucharMensajesPrivados(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('recibirMensajePrivado', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  // ✨ INTEGRADO: Escuchar actualizaciones de ubicación de buses (HU-ENTR-3-001)
+  escucharActualizaciones(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('actualizacionBus', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
 }

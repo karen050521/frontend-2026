@@ -1,5 +1,7 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import * as L from 'leaflet';
+import { Subscription } from 'rxjs';
 import {
   FormsModule,
   ReactiveFormsModule,
@@ -9,6 +11,7 @@ import {
 } from '@angular/forms';
 import { BusService } from '../../../core/services/bus.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { BusDashboard } from '../../../core/models/monitoreo.model';
 
 @Component({
   selector: 'app-company-dashboard',

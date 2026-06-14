@@ -1,143 +1,74 @@
 <div class="space-y-6 p-6">
-  <!-- Saldo y Recarga -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Tarjeta de Saldo -->
     <div class="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg p-6 text-white shadow-lg">
       <p class="text-sm opacity-80">Saldo Disponible</p>
       <h2 class="text-3xl font-bold mt-2">{{ formatCurrency(saldo()) }}</h2>
       <p class="text-xs opacity-70 mt-4">Tu saldo para viajes</p>
     </div>
 
-    <!-- Botón Recarga -->
     <div class="flex items-center justify-center">
-      <button
-        (click)="iniciarRecarga()"
-        class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
-      >
-        <svg
-          class="w-6 h-6 inline-block mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
+      <button (click)="iniciarRecarga()" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105">
+        <svg class="w-6 h-6 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         Recargar Saldo
       </button>
     </div>
   </div>
 
-  <!-- Búsqueda de Paraderos -->
-  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-    <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
-      <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-      </svg>
-      Buscar Paraderos Cercanos 
-    </h3>
-    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-      Encuentra los paraderos más cercanos a tu ubicación actual utilizando la geolocalización GPS.
-      Podrás ver la distancia en metros y las rutas que pasan por cada uno en el mapa interactivo.
-    </p>
-    <div class="flex gap-2">
-      <button
-        (click)="buscarParadero()"
-        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-lg transition flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        Buscar en Mapa GPS
-      </button>
-    </div>
+  <div class="relative w-full h-[450px] bg-gray-100 dark:bg-gray-800 rounded-xl shadow border border-gray-200 overflow-hidden">
+    <div #mapaFijo class="absolute inset-0 z-0"></div>
   </div>
 
-  <!-- Rutas Disponibles -->
-  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-    <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-      <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-        <path
-          d="M18 8h-1V6c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h1v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-2h1c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 10H7V9h10v9z"
-        />
-      </svg>
-      Rutas Disponibles 
-    </h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <button (click)="activarModoRutas()"
+      class="flex items-center justify-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 transition-all cursor-pointer"
+      [ngClass]="modoActual() === 'rutas' ? 'border-pink-500 text-pink-600' : 'border-gray-200 hover:border-pink-300'">
+      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+      <span class="text-xl font-bold">Consulta Rutas</span>
+    </button>
 
-    @if (isLoadingRoutes()) {
-      <div class="text-center py-8">
-        <div
-          class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
-        ></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Cargando rutas...</p>
-      </div>
-    } @else if (routes().length === 0) {
-      <p class="text-center text-gray-500 dark:text-gray-400 py-6">No hay rutas disponibles</p>
-    } @else {
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @for (route of routes(); track route.id) {
-          <div
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition flex flex-col justify-between"
-          >
-            <div>
-              <h4 class="font-bold text-lg mb-1 text-gray-900 dark:text-white">
-                {{ route.nombre }}
-              </h4>
-              @if (route.descripcion) {
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 italic">
-                  {{ route.descripcion }}
-                </p>
-              }
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                📍 {{ route.origen || 'Origen no definido' }} ➔
-                {{ route.destino || 'Destino no definido' }}
-              </p>
-            </div>
-            <div>
-              <div class="flex justify-between items-center mb-3">
-                <span class="text-2xl font-bold text-green-600">{{
-                  formatCurrency(route.tarifa)
-                }}</span>
-                <span
-                  class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded"
-                >
-                  ~{{ route.duracionEstimada }} min
-                </span>
+    <button (click)="activarModoParaderos()"
+      class="flex items-center justify-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 transition-all cursor-pointer"
+      [ngClass]="modoActual() === 'paraderos' ? 'border-blue-500 text-blue-600' : 'border-gray-200 hover:border-blue-300'">
+      <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      <span class="text-xl font-bold">Consulta Paraderos</span>
+    </button>
+  </div>
+
+  @if (modoActual() === 'rutas') {
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow animate-in fade-in slide-in-from-top-4">
+      <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v2H6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h1v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-2h1c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 10H7V9h10v9z" /></svg>
+        Listado de Rutas
+      </h3>
+
+      @if (isLoadingRoutes()) {
+        <div class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p class="mt-2 text-gray-600 dark:text-gray-400">Cargando rutas...</p>
+        </div>
+      } @else if (routes().length === 0) {
+        <p class="text-center text-gray-500 dark:text-gray-400 py-6">No hay rutas disponibles</p>
+      } @else {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (route of routes(); track route.id) {
+            <div (click)="seleccionarRuta(route)" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition flex flex-col justify-between cursor-pointer hover:border-pink-500 bg-white dark:bg-gray-800">
+              <div>
+                <h4 class="font-bold text-lg mb-1 text-gray-900 dark:text-white">{{ route.nombre }}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">📍 {{ route.origen }} ➔ {{ route.destino }}</p>
               </div>
-              <button
-                (click)="comprarBoleto(route)"
-                class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition"
-              >
+              <button (click)="comprarBoleto(route); $event.stopPropagation()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition">
                 Comprar Boleto
               </button>
             </div>
-          </div>
-        }
-      </div>
-    }
-  </div>
+          }
+        </div>
+      }
+    </div>
+  }
 
-  <!-- Viajes Recientes -->
   <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
     <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-      <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
       Mis Viajes Recientes
     </h3>
 
@@ -153,7 +84,7 @@
             </div>
             <div class="text-right">
               <p class="font-bold">{{ formatCurrency(trip.fare) }}</p>
-              <p class="text-xs text-green-600 dark:text-green-400">{{ trip.status }}</p>
+              <p class="text-xs text-green-600">{{ trip.status }}</p>
             </div>
           </div>
         }

@@ -17,7 +17,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
 
   rutaId: number = 0;
   buses: BusEnRuta[] = [];
-  busesRetrasados: BusEnRuta[] = [];
+  busesConIncidente: BusEnRuta[] = []; 
   paraderos: any[] = [];
   paraderoSeleccionadoId: number | null = null;
   etaPersonalizado: number | null = null;
@@ -45,9 +45,10 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private inicializarMapa() {
+    // Coordenadas base por defecto
     this.mapa = L.map('mapa-monitoreo').setView([4.7110, -74.0721], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: '© KALA Buses - OpenStreetMap contributors',
     }).addTo(this.mapa);
   }
 
@@ -59,7 +60,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err: Error) => {
         this.cargando = false;
-        console.error('Error cargando buses:', err);
+        console.error('Error cargando buses iniciales:', err);
       },
     });
   }
@@ -69,7 +70,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
       .getBusesActivosPolling(this.rutaId)
       .subscribe({
         next: (resp: { data: BusEnRuta[] }) => this.actualizarMapa(resp.data),
-        error: (err: Error) => console.error('Error en polling:', err),
+        error: (err: Error) => console.error('Error en ejecución de polling:', err),
       });
   }
 
@@ -90,7 +91,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
         next: (resp: { eta: number; distanciaKm: number }) => {
           this.etaPersonalizado = resp.eta;
         },
-        error: (err: Error) => console.error('Error ETA:', err),
+        error: (err: Error) => console.error('Error al calcular ETA personalizado:', err),
       });
   }
 
@@ -102,20 +103,39 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private actualizarMapa(buses: BusEnRuta[]) {
     this.buses = buses;
-    this.busesRetrasados = buses.filter(b => b.estaRetrasado);
+    this.busesConIncidente = buses.filter(b => b.estado === 'incidente' || b.estaRetrasado);
 
+    // 💥 CORRECCIÓN DE FUGA DE MEMORIA: Limpieza de unidades obsoletas o inactivas
+    const idsServidor = new Set(buses.map(b => b.busId));
+    this.marcadores.forEach((marker, busId) => {
+      if (!idsServidor.has(busId)) {
+        marker.remove(); // Remueve el marcador del mapa Leaflet
+        this.marcadores.delete(busId); // Lo elimina de la memoria de la aplicación
+      }
+    });
+
+    // Renderizado e inserción de marcadores activos
     buses.forEach(bus => {
+      const esIncidente = bus.estado === 'incidente';
+      
       const icono = L.divIcon({
-        html: `<div class="bus-marker ${bus.estaRetrasado ? 'retrasado' : ''}">
-                 🚌 <small>${bus.placa}</small>
-               </div>`,
-        className: '',
-        iconSize: [70, 36],
+        html: `
+          <div class="flex flex-col items-center justify-center rounded-lg px-2 py-1 border shadow-md font-bold text-xs transition-all duration-300 ${
+            esIncidente 
+              ? 'bg-red-500 border-red-700 text-white animate-bounce' 
+              : 'bg-green-600 border-green-800 text-white'
+          }">
+            <span>🚌 ${bus.placa}</span>
+          </div>`,
+        className: '', 
+        iconSize: [85, 32],
       });
 
       if (this.marcadores.has(bus.busId)) {
-        this.marcadores.get(bus.busId)!.setLatLng([bus.latitude, bus.longitude]);
-        this.marcadores.get(bus.busId)!.setPopupContent(this.construirPopup(bus));
+        const marker = this.marcadores.get(bus.busId)!;
+        marker.setLatLng([bus.latitude, bus.longitude]);
+        marker.setIcon(icono); 
+        marker.setPopupContent(this.construirPopup(bus));
       } else {
         const marker = L.marker([bus.latitude, bus.longitude], { icon: icono })
           .bindPopup(this.construirPopup(bus))
@@ -131,16 +151,27 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private construirPopup(bus: BusEnRuta): string {
+    const esIncidente = bus.estado === 'incidente';
+    // Se asegura de desplegar el nombre por defecto de manera limpia ante fallas de red
+    const nombreParadero = bus.paraderoMasCercano.nombre || 'En tránsito';
+    const distancia = bus.paraderoMasCercano.distanciaMetros || 0;
+
     return `
-      <div style="min-width:180px; font-size:13px;">
-        <strong>🚌 ${bus.placa}</strong><br>
-        📍 ${bus.paraderoMasCercano.nombre}<br>
-        📏 ${bus.paraderoMasCercano.distanciaMetros}m del paradero<br>
-        ⏱️ Llega en <strong>${bus.tiempoEstimadoLlegada} min</strong><br>
-        🚦 ${bus.velocidad} km/h<br>
-        ${bus.estaRetrasado
-          ? `<span style="color:red">⚠️ Retrasado ${bus.minutosRetraso} min</span>`
-          : '<span style="color:green">✅ A tiempo</span>'}
+      <div style="min-width:210px; font-size:13px; font-family: sans-serif; line-height: 1.4;">
+        <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <strong>🚌 Placa: ${bus.placa}</strong>
+          <span style="padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; background-color: ${esIncidente ? '#EF4444' : '#10B981'}">
+            ${esIncidente ? 'INCIDENTE' : 'OPERANDO'}
+          </span>
+        </div>
+        📍 <b>Próximo paradero:</b> ${nombreParadero}<br>
+        Hex <b>Distancia:</b> ${distancia}m<br>
+        ⏱️ <b>Arribo estimado:</b> <strong>${bus.tiempoEstimadoLlegada} min</strong><br>
+        🚦 <b>Velocidad:</b> ${bus.velocidad} km/h<br>
+        <hr style="margin: 6px 0; border: 0; border-top: 1px solid #E5E7EB;">
+        ${esIncidente
+          ? `<span style="color:#DC2626; font-weight: bold;">⚠️ Alerta / Retraso en Operación</span>`
+          : '<span style="color:#16A34A; font-weight: medium;">✅ Horario Regulado Activo</span>'}
       </div>`;
   }
 

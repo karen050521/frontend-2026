@@ -25,15 +25,13 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   private chatSocketService = inject(ChatSocketService);
   private toastService = inject(ToastService);
   private router = inject(Router);
-  private http = inject(HttpClient); // 👈 Añadido para POST a /monitoreo/suscribirse-paradero
+  private http = inject(HttpClient); 
 
   private rutaLayer: L.Polyline | null = null;
-  
-  // 👈 HU-3-001: Diccionario para manejar MÚLTIPLES buses al mismo tiempo
   private busMarkers: { [placa: string]: L.Marker } = {}; 
   
   private busSubscription?: Subscription;
-  private alertaBusSubscription?: Subscription; // 👈 HU-3-003: Escucha de llegada de bus
+  private alertaBusSubscription?: Subscription; 
 
   protected modoActual = signal<'rutas' | 'paraderos' | null>(null);
   protected routes = signal<RutaLista[]>([]);
@@ -41,16 +39,21 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   protected saldo = signal<number>(45250); 
   protected recentTrips = signal<any[]>([]);
 
-  // 👈 Señales para manejar la ruta seleccionada y su alerta
   protected rutaActiva = signal<any>(null);
   protected tiempoAlertaSeleccionado = signal<number | null>(null);
+  protected notificacionActiva = signal<any>(null);
 
   ngOnInit(): void {
     this.loadRoutes();
     this.loadRecentTrips();
 
-    // 👈 HU-3-003: Escuchar cuando el backend emita que el bus ya casi llega
+    // Escuchar alertas en tiempo real de aproximación de buses
     this.alertaBusSubscription = this.chatSocketService.escucharAlertaBus().subscribe((data: any) => {
+      this.notificacionActiva.set({
+        placa: data.placa,
+        ruta: data.nombreRuta,
+        tiempo: data.tiempoEstimado
+      });
       this.toastService.success(`¡Prepárate! El bus ${data.placa} de la ruta ${data.nombreRuta} llegará en aprox. ${data.tiempoEstimado} minutos.`);
     });
   }
@@ -73,7 +76,7 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
         this.isLoadingRoutes.set(false);
       },
       error: () => {
-        this.toastService.error('No se pudieron cargar las rutas');
+        this.toastService.error('No se pudieron cargar las rutas desde la base de datos');
         this.isLoadingRoutes.set(false);
       },
     });
@@ -82,29 +85,29 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   protected seleccionarRuta(ruta: any): void {
     this.toastService.info(`Conectando satélite con ruta ${ruta.nombre}...`);
     this.rutaActiva.set(ruta);
-    this.tiempoAlertaSeleccionado.set(null); // Reinicia la alerta visual
+    this.tiempoAlertaSeleccionado.set(null); 
 
-    // 1. Limpiar mapa de ruta anterior
     if (this.rutaLayer) this.map.removeLayer(this.rutaLayer);
     
-    // 2. Limpiar todos los buses anteriores del mapa
     Object.values(this.busMarkers).forEach(marker => this.map.removeLayer(marker));
     this.busMarkers = {};
 
-    // 3. Suscribirse a las nuevas coordenadas
     this.busSubscription?.unsubscribe();
+
+    if ((this.chatSocketService as any).socket) {
+      (this.chatSocketService as any).socket.emit('suscribirseARuta', { rutaId: ruta.id });
+    }
+
     this.busSubscription = this.chatSocketService.escucharActualizaciones().subscribe((data: any) => {
-      this.actualizarPosicionBus(data.latitud, data.longitud, data.placa, data.estado);
+      this.actualizarPosicionBus(data.latitud, data.longitud, data.placa, data.estado, data.paraderoCercano, data.tiempoEstimado);
     });
 
-    // Dibujar la nueva ruta (coordenadas de ejemplo)
     const coordenadas: L.LatLngExpression[] = [[5.06889, -75.51738], [5.06500, -75.51000]];
     this.rutaLayer = L.polyline(coordenadas, { color: '#ec4899', weight: 5 }).addTo(this.map);
     this.map.fitBounds(this.rutaLayer.getBounds());
   }
 
-  // 👈 HU-3-001: Múltiples buses y diseño inteligente (Rojo = incidente, Verde = Normal)
-  private actualizarPosicionBus(lat: number, lng: number, placa: string, estado: string): void {
+  private actualizarPosicionBus(lat: number, lng: number, placa: string, estado: string, paraderoCercano?: string, tiempoEstimado?: number): void {
     const latlng: L.LatLngExpression = [lat, lng];
     const isIncidente = estado === 'incidente';
     
@@ -116,13 +119,23 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
         </div>`, 
       className: 'bus-marker' 
     });
+
+    const popupContent = `
+      <div class="p-2 min-w-[160px]">
+        <h3 class="font-bold border-b pb-1 mb-2 text-blue-800">Bus: ${placa}</h3>
+        <p class="text-sm">📍 <b>Próximo Paradero:</b><br/> ${paraderoCercano || 'Calculando...'}</p>
+        <p class="text-sm mt-1">⏱️ <b>Llegada Estimada:</b><br/> ${tiempoEstimado || '--'} mins</p>
+      </div>
+    `;
     
-    // Si el bus no existe en el mapa, lo creamos. Si ya existe, solo lo movemos.
     if (!this.busMarkers[placa]) {
-      this.busMarkers[placa] = L.marker(latlng, { icon: busIcon }).addTo(this.map);
+      this.busMarkers[placa] = L.marker(latlng, { icon: busIcon })
+        .bindPopup(popupContent) 
+        .addTo(this.map);
     } else {
       this.busMarkers[placa].setLatLng(latlng);
       this.busMarkers[placa].setIcon(busIcon);
+      this.busMarkers[placa].setPopupContent(popupContent); 
     }
 
     if (isIncidente) {
@@ -130,11 +143,10 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
 
-  // 👈 HU-3-003: Activar notificación para el ciudadano
   protected activarAlerta(minutos: number): void {
     this.tiempoAlertaSeleccionado.set(minutos);
     const rutaId = this.rutaActiva()?.id || 1;
-    const paraderoEjemploId = 1; // En un escenario real saldría del marcador que toque el usuario
+    const paraderoEjemploId = 1; 
     
     const payload = {
       busId: rutaId, 
@@ -147,10 +159,19 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
         this.toastService.success(`¡Alerta activada! Te avisaremos ${minutos} minutos antes de que el bus llegue.`);
       },
       error: () => {
-        // Fallback por si el backend aún no tiene el endpoint activo en el puerto 3000
         this.toastService.success(`¡Alerta activada localmente para ${minutos} minutos!`);
       }
     });
+  }
+
+  protected prepararPagoRapido(): void {
+    this.notificacionActiva.set(null);
+    this.router.navigate(['/recarga']); 
+    this.toastService.info('Preparando tu método de pago virtual...');
+  }
+
+  protected cerrarNotificacion(): void {
+    this.notificacionActiva.set(null);
   }
 
   protected comprarBoleto(route: RutaLista): void {

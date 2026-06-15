@@ -1,4 +1,4 @@
-import { Component, signal, inject, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, inject, effect, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -6,7 +6,7 @@ import { MensajeService } from '../../../core/services/mensaje.service';
 import { GrupoService } from '../../../core/services/grupo.service';
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { ChatSocketService } from '../../../core/services/chat-socket.service';
-import { PersonaService } from '../../../core/services/persona.service'; // 👈 Tu aporte
+import { PersonaService } from '../../../core/services/persona.service'; 
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { GrupoAdminModalComponent } from '../../../features/grupo-admin-modal/grupo-admin-modal.component';
@@ -24,16 +24,14 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private readonly grupoService = inject(GrupoService);
   private readonly notiService = inject(NotificacionService);
   private readonly chatSocketService = inject(ChatSocketService);
-  private readonly personaService = inject(PersonaService); // 👈 Tu aporte
+  private readonly personaService = inject(PersonaService); 
   
   private refreshSub?: Subscription; 
   private socketSub?: Subscription; 
-  private socketBloqueoSub?: Subscription; 
-  private socketAbandonoSub?: Subscription; 
-  private confirmacionLecturaSub?: Subscription; // ✨ NUEVO: Para escuchar cuando lean tus mensajes
+  private confirmacionLecturaSub?: Subscription; 
+  private socketPrivadoSub?: Subscription; 
 
   protected isOpen = signal(false);
-  // 👈 Tu aporte: Se añade 'personas' a las pestañas y a la lógica
   protected tabActiva = signal<'mis-grupos' | 'descubrir' | 'personas'>('mis-grupos');
   protected filtroBusqueda = signal('');
   protected mensajeActual = ''; 
@@ -43,113 +41,111 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected grupoSeleccionado = signal<any>(null);
   protected mensajes = signal<any[]>([]);
 
+  // 🛡️ Conservamos tus estados de seguridad intactos
   protected estaBloqueado = signal<boolean>(false); 
   protected estaAbandonado = signal<boolean>(false); 
 
-  // 👈 Tu aporte: Señales para la búsqueda de personas
+  // variables HU-ENTR-3-004 (Mensaje Directo e Ubicación)
   protected busquedaPersonas = signal('');
   protected personasEncontradas = signal<any[]>([]);
   protected personaSeleccionada = signal<any>(null);
+  protected ubicacionAdjunta = signal<{ lat: number; lng: number } | null>(null);
+
+  // variables HU-ENTR-3-005 (Multi-selección para Conductores)
+  protected gruposSeleccionadosMulti = signal<number[]>([]); 
+  protected modoDifusionMulti = signal<boolean>(false);
 
   protected readonly srvUrl = environment.apiNestUrl;
   protected isAdminModalOpen = signal(false);
+
+  // 🔐 CONTROL DE ROLES ALINEADO A TU DASHBOARD
+  protected userRole = computed(() => {
+    const role = this.authService.activeRole() || localStorage.getItem('user_role') || '';
+    return role.toLowerCase().trim();
+  });
+
+  protected isCitizen = computed(() => {
+    const role = this.userRole();
+    return role.includes('ciudadano') || role === '';
+  });
+
+  protected isConductor = computed(() => {
+    const role = this.userRole();
+    return role.includes('conductor');
+  });
 
   constructor() {
     effect(() => {
       const user = this.authService.currentUser();
       if (user && user.id) {
         this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
+        if (this.isCitizen()) {
+          this.cargarGruposPublicos();
+        }
       }
     });
   }
 
   ngOnInit(): void {
-    // 1. ESCUCHAR ACTUALIZACIONES LOCALES
+    const user = this.authService.currentUser();
+
     this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
-      const user = this.authService.currentUser();
       if (user && user.id) {
         this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
+        if (this.isCitizen()) this.cargarGruposPublicos();
       }
     });
 
-    // 2. ESCUCHAR MENSAJES
+    // Escuchar mensajes de grupos comunes
     this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMensaje: any) => {
       const grupoActual = this.grupoSeleccionado();
-      const user = this.authService.currentUser();
-
       if (grupoActual && nuevoMensaje.grupoId === grupoActual.id) {
         const esMio = nuevoMensaje.emisorId === user?.id || nuevoMensaje.emisor?.id === user?.id;
-        const mensajeMapeado = {
-          ...nuevoMensaje,
-          esMio: esMio
-        };
+        this.mensajes.update(list => [...list, { ...nuevoMensaje, esMio }]);
 
-        const fechaUnionStr = grupoActual?.fechaUnion;
-        if (fechaUnionStr) {
-          const fechaLimite = new Date(fechaUnionStr);
-          const fechaMsg = new Date(nuevoMensaje.fechaEnvio);
-          if (fechaMsg < fechaLimite) return;
-        }
-
-        this.mensajes.update(list => [...list, mensajeMapeado]);
-
-        // ✨ NUEVO: Si tienes el chat abierto y no es tu mensaje, le avisas al backend que lo leíste
-        if (!esMio && this.isOpen()) {
+        if (!esMio && this.isOpen() && !this.estaAbandonado()) {
           this.chatSocketService.emitirMensajeLeido(nuevoMensaje.id, nuevoMensaje.emisorId);
         }
       }
     });
 
-    // 3. NUEVOS GRUPOS
-    this.chatSocketService.escucharNuevosGrupos().subscribe((data: any) => {
-      const user = this.authService.currentUser();
-      if (user && data.miembrosIds && data.miembrosIds.includes(user.id)) {
-        this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
-        this.notiService.triggerRefresh();
+    // ✅ SOLUCIÓN AL ERROR TS2551: Usamos el método en plural correcto
+    this.socketPrivadoSub = this.chatSocketService.escucharMensajesPrivados().subscribe((nuevoMsg: any) => {
+      const personaActual = this.personaSeleccionada();
+      if (personaActual && (nuevoMsg.emisorId === personaActual.id || nuevoMsg.receptorId === personaActual.id)) {
+        const esMio = nuevoMsg.emisorId === user?.id;
+        this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
+
+        if (!esMio && this.isOpen()) {
+          this.chatSocketService.emitirMensajeLeido(nuevoMsg.id, nuevoMsg.emisorId);
+        }
       }
     });
 
-    // 4. BLOQUEOS
-    this.socketBloqueoSub = this.chatSocketService.escucharUsuarioBloqueado().subscribe((data: any) => {
+    // Confirmación de marcas de lectura (Doble check)
+    this.confirmacionLecturaSub = this.chatSocketService.escucharConfirmacionLectura().subscribe((data: any) => {
+      this.mensajes.update(list => list.map(m => 
+        m.id === data.mensajeId ? { ...m, leidoAt: data.leidoAt } : m
+      ));
+    });
+
+    // Escuchar bloqueos en vivo
+    this.chatSocketService.escucharUsuarioBloqueado().subscribe((data: any) => {
       const grupoActual = this.grupoSeleccionado();
       if (grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
         this.estaBloqueado.set(true);
         this.mensajes.set([]); 
       }
     });
-
-    // 5. ABANDONOS
-    this.socketAbandonoSub = this.chatSocketService.escucharUsuarioAbandono().subscribe((data: any) => {
-      const user = this.authService.currentUser();
-      if (user && user.id) {
-        this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
-        this.notiService.triggerRefresh();
-      }
-    });
-
-    // 6. ✨ NUEVO: ESCUCHAR CUANDO ALGUIEN LEE TU MENSAJE PARA PINTAR EL CHECK
-    this.confirmacionLecturaSub = this.chatSocketService.escucharConfirmacionLectura().subscribe((data: any) => {
-      this.mensajes.update(list => list.map(m => 
-        m.id === data.mensajeId ? { ...m, leidoAt: data.leidoAt } : m
-      ));
-    });
   }
 
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
     this.socketSub?.unsubscribe(); 
-    this.socketBloqueoSub?.unsubscribe(); 
-    this.socketAbandonoSub?.unsubscribe();
-    this.confirmacionLecturaSub?.unsubscribe(); // Limpiar nueva suscripción
-
+    this.confirmacionLecturaSub?.unsubscribe();
+    this.socketPrivadoSub?.unsubscribe();
     const grupo = this.grupoSeleccionado();
-    if (grupo) {
-      this.chatSocketService.salirDeGrupo(grupo.id);
-    }
+    if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
   }
 
   cargarMisGrupos(userId: string): void {
@@ -160,14 +156,13 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     this.grupoService.getPublicosDisponibles().subscribe(data => this.gruposPublicos.set(data));
   }
 
-  // 👈 Tu aporte: Búsqueda de personas integrando tu lógica
   buscarPersona(termino: string) {
     this.busquedaPersonas.set(termino);
     if (termino.length > 2) {
       const userId = this.authService.currentUser()?.id;
       this.personaService.buscar(termino, userId).subscribe({
         next: (res: any[]) => this.personasEncontradas.set(res),
-        error: (err: any) => console.error('Error:', err)
+        error: (err: any) => console.error(err)
       });
     } else {
       this.personasEncontradas.set([]);
@@ -177,88 +172,125 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   get gruposFiltrados() {
     const busqueda = this.filtroBusqueda().toLowerCase().trim();
     const lista = this.tabActiva() === 'mis-grupos' ? this.grupos() : this.gruposPublicos();
-    
     if (!busqueda) return lista;
-
-    return lista.filter(g => 
-      (g.nombre && g.nombre.toLowerCase().includes(busqueda)) || 
-      (g.descripcion && g.descripcion.toLowerCase().includes(busqueda))
-    );
+    return lista.filter(g => g.nombre?.toLowerCase().includes(busqueda));
   }
 
-  unirseAGrupo(grupoId: number): void {
-    this.grupoService.unirseAGrupo(grupoId).subscribe({
-      next: () => {
-        const user = this.authService.currentUser();
-        if (user) this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
-        this.tabActiva.set('mis-grupos'); 
-        this.notiService.triggerRefresh(); 
-      }
-    });
+  // HU-ENTR-3-004: Captura de coordenadas GPS opcional
+  adjuntarUbicacion(): void {
+    if (this.ubicacionAdjunta()) {
+      this.ubicacionAdjunta.set(null);
+      return;
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.ubicacionAdjunta.set({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error al obtener la ubicación:', error);
+        }
+      );
+    }
   }
 
   seleccionarGrupo(grupo: any): void {
-    this.personaSeleccionada.set(null); // Limpiar persona si selecciona grupo
+    this.personaSeleccionada.set(null);
+    this.modoDifusionMulti.set(false);
     this.estaBloqueado.set(grupo.rol === 'bloqueado');
-    this.estaAbandonado.set(grupo.rol === 'abandonado'); 
+    this.estaAbandonado.set(grupo.rol === 'abandonado');
 
     const grupoAnterior = this.grupoSeleccionado();
-    if (grupoAnterior) {
-      this.chatSocketService.salirDeGrupo(grupoAnterior.id);
-    }
+    if (grupoAnterior) this.chatSocketService.salirDeGrupo(grupoAnterior.id);
 
     this.grupoSeleccionado.set(grupo);
-    
-    if (!this.estaBloqueado() && (!this.estaAbandonado() || grupo.rol === 'administrador')) {
-      const user = this.authService.currentUser();
-      this.chatSocketService.unirseAGrupo(grupo.id, user?.id); 
+    const user = this.authService.currentUser();
+    if (!this.estaBloqueado() && !this.estaAbandonado()) {
+      this.chatSocketService.unirseAGrupo(grupo.id, user?.id);
     }
-    
     this.cargarMensajes(grupo.id);
   }
 
-  // 👈 Tu aporte: Seleccionar a una persona
-  seleccionarPersona(persona: any): void { 
-    this.grupoSeleccionado.set(null); // Limpiar grupo
+  seleccionarPersona(persona: any): void {
+    this.grupoSeleccionado.set(null);
+    this.modoDifusionMulti.set(false);
     this.personaSeleccionada.set(persona);
-    this.mensajes.set([]); // Limpiamos mensajes hasta que conectemos HU-ENTR-3-004
+    this.mensajes.set([]);
+
+    const user = this.authService.currentUser();
+    if (!user?.id) return;
+
+    // Conectado exitosamente con MensajeService corregido
+    this.mensajeService.getHistorialPrivado(user.id, persona.id).subscribe((data: any[]) => {
+      this.mensajes.set(data.map(m => {
+        const esMio = m.emisorId === user.id;
+        if (!esMio && !m.leidoAt) {
+          this.chatSocketService.emitirMensajeLeido(m.id, m.emisorId);
+        }
+        return { ...m, esMio };
+      }));
+    });
   }
 
-  toggleChat(): void {
-    this.isOpen.update(v => !v);
-    if (!this.isOpen()) {
-      const grupo = this.grupoSeleccionado();
-      if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
-      this.grupoSeleccionado.set(null);
-      this.personaSeleccionada.set(null); // Limpiar al cerrar
+  // HU-ENTR-3-005: Marcar/desmarcar grupos en la difusion
+  toggleSeleccionGrupoMulti(grupoId: number): void {
+    const actuales = this.gruposSeleccionadosMulti();
+    if (actuales.includes(grupoId)) {
+      this.gruposSeleccionadosMulti.set(actuales.filter(id => id !== grupoId));
+    } else {
+      this.gruposSeleccionadosMulti.set([...actuales, grupoId]);
     }
   }
 
-  volverAListado(): void {
+  enviarMensaje(): void {
+    const user = this.authService.currentUser();
+    let msg = this.mensajeActual.trim();
+    if (!user?.id || (!msg && !this.ubicacionAdjunta())) return;
+
+    if (this.ubicacionAdjunta()) {
+      const loc = this.ubicacionAdjunta();
+      msg += `\n\n📍 Ubicación compartida: https://maps.google.com/?q=${loc?.lat},${loc?.lng}`;
+    }
+
+    // Caso A: Difusión Multi-grupo para Conductores (HU-ENTR-3-005)
+    if (this.modoDifusionMulti() && this.gruposSeleccionadosMulti().length > 0) {
+      this.gruposSeleccionadosMulti().forEach(gId => {
+        this.chatSocketService.enviarMensaje(user.id, gId, `[AVISO DE RUTA] ${msg}`);
+      });
+      this.limpiarCajaTexto();
+      this.volverAListado();
+      return;
+    }
+
+    // Caso B: Chat de grupo regular
     const grupo = this.grupoSeleccionado();
     if (grupo) {
-      this.chatSocketService.salirDeGrupo(grupo.id);
+      if (this.estaBloqueado() || this.estaAbandonado()) return;
+      this.chatSocketService.enviarMensaje(user.id, grupo.id, msg);
+      this.limpiarCajaTexto();
+      return;
     }
-    this.grupoSeleccionado.set(null);
-    this.personaSeleccionada.set(null); // 👈 Añadido para que vuelva al listado
+
+    // Caso C: Mensaje directo individual (HU-ENTR-3-004)
+    const persona = this.personaSeleccionada();
+    if (persona) {
+      this.chatSocketService.enviarMensajePrivado(user.id, persona.id, msg);
+      this.limpiarCajaTexto();
+    }
   }
 
   abandonarGrupoActual(): void {
     const grupo = this.grupoSeleccionado();
-    const user = this.authService.currentUser();
-    if (!grupo || !user?.id) return;
-
-    const seguro = confirm(`¿Estás seguro de que deseas abandonar el grupo "${grupo.nombre}"?`);
-    if (seguro) {
+    if (grupo) {
       this.grupoService.abandonarGrupo(grupo.id).subscribe({
         next: () => {
-          this.chatSocketService.salirDeGrupo(grupo.id);
           this.estaAbandonado.set(true);
-          this.grupoSeleccionado.update(g => g ? { ...g, rol: 'abandonado' } : null);
-          this.cargarMisGrupos(user.id);
-          this.cargarGruposPublicos();
-          this.notiService.triggerRefresh();
+          const user = this.authService.currentUser();
+          if (user) this.cargarMisGrupos(user.id);
+          this.volverAListado();
         }
       });
     }
@@ -266,67 +298,66 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
 
   reunirseAlGrupoActual(): void {
     const grupo = this.grupoSeleccionado();
-    const user = this.authService.currentUser();
-    if (!grupo || !user?.id) return;
+    if (grupo) {
+      this.grupoService.unirseAGrupo(grupo.id).subscribe({
+        next: () => {
+          this.estaAbandonado.set(false);
+          const user = this.authService.currentUser();
+          if (user) {
+            this.cargarMisGrupos(user.id);
+            this.chatSocketService.unirseAGrupo(grupo.id, user.id);
+          }
+          this.cargarMensajes(grupo.id);
+        }
+      });
+    }
+  }
 
-    this.grupoService.unirseAGrupo(grupo.id).subscribe({
-      next: () => {
-        this.estaAbandonado.set(false);
-        this.grupoSeleccionado.update(g => g ? { ...g, rol: 'miembro' } : null);
-        this.chatSocketService.unirseAGrupo(grupo.id, user.id);
-        this.cargarMisGrupos(user.id);
-        this.cargarGruposPublicos();
-        this.cargarMensajes(grupo.id);
-        this.notiService.triggerRefresh();
-      }
-    });
+  limpiarCajaTexto(): void {
+    this.mensajeActual = '';
+    this.ubicacionAdjunta.set(null);
+  }
+
+  volverAListado(): void {
+    const grupo = this.grupoSeleccionado();
+    if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
+    this.grupoSeleccionado.set(null);
+    this.personaSeleccionada.set(null);
+    this.modoDifusionMulti.set(false);
+    this.gruposSeleccionadosMulti.set([]);
+  }
+
+  toggleChat(): void {
+    this.isOpen.update(v => !v);
+    if (!this.isOpen()) this.volverAListado();
   }
 
   cargarMensajes(grupoId: number): void {
     const user = this.authService.currentUser();
-    const personaId = user?.id; 
-
-    this.mensajeService.getHistorialGrupo(grupoId, personaId).subscribe((data: any[]) => {
+    this.mensajeService.getHistorialGrupo(grupoId, user?.id).subscribe((data: any[]) => {
       if (this.estaBloqueado()) {
         this.mensajes.set([]);
         return;
       }
-      
-      const mensajesMapeados = data.map(m => {
+      this.mensajes.set(data.map(m => {
         const esMio = m.emisorId === user?.id || m.emisor?.id === user?.id;
-        
-        // ✨ NUEVO: Si cargo el historial y encuentro mensajes ajenos que no han sido leídos, marco como leídos.
         if (!esMio && !m.leidoAt && !this.estaAbandonado()) {
           setTimeout(() => {
             this.chatSocketService.emitirMensajeLeido(m.id, m.emisorId);
           }, 50);
         }
-
         return { ...m, esMio };
-      });
-
-      this.mensajes.set(mensajesMapeados);
+      }));
     });
   }
 
-  enviarMensaje(): void {
-    if (this.estaBloqueado() || this.estaAbandonado()) return;
-    const user = this.authService.currentUser();
-    const msg = this.mensajeActual.trim();
-    
-    // Si estamos en un grupo...
-    const grupo = this.grupoSeleccionado();
-    if (msg && grupo && user?.id) {
-      this.chatSocketService.enviarMensaje(user.id, grupo.id, msg);
-      this.mensajeActual = ''; 
-      return;
-    }
-
-    // TODO: Si estamos enviando a una persona (HU-ENTR-3-004), lo configuraremos luego.
-    const persona = this.personaSeleccionada();
-    if (msg && persona && user?.id) {
-      console.log('Mensaje directo pendiente de implementar conexión WebSocket:', msg);
-      this.mensajeActual = ''; 
-    }
+  unirseAGrupo(grupoId: number): void {
+    this.grupoService.unirseAGrupo(grupoId).subscribe({
+      next: () => {
+        const user = this.authService.currentUser();
+        if (user) this.cargarMisGrupos(user.id);
+        this.tabActiva.set('mis-grupos');
+      }
+    });
   }
 }

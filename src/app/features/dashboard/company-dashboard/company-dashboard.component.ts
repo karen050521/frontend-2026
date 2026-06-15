@@ -11,7 +11,7 @@ import {
 } from '@angular/forms';
 import { BusService } from '../../../core/services/bus.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { BusDashboard } from '../../../core/models/monitoreo.model';
+import { ChatSocketService } from '../../../core/services/chat-socket.service'; // ✨ NUEVO IMPORTE
 
 @Component({
   selector: 'app-company-dashboard',
@@ -20,7 +20,19 @@ import { BusDashboard } from '../../../core/models/monitoreo.model';
   templateUrl: './company-dashboard.component.html',
   styleUrl: './company-dashboard.component.css',
 })
-export class CompanyDashboardComponent implements OnInit {
+export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestroy { // ✨ AÑADIDOS AfterViewInit, OnDestroy
+  
+  // ==========================================
+  // ✨ NUEVAS VARIABLES: MAPA Y WEBSOCKET (HU-ENTR-3-002)
+  // ==========================================
+  @ViewChild('mapaSupervisor') mapElement!: ElementRef;
+  private map!: L.Map;
+  private markersMap: { [id: string]: L.Marker } = {};
+  private chatSocketService = inject(ChatSocketService);
+  private flotaSub?: Subscription;
+  protected flotaEnVivo = signal<any[]>([]);
+  // ==========================================
+
   protected buses = signal<any[]>([]);
   protected incidents = signal<any[]>([]);
   protected schedules = signal<any[]>([]);
@@ -66,9 +78,94 @@ export class CompanyDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Funciones originales
     this.loadBuses();
     this.loadIncidents();
     this.loadSchedules();
+
+    // ==========================================
+    // ✨ NUEVO: CONEXIÓN SOCKET Y ESCUCHA DE FLOTA
+    // ==========================================
+    this.flotaSub = this.chatSocketService.escucharActualizaciones().subscribe((flotaArray: any) => {
+      // Nos aseguramos de que siempre sea un array
+      const flota = Array.isArray(flotaArray) ? flotaArray : [flotaArray];
+      this.flotaEnVivo.set(flota);
+      this.actualizarMarcadores(flota);
+    });
+
+    // Suscribir al backend a la sala de supervisores
+    setTimeout(() => {
+      try {
+        // Usa el socket de tu servicio para emitir el evento (O ajusta al método emitir si ya lo creaste)
+        (this.chatSocketService as any).socket.emit('suscribirseAFlota', {});
+      } catch (e) {
+        console.error('Error suscribiendo al supervisor', e);
+      }
+    }, 500);
+    // ==========================================
+  }
+
+  // ==========================================
+  // ✨ NUEVO: INICIALIZACIÓN DEL MAPA
+  // ==========================================
+  ngAfterViewInit(): void {
+    if (this.mapElement) {
+      this.map = L.map(this.mapElement.nativeElement).setView([5.06889, -75.51738], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(this.map);
+
+      setTimeout(() => { this.map.invalidateSize(); }, 400);
+    }
+  }
+
+  // ==========================================
+  // ✨ NUEVO: DIBUJAR/ACTUALIZAR MARCADORES (HU-ENTR-3-002)
+  // ==========================================
+  private actualizarMarcadores(flota: any[]): void {
+    if (!this.map) return;
+
+    flota.forEach(bus => {
+      // Manejamos si tu backend lo llama lat/lng o latitud/longitud
+      const lat = bus.latitud || bus.lat || bus.latitude;
+      const lng = bus.longitud || bus.lng || bus.longitude;
+      
+      if (!lat || !lng) return;
+
+      const latlng: L.LatLngExpression = [lat, lng];
+      const isIncidente = bus.estado === 'incidente';
+      const colorClase = isIncidente ? 'text-red-600 bg-red-100 border-red-600' : 'text-green-600 bg-green-100 border-green-600 shadow-[0_0_15px_rgba(22,163,74,0.6)]';
+      const icono = isIncidente ? '🚨' : '🚌';
+      const placaStr = bus.placa || bus.busId || bus.id;
+
+      const customIcon = L.divIcon({
+        html: `
+          <div class="flex flex-col items-center justify-center font-bold border-2 rounded-lg px-2 py-1 ${colorClase} ${isIncidente ? 'animate-pulse' : ''}">
+            <span class="text-lg">${icono}</span>
+            <span class="text-[10px] uppercase">${placaStr}</span>
+          </div>`,
+        className: '', 
+        iconSize: [50, 50],
+        iconAnchor: [25, 25]
+      });
+
+      const markerId = bus.busId || bus.id || bus.placa;
+
+      if (!this.markersMap[markerId]) {
+        this.markersMap[markerId] = L.marker(latlng, { icon: customIcon }).addTo(this.map);
+      } else {
+        this.markersMap[markerId].setLatLng(latlng);
+        this.markersMap[markerId].setIcon(customIcon);
+      }
+    });
+  }
+
+  // ==========================================
+  // ✨ NUEVO: DESTRUIR MAPA AL SALIR
+  // ==========================================
+  ngOnDestroy(): void {
+    this.flotaSub?.unsubscribe();
+    if (this.map) this.map.remove();
   }
 
   /**

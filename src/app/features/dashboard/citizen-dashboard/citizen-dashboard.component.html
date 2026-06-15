@@ -99,4 +99,30 @@
       </div>
     </div>
   }
+
+  @if (notificacionActiva()) {
+    <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-l-4 border-pink-500 overflow-hidden animate-in slide-in-from-bottom-8">
+      <div class="p-4">
+        <div class="flex justify-between items-start mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl animate-bounce">🚌</span>
+            <h4 class="font-bold text-gray-800 dark:text-white">¡Tu bus ya llega!</h4>
+          </div>
+          <button (click)="cerrarNotificacion()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          El bus <b>{{ notificacionActiva().placa }}</b> de la ruta <b>{{ notificacionActiva().ruta }}</b> llegará a tu paradero en aproximadamente <span class="text-pink-600 font-bold text-lg">{{ notificacionActiva().tiempo }} min</span>.
+        </p>
+
+        <button (click)="prepararPagoRapido()" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-transform transform hover:scale-[1.02] cursor-pointer shadow-md">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          Preparar Código QR / Pago
+        </button>
+      </div>
+    </div>
+  }
+
 </div>

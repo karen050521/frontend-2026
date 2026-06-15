@@ -74,7 +74,7 @@ export class GruposComponent implements OnInit {
   buscarPersonas(event: any) {
     const termino = event.target.value;
     if (termino && termino.length > 2) {
-      this.personaService.buscarPorNombre(termino, this.grupoData.creadorId).subscribe({
+      this.personaService.buscar(termino, this.grupoData.creadorId).subscribe({
         next: (res: any[]) => {
           this.resultadosBusqueda = res;
         },

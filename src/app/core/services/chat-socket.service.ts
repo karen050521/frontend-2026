@@ -122,4 +122,26 @@ export class ChatSocketService {
       });
     });
   }
+
+  // =========================================================
+  // ✨ NUEVA SECCIÓN: PERSISTENCIA Y LECTURA DE MENSAJES (SPRINT 1)
+  // =========================================================
+
+  // Emitir al backend que acabamos de leer un mensaje
+  emitirMensajeLeido(mensajeId: number, emisorOriginalId: string): void {
+    this.socket.emit('marcarMensajeLeido', { 
+      mensajeId, 
+      emisorOriginalId, 
+      fechaLeido: new Date() 
+    });
+  }
+
+  // Escuchar cuando el backend nos avisa que la otra persona ya leyó nuestro mensaje
+  escucharConfirmacionLectura(): Observable<any> {
+    return new Observable(observer => {
+      this.socket.on('mensajeLeidoConfirmado', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
 }

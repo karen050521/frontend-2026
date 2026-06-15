@@ -9,9 +9,14 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
+
+// Importación de todos tus servicios reales
 import { BusService } from '../../../core/services/bus.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { ChatSocketService } from '../../../core/services/chat-socket.service'; // ✨ NUEVO IMPORTE
+import { ChatSocketService } from '../../../core/services/chat-socket.service';
+import { MonitoreoService } from '../../../core/services/monitoreo.service';
+import { ProgramacionService } from '../../../core/services/programacion.service';
+import { IncidenteBusService } from '../../../core/services/incidente-bus.service';
 
 @Component({
   selector: 'app-company-dashboard',
@@ -20,17 +25,28 @@ import { ChatSocketService } from '../../../core/services/chat-socket.service'; 
   templateUrl: './company-dashboard.component.html',
   styleUrl: './company-dashboard.component.css',
 })
-export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestroy { // ✨ AÑADIDOS AfterViewInit, OnDestroy
+export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   
   // ==========================================
-  // ✨ NUEVAS VARIABLES: MAPA Y WEBSOCKET (HU-ENTR-3-002)
+  // ✨ VARIABLES DE MAPA Y WEBSOCKET (HU-ENTR-3-002)
   // ==========================================
   @ViewChild('mapaSupervisor') mapElement!: ElementRef;
   private map!: L.Map;
-  private markersMap: { [id: string]: L.Marker } = {};
+  private markersMap = new Map<string, L.Marker>();
+  
+  // Inyección de servicios modernos
   private chatSocketService = inject(ChatSocketService);
+  private monitoreoService = inject(MonitoreoService);
+  private programacionService = inject(ProgramacionService);
+  private incidenteBusService = inject(IncidenteBusService);
+  
   private flotaSub?: Subscription;
+  private dashboardSub?: Subscription;
+
   protected flotaEnVivo = signal<any[]>([]);
+  protected pasajerosEnTransito = signal<number>(0);
+  protected incidentesCriticos = signal<any[]>([]);
+  protected busesOperandoReal = signal<number>(0);
   // ==========================================
 
   protected buses = signal<any[]>([]);
@@ -42,9 +58,8 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
   protected isSubmittingBusForm = signal<boolean>(false);
   protected isSubmittingScheduleForm = signal<boolean>(false);
 
-  // Computed signals para los KPIs
   protected openIncidentsCount = computed(() => {
-    return this.incidents().filter((i: any) => i.status === 'Abierto').length;
+    return this.incidents().filter((i: any) => i.estado === 'pendiente' || i.estado === 'en_revision' || i.status === 'Abierto').length;
   });
 
   protected totalBusesCount = computed(() => {
@@ -69,45 +84,49 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
     });
 
     this.scheduleForm = this.fb.group({
-      route: ['', Validators.required],
-      startTime: ['', Validators.required],
-      endTime: ['', Validators.required],
-      busId: ['', Validators.required],
-      frequency: ['Diario', Validators.required],
+      rutaId: ['', [Validators.required]],
+      busId: ['', [Validators.required]],
+      fecha: ['', [Validators.required]],
+      horaSalida: ['', [Validators.required]],
+      tipoRecurrencia: ['Unico'], 
+      margenToleranciaMinutos: [15]
     });
   }
 
   ngOnInit(): void {
-    // Funciones originales
     this.loadBuses();
     this.loadIncidents();
     this.loadSchedules();
 
     // ==========================================
-    // ✨ NUEVO: CONEXIÓN SOCKET Y ESCUCHA DE FLOTA
+    // ✨ INICIO DE MONITOREO REAL (HU-ENTR-3-002)
     // ==========================================
+    this.dashboardSub = this.monitoreoService.getDashboardGeneralPolling().subscribe({
+      next: (resp: any) => {
+        const data = resp.data || resp;
+        this.pasajerosEnTransito.set(data.pasajerosEnTransito || 0);
+        this.busesOperandoReal.set(data.busesOperando || 0);
+        
+        const incidentes = data.incidentes || [];
+        this.incidentesCriticos.set(incidentes.filter((i: any) => i.estado === 'pendiente' || i.estado === 'en_revision'));
+      }
+    });
+
     this.flotaSub = this.chatSocketService.escucharActualizaciones().subscribe((flotaArray: any) => {
-      // Nos aseguramos de que siempre sea un array
       const flota = Array.isArray(flotaArray) ? flotaArray : [flotaArray];
       this.flotaEnVivo.set(flota);
       this.actualizarMarcadores(flota);
     });
 
-    // Suscribir al backend a la sala de supervisores
     setTimeout(() => {
       try {
-        // Usa el socket de tu servicio para emitir el evento (O ajusta al método emitir si ya lo creaste)
         (this.chatSocketService as any).socket.emit('suscribirseAFlota', {});
       } catch (e) {
         console.error('Error suscribiendo al supervisor', e);
       }
     }, 500);
-    // ==========================================
   }
 
-  // ==========================================
-  // ✨ NUEVO: INICIALIZACIÓN DEL MAPA
-  // ==========================================
   ngAfterViewInit(): void {
     if (this.mapElement) {
       this.map = L.map(this.mapElement.nativeElement).setView([5.06889, -75.51738], 14);
@@ -119,28 +138,44 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
 
-  // ==========================================
-  // ✨ NUEVO: DIBUJAR/ACTUALIZAR MARCADORES (HU-ENTR-3-002)
-  // ==========================================
   private actualizarMarcadores(flota: any[]): void {
     if (!this.map) return;
 
+    const idsServidor = new Set(flota.map(b => b.busId || b.id || b.placa));
+    this.markersMap.forEach((marker, id) => {
+      if (!idsServidor.has(id)) {
+        marker.remove();
+        this.markersMap.delete(id);
+      }
+    });
+
     flota.forEach(bus => {
-      // Manejamos si tu backend lo llama lat/lng o latitud/longitud
-      const lat = bus.latitud || bus.lat || bus.latitude;
-      const lng = bus.longitud || bus.lng || bus.longitude;
-      
+      const lat = bus.latitud || bus.lat || bus.latitude || bus.gps?.lat;
+      const lng = bus.longitud || bus.lng || bus.longitude || bus.gps?.lng;
       if (!lat || !lng) return;
 
       const latlng: L.LatLngExpression = [lat, lng];
       const isIncidente = bus.estado === 'incidente';
-      const colorClase = isIncidente ? 'text-red-600 bg-red-100 border-red-600' : 'text-green-600 bg-green-100 border-green-600 shadow-[0_0_15px_rgba(22,163,74,0.6)]';
-      const icono = isIncidente ? '🚨' : '🚌';
-      const placaStr = bus.placa || bus.busId || bus.id;
+      const pasajeros = bus.pasajerosCalculados || 0;
+      const capacidad = bus.capacidadMaxima || 999;
+      const isOcupacionMaxima = pasajeros >= capacidad;
+
+      let colorClase = 'text-green-600 bg-green-100 border-green-600 shadow-[0_0_15px_rgba(22,163,74,0.6)]';
+      let icono = '🚌';
+
+      if (isIncidente) {
+        colorClase = 'text-red-600 bg-red-100 border-red-600 animate-pulse';
+        icono = '🚨';
+      } else if (isOcupacionMaxima) {
+        colorClase = 'text-orange-600 bg-orange-100 border-orange-600';
+        icono = '⚠️';
+      }
+
+      const placaStr = bus.placa || bus.busId || bus.id || 'N/A';
 
       const customIcon = L.divIcon({
         html: `
-          <div class="flex flex-col items-center justify-center font-bold border-2 rounded-lg px-2 py-1 ${colorClase} ${isIncidente ? 'animate-pulse' : ''}">
+          <div class="flex flex-col items-center justify-center font-bold border-2 rounded-lg px-2 py-1 ${colorClase}">
             <span class="text-lg">${icono}</span>
             <span class="text-[10px] uppercase">${placaStr}</span>
           </div>`,
@@ -149,130 +184,70 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
         iconAnchor: [25, 25]
       });
 
+      const popupHtml = `
+        <div style="min-width: 180px; font-family: sans-serif; font-size: 12px;">
+          <h4 style="margin: 0 0 5px 0; border-bottom: 1px solid #ccc; padding-bottom: 4px; font-weight: bold;">
+            🚌 Placa: ${placaStr}
+          </h4>
+          <p style="margin: 3px 0;">👥 <b>Pasajeros:</b> ${pasajeros} / ${capacidad}</p>
+          <p style="margin: 3px 0;">🚦 <b>Velocidad:</b> ${bus.velocidad || 0} km/h</p>
+          ${isOcupacionMaxima ? '<p style="color: #ea580c; font-weight: bold; margin: 4px 0;">⚠️ Ocupación Máxima</p>' : ''}
+          ${isIncidente ? '<p style="color: #dc2626; font-weight: bold; margin: 4px 0;">🚨 Incidente Activo</p>' : ''}
+        </div>
+      `;
+
       const markerId = bus.busId || bus.id || bus.placa;
 
-      if (!this.markersMap[markerId]) {
-        this.markersMap[markerId] = L.marker(latlng, { icon: customIcon }).addTo(this.map);
+      if (!this.markersMap.has(markerId)) {
+        const marker = L.marker(latlng, { icon: customIcon }).bindPopup(popupHtml).addTo(this.map);
+        this.markersMap.set(markerId, marker);
       } else {
-        this.markersMap[markerId].setLatLng(latlng);
-        this.markersMap[markerId].setIcon(customIcon);
+        const marker = this.markersMap.get(markerId)!;
+        marker.setLatLng(latlng);
+        marker.setIcon(customIcon);
+        marker.setPopupContent(popupHtml);
       }
     });
   }
 
-  // ==========================================
-  // ✨ NUEVO: DESTRUIR MAPA AL SALIR
-  // ==========================================
   ngOnDestroy(): void {
     this.flotaSub?.unsubscribe();
+    this.dashboardSub?.unsubscribe();
     if (this.map) this.map.remove();
   }
 
-  /**
-   * Carga los buses de la empresa
-   */
   protected loadBuses(): void {
-    this.buses.set([
-      {
-        id: 'B001',
-        plate: 'ABC-123',
-        model: 'Mercedes Benz O-500',
-        year: 2020,
-        capacity: 50,
-        status: 'Operativo',
-        mileage: 125000,
+    // ⚠️ ATENCIÓN: Cambié obtenerTodos() por findAll() (o getBuses()), verifica en bus.service.ts cuál es el correcto.
+    (this.busService as any).findAll().subscribe({
+      next: (busesDB: any[]) => {
+        this.buses.set(busesDB);
       },
-      {
-        id: 'B002',
-        plate: 'DEF-456',
-        model: 'Volvo B12B',
-        year: 2019,
-        capacity: 48,
-        status: 'Mantenimiento',
-        mileage: 189000,
-      },
-      {
-        id: 'B003',
-        plate: 'GHI-789',
-        model: 'Scania K124',
-        year: 2021,
-        capacity: 52,
-        status: 'Operativo',
-        mileage: 87000,
-      },
-    ]);
+      error: (err: any) => {
+        console.error('Error cargando los buses de la BD:', err);
+        this.toastService.error('Error al cargar la flota de buses');
+      }
+    });
   }
 
-  /**
-   * Carga los incidentes de los buses
-   */
   protected loadIncidents(): void {
-    this.incidents.set([
-      {
-        id: 1,
-        busId: 'B001',
-        busPlate: 'ABC-123',
-        title: 'Pérdida de pasajero',
-        date: '2024-05-12',
-        severity: 'Alta',
-        status: 'Abierto',
+    const empresaId = 1;
+    this.incidenteBusService.obtenerAlertasGerente(empresaId).subscribe({
+      next: (incidentesDB: any[]) => {
+        this.incidents.set(incidentesDB);
       },
-      {
-        id: 2,
-        busId: 'B002',
-        busPlate: 'DEF-456',
-        title: 'Problemas con aire acondicionado',
-        date: '2024-05-11',
-        severity: 'Media',
-        status: 'En revisión',
-      },
-      {
-        id: 3,
-        busId: 'B003',
-        busPlate: 'GHI-789',
-        title: 'Revisión de llantas programada',
-        date: '2024-05-10',
-        severity: 'Baja',
-        status: 'Cerrado',
-      },
-    ]);
+      error: (err: any) => console.error('Error cargando incidentes:', err)
+    });
   }
 
-  /**
-   * Carga las programaciones
-   */
   protected loadSchedules(): void {
-    this.schedules.set([
-      {
-        id: 1,
-        route: 'Centro - Aeropuerto',
-        bus: 'ABC-123',
-        startTime: '06:00',
-        endTime: '22:00',
-        frequency: 'Diario',
+    this.programacionService.findAll().subscribe({
+      next: (programacionesDB: any[]) => {
+        this.schedules.set(programacionesDB);
       },
-      {
-        id: 2,
-        route: 'Norte - Sur',
-        bus: 'DEF-456',
-        startTime: '07:00',
-        endTime: '21:00',
-        frequency: 'Diario',
-      },
-      {
-        id: 3,
-        route: 'Este - Oeste',
-        bus: 'GHI-789',
-        startTime: '08:00',
-        endTime: '20:00',
-        frequency: 'Lunes-Viernes',
-      },
-    ]);
+      error: (err: any) => console.error('Error cargando programaciones reales:', err)
+    });
   }
 
-  /**
-   * Registra un nuevo bus
-   */
   protected registrarBus(): void {
     if (this.registrationForm.invalid) {
       this.toastService.error('Por favor completa todos los campos correctamente');
@@ -296,9 +271,6 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
     }, 1500);
   }
 
-  /**
-   * Crea una nueva programación
-   */
   protected crearProgramacion(): void {
     if (this.scheduleForm.invalid) {
       this.toastService.error('Por favor completa todos los campos');
@@ -307,56 +279,54 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
 
     this.isSubmittingScheduleForm.set(true);
 
-    setTimeout(() => {
-      const newSchedule = {
-        id: this.schedules().length + 1,
-        ...this.scheduleForm.value,
-      };
+    const dto = {
+      ...this.scheduleForm.value,
+      busId: Number(this.scheduleForm.value.busId),
+      rutaId: Number(this.scheduleForm.value.rutaId)
+    };
 
-      this.schedules.update((schedules) => [...schedules, newSchedule]);
-      this.scheduleForm.reset({ frequency: 'Diario' });
-      this.isSubmittingScheduleForm.set(false);
-      this.toastService.success('✅ Programación creada (HU-011)');
-    }, 1000);
+    this.programacionService.crear(dto).subscribe({
+      next: (resp) => {
+        const nuevasProgramaciones = Array.isArray(resp) ? resp : [resp];
+        this.schedules.update((schedules) => [...schedules, ...nuevasProgramaciones]);
+        
+        this.scheduleForm.reset({ tipoRecurrencia: 'Unico', margenToleranciaMinutos: 15 });
+        this.isSubmittingScheduleForm.set(false);
+        this.toastService.success('✅ Programación guardada en BD (HU-011)');
+      },
+      error: (err: any) => {
+        console.error(err);
+        this.toastService.error('Error al guardar en la base de datos');
+        this.isSubmittingScheduleForm.set(false);
+      }
+    });
   }
 
-  /**
-   * Obtiene los incidentes de un bus específico
-   */
   protected getIncidentsForBus(busId: string): any[] {
     if (!busId) return this.incidents();
-    return this.incidents().filter((incident) => incident.busId === busId);
+    return this.incidents().filter((incident) => incident.busId == busId);
   }
 
-  /**
-   * Obtiene el color de severidad
-   */
   protected getSeverityColor(severity: string): string {
+    if (!severity) return 'bg-gray-100 text-gray-800';
     switch (severity.toLowerCase()) {
-      case 'alta':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
-      case 'media':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
-      case 'baja':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100';
+      case 'alta': 
+      case 'critico': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      case 'media': 
+      case 'medio': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+      case 'baja': 
+      case 'bajo': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100';
     }
   }
 
-  /**
-   * Obtiene el color de estado del bus
-   */
   protected getStatusColor(status: string): string {
+    if (!status) return 'text-gray-600';
     switch (status.toLowerCase()) {
-      case 'operativo':
-        return 'text-green-600 dark:text-green-400';
-      case 'mantenimiento':
-        return 'text-orange-600 dark:text-orange-400';
-      case 'fuera de servicio':
-        return 'text-red-600 dark:text-red-400';
-      default:
-        return 'text-gray-600 dark:text-gray-400';
+      case 'operativo': return 'text-green-600 dark:text-green-400';
+      case 'mantenimiento': return 'text-orange-600 dark:text-orange-400';
+      case 'fuera de servicio': return 'text-red-600 dark:text-red-400';
+      default: return 'text-gray-600 dark:text-gray-400';
     }
   }
 }

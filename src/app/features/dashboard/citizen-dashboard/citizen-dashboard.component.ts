@@ -159,7 +159,7 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
     this.map.fitBounds(this.rutaLayer.getBounds());
   }
 
-  // HU-ENTR-2-002: Solicitar GPS y calcular paraderos a la redonda
+// HU-ENTR-2-002: Búsqueda de paraderos cercanos con GPS Real
   protected buscarParaderosCercanos(): void {
     this.gpsCargando.set(true);
     this.viajeSeleccionadoDetalle.set(null);
@@ -177,7 +177,7 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
         
         this.map.setView([lat, lng], 16);
         
-        // Marcador del usuario actual
+        // Dibujar al ciudadano en el mapa
         L.marker([lat, lng], {
           icon: L.divIcon({
             html: `<div class="w-4 h-4 bg-pink-500 rounded-full border-2 border-white shadow-md animate-pulse"></div>`,
@@ -188,28 +188,36 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
         this.limpiarMarcadoresParaderos();
         if (this.rutaLayer) this.map.removeLayer(this.rutaLayer);
 
-        // Mock de 5 paraderos más cercanos con distancia exacta en metros
-        const paraderosMock = [
-          { nombre: 'Paradero Universidad de Caldas', distancia: 145, rutas: ['Circular 1', 'Ruta Centro'], lat: lat + 0.0012, lng: lng + 0.0008 },
-          { nombre: 'Estación Cable Plaza', distancia: 280, rutas: ['Ruta Chipre - Milan', 'Ruta Aeropuerto'], lat: lat - 0.0009, lng: lng + 0.0015 },
-          { nombre: 'Paradero Avenida Santander - Cl 52', distancia: 410, rutas: ['Circular 1'], lat: lat + 0.0021, lng: lng - 0.0005 },
-          { nombre: 'Paradero Sector Palogrande', distancia: 630, rutas: ['Ruta Centro - Aeropuerto'], lat: lat - 0.0018, lng: lng - 0.0012 },
-          { nombre: 'Paradero Barrio Milan ID', distancia: 890, rutas: ['Ruta Chipre - Milan'], lat: lat + 0.0005, lng: lng - 0.0028 }
-        ];
+        // 🚀 LLAMADA REAL AL BACKEND DE TU COMPAÑERA:
+        this.http.get<any[]>(`http://localhost:3000/paradero/cercanos?lat=${lat}&lng=${lng}`).subscribe({
+          next: (paraderosReales) => {
+            this.paraderosCercanos.set(paraderosReales);
+            this.gpsCargando.set(false);
 
-        this.paraderosCercanos.set(paraderosMock);
-        this.gpsCargando.set(false);
+            // Dibujar los paraderos reales que trajo la base de datos
+            paraderosReales.forEach(p => {
+              // Asegúrate de que el backend devuelva latitud y longitud numéricas
+              const pLat = Number(p.latitud);
+              const pLng = Number(p.longitud);
 
-        paraderosMock.forEach(p => {
-          const m = L.marker([p.lat, p.lng], {
-            icon: L.divIcon({
-              html: `<div class="bg-blue-600 text-white font-bold p-1 rounded text-[10px] border border-white shadow-sm">🚏 ${p.distancia}m</div>`,
-              className: 'paradero-marker-layer'
-            })
-          })
-          .bindPopup(`<b>${p.nombre}</b><br/>Distancia: ${p.distancia}m<br/>Rutas: ${p.rutas.join(', ')}`)
-          .addTo(this.map);
-          this.markersParaderos.push(m);
+              const m = L.marker([pLat, pLng], {
+                icon: L.divIcon({
+                  html: `<div class="bg-blue-600 text-white font-bold p-1 rounded text-[10px] border border-white shadow-sm">🚏 ${p.distancia_metros}m</div>`,
+                  className: 'paradero-marker-layer'
+                })
+              })
+              // El backend ya te manda las rutas formateadas
+              .bindPopup(`<b>${p.nombre}</b><br/>Distancia: ${p.distancia_metros}m<br/>Rutas: ${p.rutas?.map((r: any) => r.nombre).join(', ') || 'Varias'}`)
+              .addTo(this.map);
+              
+              this.markersParaderos.push(m);
+            });
+            this.toastService.success('Paraderos satelitales localizados.');
+          },
+          error: (err) => {
+            this.toastService.error('Error al conectar con la red de paraderos.');
+            this.gpsCargando.set(false);
+          }
         });
       },
       () => {
@@ -220,62 +228,79 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   // HU-ENTR-2-003: Abordar bus, validar saldo, cupos y generar boleto inteligente
+  // HU-ENTR-2-003: Abordar bus, validar saldo y generar boleto inteligente
   protected abordarBus(route: any): void {
-    const busLenoSimulado = Math.random() < 0.05; // 5% de probabilidad para simular rechazo por bus lleno
-    if (busLenoSimulado) {
-      this.toastService.error('Abordaje Rechazado: El bus ha alcanzado su capacidad máxima permitida.');
-      return;
-    }
-
     const tarifa = route.tarifa || 2800;
+    
     if (this.saldo() < tarifa) {
       this.toastService.error('Saldo insuficiente. Realiza una recarga antes de abordar.');
       return;
     }
 
-    this.saldo.update(s => s - tarifa);
-    
-    const tokenBoleto = {
-      id: Math.floor(100000 + Math.random() * 900000),
-      ruta: route.nombre,
-      tarifa: tarifa,
-      horaAbordaje: new Date().toLocaleTimeString('es-CO'),
-      paraderoAbordaje: 'Paradero Av. Santander - Cl 45',
-      placaBus: 'WGB-432',
-      conductor: 'Juan Carlos Pérez',
-      estado: 'Activo'
+    // 🚀 PETICIÓN REAL AL BACKEND (Creación de Viaje/Boleto)
+    const payload = {
+      rutaId: route.id,
+      tarifaAplicada: tarifa,
+      fechaHora: new Date().toISOString()
     };
 
-    this.boletoActivo.set(tokenBoleto);
-    this.toastService.success(`¡Abordaje exitoso! Saldo restante: ${this.formatCurrency(this.saldo())}`);
+    // Ajusta la URL a la que vayas a usar en tu backend para registrar viajes
+    this.http.post('http://localhost:3000/viaje/abordar', payload).subscribe({
+      next: (response: any) => {
+        // El backend nos confirma la creación y nos descuenta el saldo oficial
+        this.saldo.update(s => s - tarifa);
+        
+        const tokenBoleto = {
+          id: response.id || Math.floor(100000 + Math.random() * 900000), // Fallback visual
+          ruta: route.nombre,
+          tarifa: tarifa,
+          horaAbordaje: new Date().toLocaleTimeString('es-CO'),
+          paraderoAbordaje: 'Paradero Satelital', // Idealmente el backend te lo devuelve
+          placaBus: response.placaBus || 'Asignando...',
+          conductor: response.conductor || 'Automático',
+          estado: 'Activo'
+        };
+
+        this.boletoActivo.set(tokenBoleto);
+        this.toastService.success(`¡Abordaje exitoso! Saldo restante: ${this.formatCurrency(this.saldo())}`);
+      },
+      error: (err) => {
+        // HU Criterio: Si el bus está lleno, rechaza el abordaje
+        const mensajeError = err.error?.message || 'Error al procesar el abordaje. Intenta de nuevo.';
+        this.toastService.error(`Abordaje Rechazado: ${mensajeError}`);
+      }
+    });
   }
 
   // HU-ENTR-2-004: Descenso de bus, liberar cupo y finalizar viaje reglamentario
+  // HU-ENTR-2-004: Descenso de bus, liberar cupo y finalizar viaje
   protected validarDescenso(): void {
     const boleto = this.boletoActivo();
     if (!boleto) return;
 
-    const horaTermino = new Date().toLocaleTimeString('es-CO');
-    const viajeCompletado = {
-      id: boleto.id,
-      route: boleto.ruta,
-      date: new Date().toISOString().split('T')[0],
-      fare: boleto.tarifa,
-      status: 'Completado',
-      horaAbordaje: boleto.horaAbordaje,
-      horaDescenso: horaTermino,
-      paraderoAbordaje: boleto.paraderoAbordaje,
-      paraderoDescenso: 'Estación Cable Plaza',
-      placaBus: boleto.placaBus,
-      conductor: boleto.conductor,
-      tiempoTotal: '18 mins'
-    };
+    // 🚀 PETICIÓN REAL AL BACKEND (Actualizar Viaje/Boleto a 'completado')
+    this.http.patch(`http://localhost:3000/viaje/${boleto.id}/descender`, {}).subscribe({
+      next: (response: any) => {
+        const horaTermino = new Date().toLocaleTimeString('es-CO');
+        
+        const viajeCompletado = {
+          ...boleto,
+          status: 'Completado',
+          horaDescenso: horaTermino,
+          paraderoDescenso: 'Paradero de Destino', // O el que envíe el back
+          tiempoTotal: 'Calculado...'
+        };
 
-    this.recentTrips.update(historial => [viajeCompletado, ...historial]);
-    this.boletoActivo.set(null);
-    
-    alert("Viaje completado - Gracias por usar nuestro servicio");
-    this.toastService.success("Cupo liberado en el bus para el próximo ciudadano.");
+        this.recentTrips.update(historial => [viajeCompletado, ...historial]);
+        this.boletoActivo.set(null);
+        
+        window.alert("Viaje completado - Gracias por usar nuestro servicio");
+        this.toastService.success("Cupo liberado en el bus para el próximo ciudadano.");
+      },
+      error: (err) => {
+        this.toastService.error('No se pudo registrar el descenso en el sistema.');
+      }
+    });
   }
 
   // HU-ENTR-2-005: Visualizar historial detallado con rutas y conductores en el mapa
@@ -382,17 +407,38 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
   }
   
+  // HU-ENTR-2-005: Visualizar historial detallado
   protected loadRecentTrips(): void {
-    this.recentTrips.set([
-      { id: 981245, route: 'Centro - Aeropuerto', date: '2026-06-12', fare: 2800, status: 'Completado', horaAbordaje: '14:15:00', horaDescenso: '14:33:00', paraderoAbordaje: 'Paradero Centro Histórico', paraderoDescenso: 'Estación Cable Plaza', placaBus: 'WGB-432', conductor: 'Juan Carlos Pérez', tiempoTotal: '18 mins' }
-    ]);
+    // 🚀 PETICIÓN REAL AL BACKEND (Mis viajes pasados)
+    // Asume que usas un Guard/Interceptor que envía el Token JWT del ciudadano
+    this.http.get<any[]>('http://localhost:3000/viaje/mi-historial').subscribe({
+      next: (viajesReales) => {
+        // Mapeamos los datos reales si existen
+        if (viajesReales && viajesReales.length > 0) {
+          this.recentTrips.set(viajesReales);
+        } else {
+          // Si no tiene viajes aún, limpiamos
+          this.recentTrips.set([]);
+        }
+      },
+      error: (err) => {
+        // Fallback visual en caso de que el endpoint no esté listo todavía
+        this.recentTrips.set([
+          { id: 981245, route: 'Centro - Aeropuerto', date: '2026-06-12', fare: 2800, status: 'Completado', horaAbordaje: '14:15:00', horaDescenso: '14:33:00', paraderoAbordaje: 'Paradero Centro Histórico', paraderoDescenso: 'Estación Cable Plaza', placaBus: 'WGB-432', conductor: 'Juan Carlos Pérez', tiempoTotal: '18 mins' }
+        ]);
+      }
+    });
   }
-  
-  protected iniciarRecarga(): void { this.router.navigate(['/recarga']); }
+
+  protected iniciarRecarga(): void { 
+    this.router.navigate(['/recarga']); 
+  }
 
   ngOnDestroy(): void {
     this.busSubscription?.unsubscribe();
     this.alertaBusSubscription?.unsubscribe();
-    if (this.map) this.map.remove();
+    if (this.map) {
+      this.map.remove();
+    }
   }
 }

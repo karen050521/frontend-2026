@@ -10,7 +10,7 @@ export class ChatSocketService {
   private socket!: Socket;
   // Usamos un Subject para transmitir los mensajes nuevos en tiempo real al componente
   private mensajeNuevoSubject = new Subject<any>();
-
+  
   constructor() {
     this.conectarSocket();
   }

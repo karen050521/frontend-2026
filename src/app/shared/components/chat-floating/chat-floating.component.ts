@@ -25,7 +25,8 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private readonly notiService = inject(NotificacionService);
   private readonly chatSocketService = inject(ChatSocketService);
   private readonly personaService = inject(PersonaService); 
-  
+  private socketExpulsadoSub?: Subscription;
+
   private refreshSub?: Subscription; 
   private socketSub?: Subscription; 
   private confirmacionLecturaSub?: Subscription; 
@@ -97,15 +98,17 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     });
 
     // Escuchar mensajes de grupos comunes
-    this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMensaje: any) => {
+    this.socketExpulsadoSub = this.chatSocketService.escucharUsuarioAbandono().subscribe((data: any) => {
       const grupoActual = this.grupoSeleccionado();
-      if (grupoActual && nuevoMensaje.grupoId === grupoActual.id) {
-        const esMio = nuevoMensaje.emisorId === user?.id || nuevoMensaje.emisor?.id === user?.id;
-        this.mensajes.update(list => [...list, { ...nuevoMensaje, esMio }]);
-
-        if (!esMio && this.isOpen() && !this.estaAbandonado()) {
-          this.chatSocketService.emitirMensajeLeido(nuevoMensaje.id, nuevoMensaje.emisorId);
-        }
+      const miUsuarioId = this.authService.currentUser()?.id;
+      
+      // Si el usuario removido soy YO y tengo ese chat abierto en mi pantalla:
+      if (data.personaId === miUsuarioId && grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
+        alert(`Fuiste removido del grupo "${grupoActual.nombre}" por un administrador.`);
+        this.estaAbandonado.set(true);
+        this.mensajes.set([]);
+        if (miUsuarioId) this.cargarMisGrupos(miUsuarioId);
+        this.volverAListado(); // Lo saca inmediatamente al listado principal
       }
     });
 
@@ -144,6 +147,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     this.socketSub?.unsubscribe(); 
     this.confirmacionLecturaSub?.unsubscribe();
     this.socketPrivadoSub?.unsubscribe();
+    this.socketExpulsadoSub?.unsubscribe();
     const grupo = this.grupoSeleccionado();
     if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
   }

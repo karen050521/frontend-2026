@@ -1,7 +1,9 @@
-import { Component, Input, Output, EventEmitter, inject, signal, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GrupoService } from '../../core/services/grupo.service';
+import { ChatSocketService } from '../../core/services/chat-socket.service'; // 👈 1. IMPORTAR EL SERVICIO
+import { Subscription } from 'rxjs'; // 👈 2. IMPORTAR SUBSCRIPTION PARA EVITAR FUGAS DE MEMORIA
 
 @Component({
   selector: 'app-grupo-admin-modal',
@@ -10,11 +12,12 @@ import { GrupoService } from '../../core/services/grupo.service';
   templateUrl: './grupo-admin-modal.component.html',
   styleUrl: './grupo-admin-modal.component.css'
 })
-export class GrupoAdminModalComponent implements OnInit {
+export class GrupoAdminModalComponent implements OnInit, OnDestroy { // 👈 3. AGREGAR ONDESTROY
   @Input({ required: true }) grupoId!: number;
   @Output() closeModal = new EventEmitter<void>();
 
   private readonly grupoService = inject(GrupoService);
+  private readonly chatSocketService = inject(ChatSocketService); // 👈 4. INYECTAR CHATSOCKETSERVICE
 
   protected miembros = signal<any[]>([]);
   protected cargando = signal(true);
@@ -23,8 +26,41 @@ export class GrupoAdminModalComponent implements OnInit {
   protected tabActiva = signal<'miembros' | 'historial'>('miembros');
   protected logs = signal<any[]>([]);
 
+  private subAbandono?: Subscription; // 👈 5. VARIABLE PARA GUARDAR LA SUSCRIPCIÓN
+
   ngOnInit(): void {
     this.cargarMiembros();
+    this.escucharAbandonoEnTiempoReal(); // 👈 6. INICIAR LA ESCUCHA REAL
+  }
+
+  // 👈 7. NUEVO MÉTODO: Sincronización reactiva por WebSockets
+  private escucharAbandonoEnTiempoReal(): void {
+    this.subAbandono = this.chatSocketService.escucharUsuarioAbandono().subscribe({
+      next: (data: any) => {
+        // Validamos que el abandono ocurra en este mismo grupo que estamos administrando
+        if (Number(data.grupoId) === Number(this.grupoId)) {
+          
+          // Como usas un Signal, actualizamos su estado removiendo al usuario que se fue
+          this.miembros.update(listaActual => 
+            listaActual.filter(m => m.persona?.id !== data.personaId)
+          );
+
+          // Si el administrador está en la pestaña de historial, recargamos la bitácora automáticamente
+          if (this.tabActiva() === 'historial') {
+            this.cargarLogs();
+          }
+
+          console.log(`⚡ Sincronización WebSocket: ${data.nombrePersona} abandonó el grupo. Removido de pantalla.`);
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // 👈 8. LIMPIEZA CLAVE: Dessuscribirse al cerrar el modal para no saturar la memoria
+    if (this.subAbandono) {
+      this.subAbandono.unsubscribe();
+    }
   }
 
   cargarMiembros(): void {

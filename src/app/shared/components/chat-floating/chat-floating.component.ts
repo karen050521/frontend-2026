@@ -169,11 +169,17 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     }
   }
 
+  // CÓMO DEBE QUEDAR AHORA:
   get gruposFiltrados() {
     const busqueda = this.filtroBusqueda().toLowerCase().trim();
     const lista = this.tabActiva() === 'mis-grupos' ? this.grupos() : this.gruposPublicos();
     if (!busqueda) return lista;
-    return lista.filter(g => g.nombre?.toLowerCase().includes(busqueda));
+    
+    // Aquí le devolvemos la búsqueda por descripción
+    return lista.filter(g => 
+      g.nombre?.toLowerCase().includes(busqueda) || 
+      g.descripcion?.toLowerCase().includes(busqueda)
+    );
   }
 
   // HU-ENTR-3-004: Captura de coordenadas GPS opcional
@@ -283,10 +289,15 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   }
 
   abandonarGrupoActual(): void {
+    // 🔔 Aquí recuperamos el cuadro de diálogo de localhost
+    const confirmar = window.confirm('¿Estás seguro de que deseas abandonar este grupo?');
+    if (!confirmar) return; // Si el usuario cancela, no hace nada
+
     const grupo = this.grupoSeleccionado();
     if (grupo) {
       this.grupoService.abandonarGrupo(grupo.id).subscribe({
         next: () => {
+          window.alert('Has abandonado el grupo exitosamente.'); // Alerta de éxito
           this.estaAbandonado.set(true);
           const user = this.authService.currentUser();
           if (user) this.cargarMisGrupos(user.id);

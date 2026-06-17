@@ -20,6 +20,7 @@ import { ChatSocketService } from '../../../core/services/chat-socket.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { RutaLista } from '../../../core/models/ruta.model';
 import { BoletoService } from '../../../core/services/boleto.service';
+import { CitaN8nService } from '../../../core/services/cita-n8n.service';
 
 @Component({
   selector: 'app-citizen-dashboard',
@@ -38,7 +39,7 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   private router = inject(Router);
   private http = inject(HttpClient);
   private boletoService = inject(BoletoService);
-
+  private citaN8nService = inject(CitaN8nService);
   private rutaLayer: L.Polyline | null = null;
   private busMarkers: { [placa: string]: L.Marker } = {};
   private markersParaderos: (L.Marker | L.CircleMarker)[] = []; // Control secuencial y espacial de paraderos
@@ -47,11 +48,22 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   private alertaBusSubscription?: Subscription;
 
   // Señales de Control de Estados y UI
-  protected modoActual = signal<'rutas' | 'paraderos' | 'historial' | null>('rutas');
+  protected modoActual = signal<'rutas' | 'paraderos' | 'historial' | 'citas' | null>('rutas');
   protected routes = signal<RutaLista[]>([]);
   protected isLoadingRoutes = signal<boolean>(false);
   protected gpsCargando = signal<boolean>(false);
-  
+  // Nuevas señales para HU-ENTR-3-012 (Agendamiento con N8N)
+  protected cargandoCita = signal<boolean>(false);
+  protected citaAgendadaExito = signal<any>(null);
+
+  // Formulario reactivo para enlazar con los inputs de la vista
+  protected citaForm = {
+    tipoAtencion: 'Virtual',
+    tipoConsulta: 'Problema con tarjeta',
+    fechaHora: '', // Captura "2026-06-20T14:00" desde datetime-local
+    motivo: '',
+    emailCiudadano: 'cristiangarcianastar21@gmail.com'
+  };
   // El saldo inicia en 0 y se poblará dinámicamente de la Base de Datos
   protected saldo = signal<number>(0);
   protected tarjetaIdActiva = signal<number | null>(null); // Guarda el ID de la tarjeta real del usuario
@@ -629,5 +641,56 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
     if (this.map) {
       this.map.remove();
     }
+  }
+
+  // HU-ENTR-3-012: Conexión con Webhook de N8N para Google Calendar y envío de Emails
+  // HU-ENTR-3-012: Agendamiento Automático de Citas vía N8N e iPaaS
+  // HU-ENTR-3-012: Agendamiento Automático de Citas vía N8N
+  protected agendarCita(): void {
+    if (!this.citaForm.fechaHora || !this.citaForm.motivo.trim() || !this.citaForm.emailCiudadano.trim()) {
+      this.toastService.warning('Por favor completa la fecha, hora, motivo y tu correo electrónico.');
+      return;
+    }
+
+    this.cargandoCita.set(true);
+    this.citaAgendadaExito.set(null);
+
+    // 1. Formatear la fecha de inicio (Zona Horaria de Colombia -05:00)
+    const inicioFormatted = `${this.citaForm.fechaHora}:00-05:00`;
+
+    // 2. Calcular fecha de fin (bloque de 30 minutos)
+    const dateInicio = new Date(this.citaForm.fechaHora);
+    const dateFin = new Date(dateInicio.getTime() + 30 * 60000);
+
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    const finFormatted = `${dateFin.getFullYear()}-${pad(dateFin.getMonth() + 1)}-${pad(dateFin.getDate())}T${pad(dateFin.getHours())}:${pad(dateFin.getMinutes())}:00-05:00`;
+
+    // 3. Estructurar el Payload
+    const payload = {
+      tipoAtencion: this.citaForm.tipoAtencion,
+      tipoConsulta: this.citaForm.tipoConsulta,
+      inicio: inicioFormatted,
+      fin: finFormatted,
+      motivo: this.citaForm.motivo.trim(),
+      emailCiudadano: this.citaForm.emailCiudadano.trim()
+    };
+
+    // 4. Llamar a N8N a través de tu nuevo servicio
+    this.citaN8nService.agendarCita(payload).subscribe({
+      next: (response: any) => {
+        this.cargandoCita.set(false);
+        this.citaAgendadaExito.set(response); 
+        this.toastService.success('¡Cita agendada y sincronizada con Google Calendar!');
+        
+        // Limpiamos los campos para futuras citas
+        this.citaForm.motivo = '';
+        this.citaForm.fechaHora = '';
+      },
+      error: (err) => {
+        this.cargandoCita.set(false);
+        console.error('Error N8N Webhook:', err);
+        this.toastService.error('No se pudo conectar con el servidor de citas. Inténtalo de nuevo.');
+      }
+    });
   }
 }

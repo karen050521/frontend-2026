@@ -1,0 +1,72 @@
+<div class="bandeja-container">
+  <h2>📥 Bandeja de Entrada</h2>
+  
+  <div class="filtros-panel">
+    <select [(ngModel)]="filtroTipo" (ngModelChange)="filtroTipo.set($event)">
+      <option value="todos">Todos los tipos</option>
+      <option value="individual">Individuales</option>
+      <option value="grupal">Grupales</option>
+    </select>
+
+    <select [(ngModel)]="filtroEstado" (ngModelChange)="filtroEstado.set($event)">
+      <option value="todos">Todos los estados</option>
+      <option value="leidos">Leídos</option>
+      <option value="no_leidos">No leídos</option>
+    </select>
+
+    <input type="date" [(ngModel)]="filtroFecha" (ngModelChange)="filtroFecha.set($event)" />
+
+    <button (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <div class="contador-badge" *ngIf="contadorNoLeidos() > 0">
+    Tienes <strong>{{ contadorNoLeidos() }}</strong> mensajes sin leer.
+  </div>
+
+  <hr>
+
+  <div *ngIf="cargando()" class="loader">Cargando comunicaciones...</div>
+
+  <div class="bandeja-layout" *ngIf="!cargando()">
+    
+    <div class="lista-mensajes">
+      <div *ngIf="mensajes().length === 0" class="sin-mensajes">
+        No se encontraron mensajes recibidos.
+      </div>
+
+      <div 
+        *ngFor="let msg of mensajes()" 
+        class="tarjeta-mensaje" 
+        [class.no-leido]="!msg.leido"
+        (click)="abrirMensaje(msg)">
+        
+        <div class="meta-info">
+          <span class="emisor">{{ msg.emisor }}</span>
+          <span class="tipo-tag" [class.grupal-tag]="msg.tipo === 'grupal'">
+            {{ msg.tipo === 'grupal' ? '👥 Grupo: ' + msg.grupoNombre : '👤 Privado' }}
+          </span>
+        </div>
+
+        <p class="preview">{{ msg.preview }}...</p>
+        <span class="fecha">{{ msg.fechaEnvio | date:'short' }}</span>
+      </div>
+    </div>
+
+    <div class="detalle-mensaje" *ngIf="mensajeSeleccionado() as seleccionado">
+      <h3>De: {{ seleccionado.emisor }}</h3>
+      <p class="tipo-info">
+        Tipo: {{ seleccionado.tipo === 'grupal' ? 'Mensaje enviado al grupo ' + seleccionado.grupoNombre : 'Mensaje Directo' }}
+      </p>
+      <small class="fecha-info">{{ seleccionado.fechaEnvio | date:'medium' }}</small>
+      
+      <div class="contenido-cuerpo">
+        {{ seleccionado.contenidoCompleto }}
+      </div>
+
+      <button class="btn-responder" (click)="responderMensaje(seleccionado)">
+        ↩️ Responder directamente
+      </button>
+    </div>
+
+  </div>
+</div>

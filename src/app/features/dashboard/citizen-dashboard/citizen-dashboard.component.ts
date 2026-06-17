@@ -21,7 +21,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RutaLista } from '../../../core/models/ruta.model';
 import { BoletoService } from '../../../core/services/boleto.service';
 import { CitaN8nService } from '../../../core/services/cita-n8n.service';
-
+import { CitaPayload } from '../../../core/models/cita.model'; // Ajusta la ruta relativa hacia donde guardaste tu interfaz
 @Component({
   selector: 'app-citizen-dashboard',
   standalone: true,
@@ -647,50 +647,63 @@ export class CitizenDashboardComponent implements OnInit, AfterViewInit, OnDestr
   // HU-ENTR-3-012: Agendamiento Automático de Citas vía N8N e iPaaS
   // HU-ENTR-3-012: Agendamiento Automático de Citas vía N8N
   protected agendarCita(): void {
-    if (!this.citaForm.fechaHora || !this.citaForm.motivo.trim() || !this.citaForm.emailCiudadano.trim()) {
-      this.toastService.warning('Por favor completa la fecha, hora, motivo y tu correo electrónico.');
-      return;
-    }
-
-    this.cargandoCita.set(true);
-    this.citaAgendadaExito.set(null);
-
-    // 1. Formatear la fecha de inicio (Zona Horaria de Colombia -05:00)
-    const inicioFormatted = `${this.citaForm.fechaHora}:00-05:00`;
-
-    // 2. Calcular fecha de fin (bloque de 30 minutos)
-    const dateInicio = new Date(this.citaForm.fechaHora);
-    const dateFin = new Date(dateInicio.getTime() + 30 * 60000);
-
-    const pad = (n: number) => n < 10 ? '0' + n : n;
-    const finFormatted = `${dateFin.getFullYear()}-${pad(dateFin.getMonth() + 1)}-${pad(dateFin.getDate())}T${pad(dateFin.getHours())}:${pad(dateFin.getMinutes())}:00-05:00`;
-
-    // 3. Estructurar el Payload
-    const payload = {
-      tipoAtencion: this.citaForm.tipoAtencion,
-      tipoConsulta: this.citaForm.tipoConsulta,
-      inicio: inicioFormatted,
-      fin: finFormatted,
-      motivo: this.citaForm.motivo.trim(),
-      emailCiudadano: this.citaForm.emailCiudadano.trim()
-    };
-
-    // 4. Llamar a N8N a través de tu nuevo servicio
-    this.citaN8nService.agendarCita(payload).subscribe({
-      next: (response: any) => {
-        this.cargandoCita.set(false);
-        this.citaAgendadaExito.set(response); 
-        this.toastService.success('¡Cita agendada y sincronizada con Google Calendar!');
-        
-        // Limpiamos los campos para futuras citas
-        this.citaForm.motivo = '';
-        this.citaForm.fechaHora = '';
-      },
-      error: (err) => {
-        this.cargandoCita.set(false);
-        console.error('Error N8N Webhook:', err);
-        this.toastService.error('No se pudo conectar con el servidor de citas. Inténtalo de nuevo.');
-      }
-    });
+  // 1. Validaciones
+  if (!this.citaForm.fechaHora || !this.citaForm.motivo.trim() || !this.citaForm.emailCiudadano.trim()) {
+    this.toastService.warning('Por favor completa todos los campos requeridos.');
+    return;
   }
+
+  // 🔴 VALIDACIÓN DE SEGURIDAD (Bloquea fechas/horas del pasado)
+  const ahora = new Date();
+  const fechaSeleccionada = new Date(this.citaForm.fechaHora);
+
+  if (fechaSeleccionada < ahora) {
+    this.toastService.error('⚠️ La hora seleccionada ya pasó. Por favor selecciona una hora a partir de este momento.');
+    return;
+  }
+
+  this.cargandoCita.set(true);
+
+  // 2. Formateo de fechas para Google Calendar (-05:00 Colombia)
+  const inicioFormatted = `${this.citaForm.fechaHora}:00-05:00`;
+  const dateInicio = new Date(this.citaForm.fechaHora);
+  const dateFin = new Date(dateInicio.getTime() + 30 * 60000); // Suma 30 mins
+
+  const pad = (n: number) => n < 10 ? '0' + n : n;
+  const finFormatted = `${dateFin.getFullYear()}-${pad(dateFin.getMonth() + 1)}-${pad(dateFin.getDate())}T${pad(dateFin.getHours())}:${pad(dateFin.getMinutes())}:00-05:00`;
+
+  // 3. Estructura TIPADA usando tu interfaz CitaPayload
+  const payload: CitaPayload = {
+    tipoAtencion: this.citaForm.tipoAtencion,
+    tipoConsulta: this.citaForm.tipoConsulta,
+    inicio: inicioFormatted,
+    fin: finFormatted,
+    motivo: this.citaForm.motivo.trim(),
+    emailCiudadano: this.citaForm.emailCiudadano.trim()
+  };
+
+  // 4. Envío de datos al servicio
+  this.citaN8nService.agendarCita(payload).subscribe({
+    next: (response: any) => {
+      this.cargandoCita.set(false);
+      this.citaAgendadaExito.set(response); 
+      this.toastService.success('¡Cita agendada y sincronizada con Google Calendar!');
+      this.citaForm.motivo = '';
+      this.citaForm.fechaHora = '';
+    },
+    error: (err) => {
+      this.cargandoCita.set(false);
+      this.toastService.error('Error al agendar la cita. Inténtalo más tarde.');
+    }
+  });
+}
+  protected getFechaActualMinima(): string {
+  // Obtenemos la fecha actual y restamos el desplazamiento de la zona horaria
+  const ahora = new Date();
+  const offset = ahora.getTimezoneOffset() * 60000; // milisegundos
+  const fechaLocal = new Date(ahora.getTime() - offset);
+  
+  // Retornamos el string en formato YYYY-MM-DDThh:mm
+  return fechaLocal.toISOString().slice(0, 16);
+}
 }

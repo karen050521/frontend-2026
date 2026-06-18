@@ -207,6 +207,13 @@
                 }
                 <p class="leading-relaxed break-words whitespace-pre-wrap">{{ m.contenido }}</p>
 
+                @if (parseUbicacion(m); as loc) {
+                  <a [href]="'https://maps.google.com/?q=' + loc.lat + ',' + loc.lng" target="_blank" rel="noopener"
+                     class="mt-1.5 inline-flex items-center gap-1 self-start rounded-lg bg-emerald-600/15 px-2 py-1 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-600/25 hover:text-emerald-300 transition-colors">
+                    📍 Ver ubicación
+                  </a>
+                }
+
                 <div class="flex justify-end items-center gap-1 mt-1.5 opacity-80">
                   <span class="text-[9px] text-gray-400">{{ (m.fechaEnvio || m.createdAt) | date:'shortTime' }}</span>
                   @if (m.esMio) {

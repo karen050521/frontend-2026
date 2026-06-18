@@ -10,7 +10,11 @@ export class ChatSocketService {
   private socket!: Socket;
   // Usamos un Subject para transmitir los mensajes nuevos en tiempo real al componente
   private mensajeNuevoSubject = new Subject<any>();
-  
+  // ✨ HU-ENTR-3-004: recordamos a qué persona se identificó este socket para
+  // re-unirnos a la sala 'user_{personaId}' tras cada reconexión (las salas se
+  // pierden al cambiar el id de socket; si no re-identificamos, el DM queda mudo).
+  private personaIdentificada?: string;
+
   constructor() {
     this.conectarSocket();
   }
@@ -29,6 +33,10 @@ export class ChatSocketService {
 
     this.socket.on('connect', () => {
       console.log('Conectado al servidor de WebSockets');
+      // Re-identificarse al reconectar para no perder la sala personal.
+      if (this.personaIdentificada) {
+        this.socket.emit('identificarUsuario', { personaId: this.personaIdentificada });
+      }
     });
   }
 
@@ -95,6 +103,7 @@ export class ChatSocketService {
   // recibir alertas dirigidas (bus próximo) sin depender de estar en un grupo.
   identificarUsuario(personaId: string): void {
     if (personaId) {
+      this.personaIdentificada = personaId;
       this.socket.emit('identificarUsuario', { personaId });
     }
   }
@@ -109,8 +118,19 @@ export class ChatSocketService {
   }
 
   // ✨ NUEVO: Enviar mensaje directo a otra persona (HU-ENTR-3-004)
-  enviarMensajePrivado(emisorId: string, receptorId: string, contenido: string): void {
-    this.socket.emit('enviarMensajePrivado', { emisorId, receptorId, contenido });
+  // ubicacion opcional ({lat,lng}): el gateway la persiste en Mensaje.ubicacion.
+  enviarMensajePrivado(
+    emisorId: string,
+    receptorId: string,
+    contenido: string,
+    ubicacion?: { lat: number; lng: number } | null,
+  ): void {
+    this.socket.emit('enviarMensajePrivado', {
+      emisorId,
+      receptorId,
+      contenido,
+      ubicacion: ubicacion ?? undefined,
+    });
   }
 
   // ✨ NUEVO: Escuchar mensajes directos entrantes en tiempo real

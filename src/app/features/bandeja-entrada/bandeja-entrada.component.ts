@@ -32,7 +32,7 @@ export class BandejaEntradaComponent implements OnInit {
     // Cada vez que un filtro cambie, disparamos automáticamente la recarga
     effect(() => {
       this.cargarBandeja();
-    }, { allowSignalWrites: true });
+    });
   }
 
   ngOnInit(): void {

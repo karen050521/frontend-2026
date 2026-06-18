@@ -110,6 +110,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     // la pestaña activa o los filtros de la bandeja
     effect(() => {
       const user = this.authService.currentUser();
+      this.grupos();
       if (user && user.id && this.tabActiva() === 'bandeja') {
         this.cargarBandejaDeEntrada(user.id);
       }
@@ -130,6 +131,13 @@ ngOnInit(): void {
     // 🌟 ESCUCHAR MENSAJES GRUPALES EN TIEMPO REAL
     this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMsg: any) => {
       const grupoActual = this.grupoSeleccionado();
+      const misGruposIds = this.grupos().map(g => Number(g.id));
+      
+      // 🛡️ FILTRO CRÍTICO: Si el mensaje es de un grupo que ya abandoné (no está en misGruposIds), lo ignoro
+      if (!misGruposIds.includes(Number(nuevoMsg.grupoId))) {
+        return;
+      }
+
       if (grupoActual && Number(nuevoMsg.grupoId) === Number(grupoActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id || nuevoMsg.emisor?.id === user?.id;
         
@@ -356,7 +364,7 @@ enviarMensaje(): void {
     }
   }
 
-  abandonarGrupoActual(): void {
+abandonarGrupoActual(): void {
     // 🔔 Aquí recuperamos el cuadro de diálogo de localhost
     const confirmar = window.confirm('¿Estás seguro de que deseas abandonar este grupo?');
     if (!confirmar) return; // Si el usuario cancela, no hace nada
@@ -366,7 +374,13 @@ enviarMensaje(): void {
       this.grupoService.abandonarGrupo(grupo.id).subscribe({
         next: () => {
           window.alert('Has abandonado el grupo exitosamente.'); // Alerta de éxito
+          
+          // Desvincular del WebSocket del grupo de inmediato
+          this.chatSocketService.salirDeGrupo(grupo.id);
+          
           this.estaAbandonado.set(true);
+          this.mensajes.set([]); // Limpiamos el historial para que baje el conteo de integrantes en pantalla
+
           const user = this.authService.currentUser();
           if (user) this.cargarMisGrupos(user.id);
           this.volverAListado();
@@ -441,6 +455,7 @@ enviarMensaje(): void {
   }
 
   // ✨ NUEVO: Cargar Bandeja unificada con filtros de la HU-ENTR-3-007
+// ✨ NUEVO: Cargar Bandeja unificada filtrando drásticamente grupos abandonados
   protected cargarBandejaDeEntrada(userId: string): void {
     this.cargandoBandeja.set(true);
     
@@ -451,7 +466,19 @@ enviarMensaje(): void {
 
     this.mensajeService.getBandejaEntrada(userId, filtros).subscribe({
       next: (res) => {
-        this.mensajesBandeja.set(res.mensajes);
+        // 🛡️ OBTENEMOS LOS IDS DE LOS GRUPOS A LOS QUE SÍ PERTENECES ACTUALMENTE
+        const misGruposIds = this.grupos().map(g => Number(g.id));
+
+        // 🚀 FILTRO RADICAL: Si el mensaje es de tipo 'grupal', obligatoriamente el grupoId debe estar en tus grupos activos
+        const mensajesFiltrados = res.mensajes.filter((msg: any) => {
+          if (msg.tipo === 'grupal') {
+            return misGruposIds.includes(Number(msg.grupoId));
+          }
+          return true; // Los mensajes individuales (directos) pasan siempre
+        });
+
+        // Guardamos solo los mensajes válidos en la señal de la bandeja
+        this.mensajesBandeja.set(mensajesFiltrados);
         this.cargandoBandeja.set(false);
       },
       error: (err) => {

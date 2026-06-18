@@ -205,12 +205,19 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),
   },
-  {
-    path: '**',
-    redirectTo: 'home',
-  },
+  
   {
     path: 'pqrs',
     component: PqrsFormComponent
+  },
+  {
+    path: 'alertas-masivas',
+    loadComponent: () =>
+      import('./features/alerta-masiva/alerta-masiva.component').then(m => m.AlertaMasivaComponent)
+  },
+  //COMODIN VA AL FINAL SIEMPRE
+  {
+    path: '**',
+    redirectTo: 'home',
   }
 ];

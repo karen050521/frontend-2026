@@ -1,0 +1,199 @@
+<div class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans">
+  
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400">
+      Panel de Alertas Masivas (Comunicación Unidireccional)
+    </h1>
+    <p class="text-gray-400 mt-2">
+      Despliegue y envío masivo de notificaciones importantes, alertas críticas e interrupciones del itinerario urbano.
+    </p>
+  </div>
+
+  <div *ngIf="mensajeExito" class="mb-6 p-4 bg-emerald-950 border border-emerald-500/30 text-emerald-400 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+    <span class="text-xl">✓</span> {{ mensajeExito }}
+  </div>
+  <div *ngIf="mensajeError" class="mb-6 p-4 bg-rose-950 border border-rose-500/30 text-rose-400 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+    <span class="text-xl">⚠</span> {{ mensajeError }}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <div class="lg:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl h-fit">
+      <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-pink-500">
+        <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+        Nueva Alerta Masiva
+      </h2>
+
+      <form [formGroup]="alertaForm" (ngSubmit)="enviarAlerta()" class="space-y-5">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Contenido de la Alerta *</label>
+          <textarea
+            formControlName="contenido"
+            rows="3"
+            maxlength="500"
+            placeholder="Escriba el comunicado oficial..."
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+          ></textarea>
+          <div class="text-xs text-gray-500 text-end mt-1">
+            {{ alertaForm.get('contenido')?.value?.length || 0 }}/500 caracteres
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Alcance de la Notificación *</label>
+          <select
+            formControlName="alcanceTipo"
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+          >
+            <option value="TODOS">Todos los usuarios o ciudadanos</option>
+            <option value="RUTA">Usuarios de Rutas Específicas</option>
+            <option value="ZONA">Usuarios por Zonas Geográficas</option>
+          </select>
+        </div>
+
+@if (alertaForm.get('alcanceTipo')?.value === 'RUTA') {
+  <div class="animate-in fade-in duration-200">
+    <label class="block text-sm font-medium text-gray-300 mb-2">Seleccionar Ruta Objetivo *</label>
+    <select
+      formControlName="alcanceId"
+      (change)="actualizarContador()"
+      class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+    >
+      <option value="">-- Seleccione una Ruta --</option>
+      @for (ruta of listaRutas; track ruta.id) {
+        <option [value]="ruta.id">{{ ruta.nombre || ruta.nombreRuta || 'Ruta ' + ruta.id }}</option>
+      }
+    </select>
+  </div>
+}
+
+@if (alertaForm.get('alcanceTipo')?.value === 'ZONA') {
+  <div class="animate-in fade-in duration-200">
+    <label class="block text-sm font-medium text-gray-300 mb-2">Seleccionar Zona Geográfica *</label>
+    <select
+      formControlName="alcanceId"
+      (change)="actualizarContador()"
+      class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+    >
+      <option value="">-- Seleccione una Zona --</option>
+      @for (zona of listaZonas; track zona.id) {
+        <option [value]="zona.id">{{ zona.nombre || zona.nombreZona || 'Zona ' + zona.id }}</option>
+      }
+    </select>
+  </div>
+}
+
+        <div class="p-4 bg-[#262626] rounded-xl border border-gray-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <label for="esUrgente" class="text-sm font-medium text-gray-300 cursor-pointer">🚨 Prioridad Alta / Urgente</label>
+            <input
+              type="checkbox"
+              id="esUrgente"
+              formControlName="esUrgente"
+              class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500 bg-[#2a2a2a] border-gray-700"
+            />
+          </div>
+          <p class="text-xs text-rose-400" *ngIf="alertaForm.get('esUrgente')?.value">
+            Al marcar como urgente, se enviará una notificación push inmediata al dispositivo del usuario.
+          </p>
+
+          <hr class="border-gray-800" />
+
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Programar Envío (Opcional)</label>
+            <input
+              type="datetime-local"
+              formControlName="programadoPara"
+              class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div class="p-4 bg-pink-950/20 border border-pink-500/20 rounded-xl flex justify-between items-center">
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Público Objetivo Estimado:</span>
+          <span class="text-lg font-bold text-pink-400 font-mono">{{ totalDestinatarios }} Usuarios</span>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="alertaForm.invalid"
+          class="w-full mt-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all cursor-pointer text-sm uppercase tracking-wide"
+        >
+          📢 Desplegar Alerta Masiva
+        </button>
+      </form>
+    </div>
+
+    <div class="lg:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl overflow-hidden flex flex-col">
+      <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-fuchsia-400">
+        <span class="w-2 h-6 bg-fuchsia-400 rounded-full inline-block"></span>
+        Monitor de Impacto y Lecturas (Post-Envío)
+      </h2>
+
+      @if (alertasEnviadas.length === 0) {
+        <div class="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-gray-800 rounded-xl my-4">
+          <span class="text-4xl mb-3">📡</span>
+          <p class="text-gray-400 font-medium">No se registran alertas transmitidas en esta sesión.</p>
+          <p class="text-xs text-gray-600 mt-1">
+            Los datos estadísticos aparecerán aquí inmediatamente después de accionar el botón de despliegue.
+          </p>
+        </div>
+      }
+
+      @if (alertasEnviadas.length > 0) {
+        <div class="space-y-4 overflow-y-auto max-h-[600px] pr-2">
+          @for (alerta of alertasEnviadas; track alerta.id) {
+            <div class="p-5 bg-[#252525] rounded-xl border border-gray-800 hover:border-gray-700 transition-all">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-mono font-bold text-pink-400 bg-pink-950/50 px-2 py-1 rounded border border-pink-500/20">
+                    ID: #{{ alerta.id }}
+                  </span>
+                  <span class="text-xs uppercase font-extrabold tracking-wide px-2.5 py-0.5 rounded bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-500/30">
+                    Alcance: {{ alerta.alcanceTipo }}
+                  </span>
+                </div>
+                <span class="text-xs text-gray-500 font-mono">
+                  {{ alerta.fechaEnvio | date: 'dd/MM/yyyy, h:mm a' }}
+                </span>
+              </div>
+
+              <p class="text-sm text-gray-200 mb-4 font-sans bg-[#1a1a1a] p-3 rounded-lg border border-gray-800/60">
+                {{ alerta.contenido }}
+              </p>
+
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-[#1e1e1e] p-3 rounded-lg border border-gray-800">
+                  <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Destinatarios</div>
+                  <div class="text-base font-bold text-blue-400 font-mono">{{ alerta.estadisticas?.totalDestinatarios }}</div>
+                </div>
+                <div class="bg-[#1e1e1e] p-3 rounded-lg border border-gray-800">
+                  <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Entregados</div>
+                  <div class="text-base font-bold text-emerald-400 font-mono">{{ alerta.estadisticas?.entregados }}</div>
+                </div>
+                <div class="bg-[#1e1e1e] p-3 rounded-lg border border-gray-800">
+                  <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Leídos</div>
+                  <div class="text-base font-bold text-purple-400 font-mono">{{ alerta.estadisticas?.leidos }}</div>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center mt-4 pt-2 border-t border-gray-800/40">
+                <span class="text-xs text-gray-500 italic">
+                  Estado de transmisión: <strong class="text-gray-300 uppercase font-mono text-[11px]">{{ alerta.estado }}</strong>
+                </span>
+                <button
+                  (click)="cargarEstadisticas(alerta)"
+                  class="text-xs font-bold text-fuchsia-400 hover:text-fuchsia-300 transition-colors bg-fuchsia-950/20 px-3 py-1.5 rounded-lg border border-fuchsia-500/20 cursor-pointer"
+                >
+                  🔄 Refrescar Métricas
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+  </div>
+</div>

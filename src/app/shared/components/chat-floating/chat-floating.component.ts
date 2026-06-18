@@ -1,4 +1,4 @@
-import { Component, signal, inject, effect, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, signal, inject, effect, OnInit, OnDestroy, computed, viewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -35,6 +35,8 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private socketPrivadoSub?: Subscription;
   // ✨ HU-ENTR-3-004: evita re-identificar en cada corrida del effect.
   private usuarioIdentificado = false;
+  // Contenedor scrollable de la conversación; para auto-scroll al fondo.
+  private readonly mensajesContainer = viewChild<ElementRef<HTMLDivElement>>('mensajesContainer');
 
   protected isOpen = signal(false);
   protected filtroBusqueda = signal('');
@@ -126,13 +128,31 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
         this.cargarBandejaDeEntrada(user.id);
       }
     });
-  
+
+    // Auto-scroll al fondo cada vez que cambia la lista de mensajes
+    // (envío, recepción en tiempo real o carga de historial).
+    effect(() => {
+      this.mensajes(); // dependencia reactiva
+      this.scrollAlFondo();
+    });
+
+  }
+
+  private scrollAlFondo(): void {
+    // Espera al render del nuevo mensaje antes de medir scrollHeight.
+    setTimeout(() => {
+      const el = this.mensajesContainer()?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 0);
   }
 
 ngOnInit(): void {
-    const user = this.authService.currentUser();
-
+    // ⚠️ NO capturar el usuario aquí: en el arranque (re-login tras reiniciar)
+    // currentUser() puede ser null y el closure quedaría con user=null para
+    // siempre → esMio=false (burbuja gris, sin ✓✓). Leerlo FRESCO en cada
+    // callback, igual que seleccionarPersona y el listener de expulsión.
     this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
+      const user = this.authService.currentUser();
       if (user && user.id) {
         this.cargarMisGrupos(user.id);
         if (this.isCitizen()) this.cargarGruposPublicos();
@@ -141,10 +161,11 @@ ngOnInit(): void {
 
     // 🌟 ESCUCHAR MENSAJES GRUPALES EN TIEMPO REAL
     this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMsg: any) => {
+      const user = this.authService.currentUser();
       const grupoActual = this.grupoSeleccionado();
       if (grupoActual && Number(nuevoMsg.grupoId) === Number(grupoActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id || nuevoMsg.emisor?.id === user?.id;
-        
+
         const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
         if (!yaExiste) {
           this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
@@ -158,10 +179,11 @@ ngOnInit(): void {
 
     // Escuchar mensajes privados
     this.socketPrivadoSub = this.chatSocketService.escucharMensajesPrivados().subscribe((nuevoMsg: any) => {
+      const user = this.authService.currentUser();
       const personaActual = this.personaSeleccionada();
       if (personaActual && (nuevoMsg.emisorId === personaActual.id || nuevoMsg.receptorId === personaActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id;
-        
+
         const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
         if (!yaExiste) {
           this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);

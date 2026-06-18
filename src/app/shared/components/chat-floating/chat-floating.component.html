@@ -198,7 +198,7 @@
             ← VOLVER
           </button>
           
-          <div class="flex-1 space-y-3 overflow-y-auto pr-1">
+          <div #mensajesContainer class="flex-1 space-y-3 overflow-y-auto pr-1">
             @for (m of mensajes(); track m.id) {
               <div class="flex flex-col max-w-[85%] rounded-2xl p-3 text-sm border shadow-md relative"
                    [ngClass]="m.esMio ? 'bg-gradient-to-br from-pink-950/40 to-fuchsia-950/40 border-pink-500/20 text-pink-100 self-end rounded-tr-none' : 'bg-[#1e1e1e] border-gray-800 text-gray-200 self-start rounded-tl-none'">

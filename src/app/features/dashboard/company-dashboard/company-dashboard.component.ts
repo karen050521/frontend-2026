@@ -106,7 +106,14 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
         const data = resp.data || resp;
         this.pasajerosEnTransito.set(data.pasajerosEnTransito || 0);
         this.busesOperandoReal.set(data.busesOperando || 0);
-        
+
+        // El mapa se pinta desde la BD (data.buses); el socket actualiza en vivo encima.
+        const buses = data.buses || [];
+        if (buses.length) {
+          this.flotaEnVivo.set(buses);
+          this.actualizarMarcadores(buses);
+        }
+
         const incidentes = data.incidentes || [];
         this.incidentesCriticos.set(incidentes.filter((i: any) => i.estado === 'pendiente' || i.estado === 'en_revision'));
       }

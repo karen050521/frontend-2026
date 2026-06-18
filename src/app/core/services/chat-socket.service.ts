@@ -123,6 +123,20 @@ export class ChatSocketService {
     });
   }
 
+  // ✨ HU-ENTR-3-002: El supervisor se suscribe a la flota global
+  suscribirseAFlota(): void {
+    this.socket.emit('suscribirseAFlota', {});
+  }
+
+  // ✨ HU-ENTR-3-002: Escuchar la foto completa de la flota (gateway emite 'actualizacionFlotaGlobal')
+  escucharFlotaGlobal(): Observable<any[]> {
+    return new Observable(observer => {
+      this.socket.on('actualizacionFlotaGlobal', (data: any[]) => {
+        observer.next(data);
+      });
+    });
+  }
+
   // =========================================================
   // ✨ NUEVA SECCIÓN: PERSISTENCIA Y LECTURA DE MENSAJES (SPRINT 1)
   // =========================================================

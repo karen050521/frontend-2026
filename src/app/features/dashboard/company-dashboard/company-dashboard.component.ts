@@ -106,25 +106,28 @@ export class CompanyDashboardComponent implements OnInit, AfterViewInit, OnDestr
         const data = resp.data || resp;
         this.pasajerosEnTransito.set(data.pasajerosEnTransito || 0);
         this.busesOperandoReal.set(data.busesOperando || 0);
-        
+
+        // El mapa se pinta desde la BD (data.buses); el socket actualiza en vivo encima.
+        const buses = data.buses || [];
+        if (buses.length) {
+          this.flotaEnVivo.set(buses);
+          this.actualizarMarcadores(buses);
+        }
+
         const incidentes = data.incidentes || [];
         this.incidentesCriticos.set(incidentes.filter((i: any) => i.estado === 'pendiente' || i.estado === 'en_revision'));
       }
     });
 
-    this.flotaSub = this.chatSocketService.escucharActualizaciones().subscribe((flotaArray: any) => {
+    // HU-3-002: el gateway emite 'actualizacionFlotaGlobal' con TODA la flota.
+    this.flotaSub = this.chatSocketService.escucharFlotaGlobal().subscribe((flotaArray: any) => {
       const flota = Array.isArray(flotaArray) ? flotaArray : [flotaArray];
       this.flotaEnVivo.set(flota);
       this.actualizarMarcadores(flota);
     });
 
-    setTimeout(() => {
-      try {
-        (this.chatSocketService as any).socket.emit('suscribirseAFlota', {});
-      } catch (e) {
-        console.error('Error suscribiendo al supervisor', e);
-      }
-    }, 500);
+    // Pequeño margen para asegurar que el socket esté conectado antes de unirse a la sala.
+    setTimeout(() => this.chatSocketService.suscribirseAFlota(), 500);
   }
 
   ngAfterViewInit(): void {

@@ -30,7 +30,7 @@
       <div class="relative z-10 flex items-center justify-between">
         <div>
           <p class="text-sm opacity-80 uppercase font-bold tracking-wider">Flota en Servicio</p>
-          <h3 class="text-3xl font-bold mt-1">{{ busesOperandoReal() || totalBusesCount() }}</h3>
+          <h3 class="text-3xl font-bold mt-1">{{ busesOperandoReal() }}</h3>
           <p class="text-[10px] mt-1 text-green-200">Unidades transmitiendo GPS</p>
         </div>
         <svg class="w-12 h-12 opacity-30" fill="currentColor" viewBox="0 0 24 24">
@@ -228,15 +228,18 @@
       @for (schedule of schedules(); track schedule.id) {
         <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border-l-4 border-purple-500">
           <div class="flex-1">
-            <p class="font-bold">Ruta: {{ schedule.rutaId || schedule.route }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400">Bus ID: {{ schedule.busId || schedule.bus }}</p>
+            <p class="font-bold">Ruta: {{ schedule.ruta?.nombre || schedule.rutaId || 'N/A' }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400">Bus: {{ schedule.bus?.placa || schedule.bus?.id || schedule.busId || 'N/A' }}</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">
               Salida: {{ schedule.horaSalida || schedule.startTime }} | Fecha: {{ schedule.fecha | date }}
             </p>
           </div>
           <div class="text-right">
-            <span class="inline-block bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100 text-xs font-bold px-2 py-1 rounded">
-              {{ schedule.tipoRecurrencia || schedule.frequency }}
+            <span class="inline-block text-xs font-bold px-2 py-1 rounded"
+                  [class]="(schedule.estado === 'en_curso')
+                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100'
+                    : 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100'">
+              {{ schedule.estado || schedule.tipoRecurrencia || 'programado' }}
             </span>
           </div>
         </div>

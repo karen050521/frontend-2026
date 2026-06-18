@@ -54,7 +54,13 @@ export class DashboardComponent implements OnInit {
 
   protected isCompanyAdmin = computed(() => {
     const role = this.userRole();
-    return role.includes('administrador de empresa') || role.includes('company');
+    // HU-3-002: el supervisor/gerente de operaciones ve el panel de flota (company-dashboard).
+    return (
+      role.includes('administrador de empresa') ||
+      role.includes('company') ||
+      role.includes('operaciones') ||
+      role.includes('supervisor')
+    );
   });
 
   protected isAdmin = computed(() => {

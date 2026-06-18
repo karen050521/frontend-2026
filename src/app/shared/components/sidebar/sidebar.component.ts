@@ -55,7 +55,9 @@ export class SidebarComponent {
       r.includes('administrador de empresa') ||
       r.includes('adminsitrador de empresa') ||
       r.includes('gerente de empresa') ||
-      r.includes('company')
+      r.includes('company') ||
+      r.includes('operaciones') || // HU-3-002: supervisor/gerente de operaciones
+      r.includes('supervisor')
     );
   });
 
@@ -81,7 +83,8 @@ export class SidebarComponent {
 
   public esGerente = computed(() => {
     const r = this.normalizedRole();
-    return r.includes('gerente');
+    // 'gerente de operaciones' es supervisor de flota (esEmpresa), no analista/gerente financiero.
+    return r.includes('gerente') && !r.includes('operaciones');
   });
 
   // Inputs y Outputs

@@ -32,7 +32,50 @@
         ⏱️ Próximo arribo en: <span class="underline">{{ etaPersonalizado }} min</span>
       </span>
     }
+
+    <!-- HU-3-003: suscripción "avísame cuando el bus esté cerca" -->
+    <div class="flex items-center gap-2 ml-auto">
+      <label class="text-sm font-semibold text-blue-900 dark:text-blue-300">🔔 Avísame con</label>
+      <select
+        [(ngModel)]="minutosAnticipacion"
+        class="border border-blue-300 dark:border-[#404040] rounded px-2 py-1 text-sm bg-white dark:bg-[#262626] text-gray-700 dark:text-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-blue-500">
+        @for (m of opcionesAnticipacion; track m) {
+          <option [ngValue]="m">{{ m }} min</option>
+        }
+      </select>
+      <button
+        [disabled]="!paraderoSeleccionadoId || guardandoSuscripcion"
+        class="text-sm bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded shadow-sm hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        (click)="crearSuscripcion()">
+        {{ guardandoSuscripcion ? 'Guardando…' : 'Avisarme' }}
+      </button>
+    </div>
   </div>
+
+  <!-- HU-3-003: banner de acciones cuando llega una alerta de bus próximo -->
+  @if (ultimaAlerta) {
+    <div class="bg-emerald-50 dark:bg-emerald-950/40 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-200 px-4 py-3 text-sm flex flex-wrap items-center gap-3">
+      <span class="font-bold">
+        🚌 Bus {{ ultimaAlerta.placa }} ({{ ultimaAlerta.rutaNombre }}) llega en ~{{ ultimaAlerta.etaMinutos }} min
+        @if (ultimaAlerta.paraderoNombre) { a {{ ultimaAlerta.paraderoNombre }} }
+      </span>
+      <button
+        class="text-xs bg-blue-600 text-white font-medium px-2.5 py-1 rounded shadow-sm hover:bg-blue-700 transition-all active:scale-95"
+        (click)="verUbicacionAlerta()">
+        Ver ubicación
+      </button>
+      <button
+        class="text-xs bg-emerald-600 text-white font-medium px-2.5 py-1 rounded shadow-sm hover:bg-emerald-700 transition-all active:scale-95"
+        (click)="prepararPago()">
+        Preparar pago
+      </button>
+      <button
+        class="ml-auto text-xs text-emerald-700 dark:text-emerald-300 hover:underline"
+        (click)="ultimaAlerta = null">
+        Descartar
+      </button>
+    </div>
+  }
 
   @if (cargando) {
     <div class="flex items-center justify-center p-8 text-gray-400 text-sm gap-2">

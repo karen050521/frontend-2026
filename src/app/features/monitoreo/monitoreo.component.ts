@@ -1,16 +1,21 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MonitoreoService, BusEnRuta } from '../../core/services/monitoreo.service';
+import { NotificacionSuscripcionService } from '../../core/services/notificacion-suscripcion.service';
+import { ChatSocketService } from '../../core/services/chat-socket.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import * as L from 'leaflet';
 
 @Component({
   selector: 'app-monitoreo',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './monitoreo.component.html',
 })
 export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -23,9 +28,17 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   etaPersonalizado: number | null = null;
   cargando = true;
 
+  // HU-3-003: suscripción "bus próximo"
+  minutosAnticipacion = 10;
+  readonly opcionesAnticipacion = [5, 10, 15];
+  guardandoSuscripcion = false;
+  // Última alerta recibida (para mostrar acciones "ver ubicación" / "preparar pago")
+  ultimaAlerta: { rutaNombre: string; etaMinutos: number; placa: string; busId: number; paraderoNombre?: string } | null = null;
+
   private mapa!: L.Map;
   private marcadores = new Map<number, L.Marker>();
   private pollingSubscription!: Subscription;
+  private alertaSubscription?: Subscription;
   private primeraCarga = true;
   // Rutas/paraderos viven en back-logic (NestJS :3000), no en back-sec (:8181)
   private apiUrl = environment.apiNestUrl;
@@ -33,10 +46,71 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   private monitoreoService = inject(MonitoreoService);
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
+  private suscripcionService = inject(NotificacionSuscripcionService);
+  private chatSocket = inject(ChatSocketService);
+  private authService = inject(AuthService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
 
   ngOnInit() {
     this.rutaId = Number(this.route.snapshot.paramMap.get('rutaId'));
     this.cargarParaderos();
+
+    // HU-3-003: unirse a la sala personal y escuchar alertas de bus próximo.
+    const personaId = this.authService.currentUser()?.id;
+    if (personaId) {
+      this.chatSocket.identificarUsuario(personaId);
+    }
+    this.alertaSubscription = this.chatSocket.escucharAlertaBus().subscribe((alerta) => {
+      this.ultimaAlerta = alerta;
+      this.toast.warning(
+        `🚌 Bus ${alerta.placa} (${alerta.rutaNombre}) llega en ~${alerta.etaMinutos} min`,
+        6000,
+      );
+    });
+  }
+
+  // HU-3-003: crear suscripción para el paradero + anticipación elegidos.
+  crearSuscripcion() {
+    if (!this.paraderoSeleccionadoId) {
+      this.toast.error('Selecciona un paradero primero.');
+      return;
+    }
+    this.guardandoSuscripcion = true;
+    this.suscripcionService
+      .crear({
+        rutaId: this.rutaId,
+        paraderoId: this.paraderoSeleccionadoId,
+        minutosAnticipacion: this.minutosAnticipacion,
+      })
+      .subscribe({
+        next: () => {
+          this.guardandoSuscripcion = false;
+          this.toast.success(`✅ Te avisaremos cuando el bus esté a ${this.minutosAnticipacion} min.`);
+        },
+        error: () => {
+          this.guardandoSuscripcion = false;
+          this.toast.error('No se pudo crear la suscripción.');
+        },
+      });
+  }
+
+  // HU-3-003: centrar el mapa en el bus de la alerta.
+  verUbicacionAlerta() {
+    const busId = this.ultimaAlerta?.busId;
+    if (busId == null) return;
+    const marcador = this.marcadores.get(busId);
+    if (marcador) {
+      this.mapa.setView(marcador.getLatLng(), 16);
+      marcador.openPopup();
+    } else {
+      this.toast.info('El bus aún no aparece en el mapa.');
+    }
+  }
+
+  // HU-3-003: acción rápida de pago (deep-link a recarga, sin implementar pago).
+  prepararPago() {
+    this.router.navigate(['/recarga']);
   }
 
   ngAfterViewInit() {

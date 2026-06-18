@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { BusRegistroComponent } from './features/buses/bus-registro.component';
-
+import { PqrsFormComponent } from './features/pqrs-form/pqrs-form.component';
 export const routes: Routes = [
   {
     path: '',
@@ -203,4 +203,8 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'home',
   },
+  {
+    path: 'pqrs',
+    component: PqrsFormComponent
+  }
 ];

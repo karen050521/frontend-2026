@@ -33,7 +33,6 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private socketPrivadoSub?: Subscription; 
 
   protected isOpen = signal(false);
-  protected tabActiva = signal<'mis-grupos' | 'descubrir' | 'personas'>('mis-grupos');
   protected filtroBusqueda = signal('');
   protected mensajeActual = ''; 
   
@@ -75,6 +74,27 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     return role.includes('conductor');
   });
 
+  // Actualizamos el tipo de tabActiva para incluir 'bandeja'
+  protected tabActiva = signal<'mis-grupos' | 'descubrir' | 'personas' | 'bandeja'>('bandeja'); // Ponemos 'bandeja' por defecto o la que prefieras
+  
+ // ✨ NUEVAS SEÑALES PARA LA HU-ENTR-3-007
+  protected mensajesBandeja = signal<any[]>([]);
+  protected cargandoBandeja = signal<boolean>(false);
+
+  // 👈 NUEVO: El contador ahora depende exclusivamente de los puntos rosa activos del Front-end
+  protected contadorNoLeidosGlobal = computed(() => {
+    return this.mensajesBandeja().filter(msg => !msg.leido).length;
+  });
+
+  protected mensajeRespondidoId = signal<number | null>(null);
+  protected respuestaDirectaTexto = signal<string>('');
+  
+  // Filtros interactivos
+  protected filtroTipoBandeja = signal<'todos' | 'individual' | 'grupal'>('todos');
+  protected filtroEstadoBandeja = signal<'todos' | 'leidos' | 'no_leidos'>('todos');
+  protected filtroFechaBandeja = signal<string>('');
+  
+  
   constructor() {
     effect(() => {
       const user = this.authService.currentUser();
@@ -85,9 +105,19 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
         }
       }
     });
+
+    // 2. NUEVO EFECTO SEPARADO: Se dispara automáticamente cuando cambia 
+    // la pestaña activa o los filtros de la bandeja
+    effect(() => {
+      const user = this.authService.currentUser();
+      if (user && user.id && this.tabActiva() === 'bandeja') {
+        this.cargarBandejaDeEntrada(user.id);
+      }
+    }, { allowSignalWrites: true });
+  
   }
 
-  ngOnInit(): void {
+ngOnInit(): void {
     const user = this.authService.currentUser();
 
     this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
@@ -97,27 +127,33 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Escuchar mensajes de grupos comunes
-    this.socketExpulsadoSub = this.chatSocketService.escucharUsuarioAbandono().subscribe((data: any) => {
+    // 🌟 ESCUCHAR MENSAJES GRUPALES EN TIEMPO REAL
+    this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMsg: any) => {
       const grupoActual = this.grupoSeleccionado();
-      const miUsuarioId = this.authService.currentUser()?.id;
-      
-      // Si el usuario removido soy YO y tengo ese chat abierto en mi pantalla:
-      if (data.personaId === miUsuarioId && grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
-        alert(`Fuiste removido del grupo "${grupoActual.nombre}" por un administrador.`);
-        this.estaAbandonado.set(true);
-        this.mensajes.set([]);
-        if (miUsuarioId) this.cargarMisGrupos(miUsuarioId);
-        this.volverAListado(); // Lo saca inmediatamente al listado principal
+      if (grupoActual && Number(nuevoMsg.grupoId) === Number(grupoActual.id)) {
+        const esMio = nuevoMsg.emisorId === user?.id || nuevoMsg.emisor?.id === user?.id;
+        
+        const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
+        if (!yaExiste) {
+          this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
+        }
+
+        if (!esMio && this.isOpen() && !this.estaAbandonado()) {
+          this.chatSocketService.emitirMensajeLeido(nuevoMsg.id, nuevoMsg.emisorId);
+        }
       }
     });
 
-    // ✅ SOLUCIÓN AL ERROR TS2551: Usamos el método en plural correcto
+    // Escuchar mensajes privados
     this.socketPrivadoSub = this.chatSocketService.escucharMensajesPrivados().subscribe((nuevoMsg: any) => {
       const personaActual = this.personaSeleccionada();
       if (personaActual && (nuevoMsg.emisorId === personaActual.id || nuevoMsg.receptorId === personaActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id;
-        this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
+        
+        const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
+        if (!yaExiste) {
+          this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
+        }
 
         if (!esMio && this.isOpen()) {
           this.chatSocketService.emitirMensajeLeido(nuevoMsg.id, nuevoMsg.emisorId);
@@ -138,6 +174,20 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       if (grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
         this.estaBloqueado.set(true);
         this.mensajes.set([]); 
+      }
+    });
+
+    // Escuchar cuando el usuario es removido/expulsado de un grupo
+    this.socketExpulsadoSub = this.chatSocketService.escucharUsuarioAbandono().subscribe((data: any) => {
+      const grupoActual = this.grupoSeleccionado();
+      const miUsuarioId = this.authService.currentUser()?.id;
+      
+      if (data.personaId === miUsuarioId && grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
+        alert(`Fuiste removido del grupo "${grupoActual.nombre}" por un administrador.`);
+        this.estaAbandonado.set(true);
+        this.mensajes.set([]);
+        if (miUsuarioId) this.cargarMisGrupos(miUsuarioId);
+        this.volverAListado();
       }
     });
   }
@@ -255,7 +305,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     }
   }
 
-  enviarMensaje(): void {
+enviarMensaje(): void {
     const user = this.authService.currentUser();
     let msg = this.mensajeActual.trim();
     if (!user?.id || (!msg && !this.ubicacionAdjunta())) return;
@@ -264,6 +314,17 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       const loc = this.ubicacionAdjunta();
       msg += `\n\n📍 Ubicación compartida: https://maps.google.com/?q=${loc?.lat},${loc?.lng}`;
     }
+
+    // 🌟 Comentario arreglado y casted user para evitar el error del .nombre
+    const mensajeLocal = {
+      id: Date.now(),
+      contenido: msg,
+      emisorId: user.id,
+      emisorNombre: (user as any).nombre || 'Yo',
+      createdAt: new Date(),
+      esMio: true,
+      leidoAt: null
+    };
 
     // Caso A: Difusión Multi-grupo para Conductores (HU-ENTR-3-005)
     if (this.modoDifusionMulti() && this.gruposSeleccionadosMulti().length > 0) {
@@ -279,6 +340,8 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     const grupo = this.grupoSeleccionado();
     if (grupo) {
       if (this.estaBloqueado() || this.estaAbandonado()) return;
+      
+      this.mensajes.update(list => [...list, mensajeLocal]);
       this.chatSocketService.enviarMensaje(user.id, grupo.id, msg);
       this.limpiarCajaTexto();
       return;
@@ -287,6 +350,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     // Caso C: Mensaje directo individual (HU-ENTR-3-004)
     const persona = this.personaSeleccionada();
     if (persona) {
+      this.mensajes.update(list => [...list, mensajeLocal]);
       this.chatSocketService.enviarMensajePrivado(user.id, persona.id, msg);
       this.limpiarCajaTexto();
     }
@@ -375,4 +439,104 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ✨ NUEVO: Cargar Bandeja unificada con filtros de la HU-ENTR-3-007
+  protected cargarBandejaDeEntrada(userId: string): void {
+    this.cargandoBandeja.set(true);
+    
+    const filtros: any = {};
+    if (this.filtroTipoBandeja() !== 'todos') filtros.tipo = this.filtroTipoBandeja();
+    if (this.filtroEstadoBandeja() !== 'todos') filtros.estado = this.filtroEstadoBandeja();
+    if (this.filtroFechaBandeja()) filtros.fecha = this.filtroFechaBandeja();
+
+    this.mensajeService.getBandejaEntrada(userId, filtros).subscribe({
+      next: (res) => {
+        this.mensajesBandeja.set(res.mensajes);
+        this.cargandoBandeja.set(false);
+      },
+      error: (err) => {
+        console.error('Error al mapear bandeja:', err);
+        this.cargandoBandeja.set(false);
+      }
+    });
+  }
+
+  // ✨ NUEVO: Al hacer click en un mensaje de la bandeja de entrada
+abrirMensajeDesdeBandeja(msg: any): void {
+    // 1. Apagamos el punto rosa localmente en el Front-end para que baje el contador de inmediato
+    this.mensajesBandeja.update(list => 
+      list.map(m => m.id === msg.id ? { ...m, leido: true } : m)
+    );
+
+    // 2. Notificamos al servidor que fue leído
+    if (!msg.leido && msg.id) {
+      this.chatSocketService.emitirMensajeLeido(msg.id, msg.emisorId);
+    }
+
+    // 3. CASO GRUPAL: Mapear, abrir chat con historial completo por WebSockets y permitir responder
+    if (msg.tipo === 'grupal' && msg.grupoId) {
+      this.personaSeleccionada.set(null);
+      this.modoDifusionMulti.set(false);
+      
+      // Cambiamos la pestaña activa a 'mis-grupos' para que se acople perfectamente con tu diseño HTML
+      this.tabActiva.set('mis-grupos'); 
+
+      const grupoFormateado = {
+        id: Number(msg.grupoId),
+        nombre: msg.grupoNombre,
+        rol: msg.rol || 'miembro'
+      };
+
+      this.seleccionarGrupo(grupoFormateado);
+      return;
+    }
+
+    // 4. CASO INDIVIDUAL: Mapear, abrir chat cargando todo el historial privado para responder directo
+    if (msg.tipo === 'individual' && msg.emisorId) {
+      this.grupoSeleccionado.set(null);
+      this.modoDifusionMulti.set(false);
+      
+      // Cambiamos la pestaña activa a 'personas' para que se acople con tu diseño HTML
+      this.tabActiva.set('personas');
+
+      const personaFormateada = {
+        id: String(msg.emisorId),
+        nombre: msg.emisor
+      };
+
+      this.seleccionarPersona(personaFormateada);
+    }
+  }
+
+  protected limpiarFiltrosBandeja(): void {
+    this.filtroTipoBandeja.set('todos');
+    this.filtroEstadoBandeja.set('todos');
+    this.filtroFechaBandeja.set('');
+  }
+
+  enviarRespuestaDirecta(msg: any): void {
+    const texto = this.respuestaDirectaTexto().trim();
+    const user = this.authService.currentUser();
+    if (!texto || !user?.id) return;
+
+    if (msg.tipo === 'grupal' && msg.grupoId) {
+      this.chatSocketService.enviarMensaje(user.id, Number(msg.grupoId), texto);
+    } else if (msg.tipo === 'individual' && msg.emisorId) {
+      this.chatSocketService.enviarMensajePrivado(user.id, String(msg.emisorId), texto);
+    }
+
+    // Apagar el punto rosa localmente
+    this.mensajesBandeja.update(list => 
+      list.map(m => m.id === msg.id ? { ...m, leido: true } : m)
+    );
+    if (!msg.leido && msg.id) {
+      this.chatSocketService.emitirMensajeLeido(msg.id, msg.emisorId);
+    }
+
+    // Limpiar y cerrar la cajita
+    this.respuestaDirectaTexto.set('');
+    this.mensajeRespondidoId.set(null);
+    alert('¡Mensaje respondido con éxito!');
+  }
+
 }

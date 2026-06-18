@@ -26,4 +26,26 @@ getHistorialGrupo(grupoId: number, personaId?: string): Observable<any[]> {
   getHistorialPrivado(emisorId: string, receptorId: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/privado/${emisorId}/${receptorId}`);
   }
+  // ✨ NUEVO: HU-ENTR-3-007 - Obtener bandeja de entrada con filtros
+  getBandejaEntrada(
+    personaId: string, 
+    filtros: { tipo?: string; estado?: string; fecha?: string } = {}
+  ): Observable<{ mensajes: any[]; contadorNoLeidos: number }> {
+    let params: any = {};
+    
+    if (filtros.tipo) params.tipo = filtros.tipo;
+    if (filtros.estado) params.estado = filtros.estado;
+    if (filtros.fecha) params.fecha = filtros.fecha;
+
+    return this.http.get<{ mensajes: any[]; contadorNoLeidos: number }>(
+      `${this.apiUrl}/bandeja-entrada/${personaId}`, 
+      { params }
+    );
+  }
+
+  // ✨ NUEVO: HU-ENTR-3-007 - Marcar mensaje como leído individualmente
+  marcarComoLeido(mensajeId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${mensajeId}/invertir-o-leer` ? `${this.apiUrl}/${mensajeId}/leer` : `${this.apiUrl}/${mensajeId}/leer`, {});
+  }
+  
 }

@@ -1,0 +1,149 @@
+<div class="min-h-screen bg-[#121212] text-white p-6 md:p-10 font-sans">
+  
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-400">
+      Portal de Radicación PQRS
+    </h1>
+    <p class="text-gray-400 mt-2">
+      Envía de forma segura tus peticiones, quejas, reclamos o sugerencias sobre el sistema de transporte.
+    </p>
+  </div>
+
+  <div *ngIf="successData" class="mb-6 p-6 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 rounded-2xl animate-in fade-in duration-300 text-center max-width-2xl mx-auto">
+    <span class="text-3xl block mb-2">🎉</span>
+    <h3 class="text-xl font-bold text-white mb-2">¡Solicitud Radicada Exitosamente!</h3>
+    <p class="text-gray-300 text-sm mb-4">Conserva el siguiente número de radicado para consultar su estado en cualquier momento:</p>
+    
+    <div class="inline-block bg-[#1a1a1a] border border-emerald-500/50 text-emerald-400 font-mono text-2xl font-bold px-6 py-3 rounded-xl tracking-widest shadow-lg shadow-emerald-950/50 mb-4">
+      {{ successData.radicado }}
+    </div>
+    
+    <p class="text-xs text-gray-400">
+      Fecha estimada de respuesta: <span class="text-gray-200 font-semibold">{{ successData.estimatedDate | date:'dd/MM/yyyy' }}</span>
+    </p>
+  </div>
+
+  <div *ngIf="errorMessage" class="mb-6 p-4 bg-rose-950 border border-rose-500/30 text-rose-400 rounded-xl flex items-center gap-3 animate-in fade-in duration-300">
+    <span class="text-xl">⚠</span> {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!successData" class="max-w-2xl mx-auto bg-[#1e1e1e] p-6 md:p-8 rounded-2xl border border-gray-800 shadow-xl animate-in fade-in duration-300">
+    
+    <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-pink-500">
+      <span class="w-2 h-6 bg-pink-500 rounded-full inline-block"></span>
+      Formulario de Registro
+    </h2>
+
+    <form [formGroup]="pqrsForm" (ngSubmit)="onSubmit()" class="space-y-5">
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Tipo de Solicitud *</label>
+          <select
+            formControlName="type"
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+          >
+            <option value="" disabled selected>Seleccione una opción...</option>
+            <option value="Petición">Petición</option>
+            <option value="Queja">Queja</option>
+            <option value="Reclamo">Reclamo</option>
+            <option value="Sugerencia">Sugerencia</option>
+          </select>
+          <span class="text-xs text-rose-400 mt-1 block" *ngIf="pqrsForm.get('type')?.touched && pqrsForm.get('type')?.invalid">
+            El tipo es requerido.
+          </span>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Categoría del Reporte *</label>
+          <select
+            formControlName="category"
+            class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+          >
+            <option value="" disabled selected>¿Con qué se relaciona?...</option>
+            <option value="Conductor">Conductor</option>
+            <option value="Bus">Bus</option>
+            <option value="Ruta">Ruta</option>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <span class="text-xs text-rose-400 mt-1 block" *ngIf="pqrsForm.get('category')?.touched && pqrsForm.get('category')?.invalid">
+            La categoría es requerida.
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Email de Contacto *</label>
+        <input
+          type="email"
+          formControlName="email"
+          placeholder="ejemplo@correo.com"
+          class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors"
+        />
+        <span class="text-xs text-rose-400 mt-1 block" *ngIf="pqrsForm.get('email')?.touched && pqrsForm.get('email')?.invalid">
+          Ingresa un correo electrónico válido.
+        </span>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Descripción Detallada *</label>
+        <textarea
+          formControlName="description"
+          rows="4"
+          maxlength="500"
+          placeholder="Explica detalladamente la situación (máximo 500 caracteres)..."
+          class="w-full bg-[#2a2a2a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-colors resize-none"
+        ></textarea>
+        <div class="text-right text-xs text-gray-500 mt-1">
+          {{ pqrsForm.get('description')?.value?.length || 0 }}/500 caracteres
+        </div>
+        <span class="text-xs text-rose-400 mt-1 block" *ngIf="pqrsForm.get('description')?.touched && pqrsForm.get('description')?.invalid">
+          La descripción es obligatoria.
+        </span>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Evidencias Fotográficas (Opcional - Máx 3)</label>
+        <div class="relative w-full bg-[#2a2a2a] border border-dashed border-gray-700 hover:border-pink-500/50 rounded-xl p-4 transition-colors text-center cursor-pointer">
+          <input
+            type="file"
+            (change)="onFileSelected($event)"
+            accept="image/*"
+            multiple
+            [disabled]="uploadedImages.length >= 3"
+            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+          />
+          <span class="text-sm text-gray-400">
+            📸 {{ uploadedImages.length >= 3 ? 'Límite de imágenes alcanzado' : 'Haga clic aquí para examinar archivos' }}
+          </span>
+        </div>
+        <span class="text-xs text-rose-400 mt-1 block" *ngIf="maxImagesError">
+          No puedes subir más de 3 imágenes en total.
+        </span>
+
+        <div class="flex gap-3 mt-4" *ngIf="uploadedImages.length > 0">
+          <div *ngFor="let img of uploadedImages; let i = index" class="relative w-20 h-20 group rounded-xl overflow-hidden border border-gray-700 shadow-md">
+            <img [src]="img" class="w-full h-full object-cover" alt="Evidencia" />
+            <button
+              type="button"
+              (click)="removeImage(i)"
+              class="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow transition-colors cursor-pointer"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="pqrsForm.invalid || loading"
+        class="w-full mt-4 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-pink-500/20 transform active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none disabled:transform-none cursor-pointer text-sm uppercase tracking-wide"
+      >
+        {{ loading ? '⏳ Procesando Radicado...' : '🚀 Radicar Solicitud' }}
+      </button>
+
+    </form>
+  </div>
+</div>

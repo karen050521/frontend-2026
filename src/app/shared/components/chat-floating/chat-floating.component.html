@@ -198,7 +198,7 @@
             ← VOLVER
           </button>
           
-          <div class="flex-1 space-y-3 overflow-y-auto pr-1">
+          <div #mensajesContainer class="flex-1 space-y-3 overflow-y-auto pr-1">
             @for (m of mensajes(); track m.id) {
               <div class="flex flex-col max-w-[85%] rounded-2xl p-3 text-sm border shadow-md relative"
                    [ngClass]="m.esMio ? 'bg-gradient-to-br from-pink-950/40 to-fuchsia-950/40 border-pink-500/20 text-pink-100 self-end rounded-tr-none' : 'bg-[#1e1e1e] border-gray-800 text-gray-200 self-start rounded-tl-none'">
@@ -206,6 +206,13 @@
                   <span class="text-[10px] font-bold text-fuchsia-400 mb-1 uppercase tracking-tighter">{{ m.emisorNombre || m.emisor?.nombre }}</span> 
                 }
                 <p class="leading-relaxed break-words whitespace-pre-wrap">{{ m.contenido }}</p>
+
+                @if (parseUbicacion(m); as loc) {
+                  <a [href]="'https://maps.google.com/?q=' + loc.lat + ',' + loc.lng" target="_blank" rel="noopener"
+                     class="mt-1.5 inline-flex items-center gap-1 self-start rounded-lg bg-emerald-600/15 px-2 py-1 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-600/25 hover:text-emerald-300 transition-colors">
+                    📍 Ver ubicación
+                  </a>
+                }
 
                 <div class="flex justify-end items-center gap-1 mt-1.5 opacity-80">
                   <span class="text-[9px] text-gray-400">{{ (m.fechaEnvio || m.createdAt) | date:'shortTime' }}</span>

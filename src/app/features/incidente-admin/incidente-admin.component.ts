@@ -60,7 +60,6 @@ export class IncidenteAdminComponent {
           this.cargarHistorialIncidentes(busId);
         }
       },
-      { allowSignalWrites: true },
     );
 
     // Cargar alertas para gerente solo si el usuario tiene rol admin/gerente

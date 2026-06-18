@@ -1,4 +1,4 @@
-import { Component, signal, inject, effect, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, signal, inject, effect, OnInit, OnDestroy, computed, viewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -6,7 +6,8 @@ import { MensajeService } from '../../../core/services/mensaje.service';
 import { GrupoService } from '../../../core/services/grupo.service';
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { ChatSocketService } from '../../../core/services/chat-socket.service';
-import { PersonaService } from '../../../core/services/persona.service'; 
+import { PersonaService } from '../../../core/services/persona.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { GrupoAdminModalComponent } from '../../../features/grupo-admin-modal/grupo-admin-modal.component';
@@ -24,13 +25,18 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   private readonly grupoService = inject(GrupoService);
   private readonly notiService = inject(NotificacionService);
   private readonly chatSocketService = inject(ChatSocketService);
-  private readonly personaService = inject(PersonaService); 
+  private readonly personaService = inject(PersonaService);
+  private readonly toastService = inject(ToastService);
   private socketExpulsadoSub?: Subscription;
 
-  private refreshSub?: Subscription; 
-  private socketSub?: Subscription; 
-  private confirmacionLecturaSub?: Subscription; 
-  private socketPrivadoSub?: Subscription; 
+  private refreshSub?: Subscription;
+  private socketSub?: Subscription;
+  private confirmacionLecturaSub?: Subscription;
+  private socketPrivadoSub?: Subscription;
+  // ✨ HU-ENTR-3-004: evita re-identificar en cada corrida del effect.
+  private usuarioIdentificado = false;
+  // Contenedor scrollable de la conversación; para auto-scroll al fondo.
+  private readonly mensajesContainer = viewChild<ElementRef<HTMLDivElement>>('mensajesContainer');
 
   protected isOpen = signal(false);
   protected filtroBusqueda = signal('');
@@ -99,6 +105,14 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     effect(() => {
       const user = this.authService.currentUser();
       if (user && user.id) {
+        // ✨ HU-ENTR-3-004: unir el socket a su sala personal 'user_{id}' apenas
+        // hay usuario. chat-floating se monta global en app.html, así que esto
+        // cubre a TODO autenticado (emisor y receptor) sin depender de Monitoreo.
+        // Sin esto, el DM en tiempo real y el doble-check del emisor quedan mudos.
+        if (!this.usuarioIdentificado) {
+          this.chatSocketService.identificarUsuario(user.id);
+          this.usuarioIdentificado = true;
+        }
         this.cargarMisGrupos(user.id);
         if (this.isCitizen()) {
           this.cargarGruposPublicos();
@@ -113,14 +127,32 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       if (user && user.id && this.tabActiva() === 'bandeja') {
         this.cargarBandejaDeEntrada(user.id);
       }
-    }, { allowSignalWrites: true });
-  
+    });
+
+    // Auto-scroll al fondo cada vez que cambia la lista de mensajes
+    // (envío, recepción en tiempo real o carga de historial).
+    effect(() => {
+      this.mensajes(); // dependencia reactiva
+      this.scrollAlFondo();
+    });
+
+  }
+
+  private scrollAlFondo(): void {
+    // Espera al render del nuevo mensaje antes de medir scrollHeight.
+    setTimeout(() => {
+      const el = this.mensajesContainer()?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 0);
   }
 
 ngOnInit(): void {
-    const user = this.authService.currentUser();
-
+    // ⚠️ NO capturar el usuario aquí: en el arranque (re-login tras reiniciar)
+    // currentUser() puede ser null y el closure quedaría con user=null para
+    // siempre → esMio=false (burbuja gris, sin ✓✓). Leerlo FRESCO en cada
+    // callback, igual que seleccionarPersona y el listener de expulsión.
     this.refreshSub = this.notiService.refreshNotifications$.subscribe(() => {
+      const user = this.authService.currentUser();
       if (user && user.id) {
         this.cargarMisGrupos(user.id);
         if (this.isCitizen()) this.cargarGruposPublicos();
@@ -129,10 +161,11 @@ ngOnInit(): void {
 
     // 🌟 ESCUCHAR MENSAJES GRUPALES EN TIEMPO REAL
     this.socketSub = this.chatSocketService.escucharMensajes().subscribe((nuevoMsg: any) => {
+      const user = this.authService.currentUser();
       const grupoActual = this.grupoSeleccionado();
       if (grupoActual && Number(nuevoMsg.grupoId) === Number(grupoActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id || nuevoMsg.emisor?.id === user?.id;
-        
+
         const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
         if (!yaExiste) {
           this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
@@ -146,10 +179,11 @@ ngOnInit(): void {
 
     // Escuchar mensajes privados
     this.socketPrivadoSub = this.chatSocketService.escucharMensajesPrivados().subscribe((nuevoMsg: any) => {
+      const user = this.authService.currentUser();
       const personaActual = this.personaSeleccionada();
       if (personaActual && (nuevoMsg.emisorId === personaActual.id || nuevoMsg.receptorId === personaActual.id)) {
         const esMio = nuevoMsg.emisorId === user?.id;
-        
+
         const yaExiste = this.mensajes().some(m => m.id === nuevoMsg.id);
         if (!yaExiste) {
           this.mensajes.update(list => [...list, { ...nuevoMsg, esMio }]);
@@ -307,29 +341,21 @@ ngOnInit(): void {
 
 enviarMensaje(): void {
     const user = this.authService.currentUser();
-    let msg = this.mensajeActual.trim();
-    if (!user?.id || (!msg && !this.ubicacionAdjunta())) return;
+    const texto = this.mensajeActual.trim();
+    const loc = this.ubicacionAdjunta();
+    if (!user?.id || (!texto && !loc)) return;
 
-    if (this.ubicacionAdjunta()) {
-      const loc = this.ubicacionAdjunta();
-      msg += `\n\n📍 Ubicación compartida: https://maps.google.com/?q=${loc?.lat},${loc?.lng}`;
+    // Para grupos/difusión NO hay columna de ubicación, así que la adjuntamos
+    // como texto (comportamiento previo). El DM sí la manda estructurada.
+    let msgGrupo = texto;
+    if (loc) {
+      msgGrupo += `\n\n📍 Ubicación compartida: https://maps.google.com/?q=${loc.lat},${loc.lng}`;
     }
-
-    // 🌟 Comentario arreglado y casted user para evitar el error del .nombre
-    const mensajeLocal = {
-      id: Date.now(),
-      contenido: msg,
-      emisorId: user.id,
-      emisorNombre: (user as any).nombre || 'Yo',
-      createdAt: new Date(),
-      esMio: true,
-      leidoAt: null
-    };
 
     // Caso A: Difusión Multi-grupo para Conductores (HU-ENTR-3-005)
     if (this.modoDifusionMulti() && this.gruposSeleccionadosMulti().length > 0) {
       this.gruposSeleccionadosMulti().forEach(gId => {
-        this.chatSocketService.enviarMensaje(user.id, gId, `[AVISO DE RUTA] ${msg}`);
+        this.chatSocketService.enviarMensaje(user.id, gId, `[AVISO DE RUTA] ${msgGrupo}`);
       });
       this.limpiarCajaTexto();
       this.volverAListado();
@@ -340,19 +366,44 @@ enviarMensaje(): void {
     const grupo = this.grupoSeleccionado();
     if (grupo) {
       if (this.estaBloqueado() || this.estaAbandonado()) return;
-      
+
+      const mensajeLocal = {
+        id: Date.now(),
+        contenido: msgGrupo,
+        emisorId: user.id,
+        emisorNombre: (user as any).nombre || 'Yo',
+        fechaEnvio: new Date(),
+        esMio: true,
+        leidoAt: null
+      };
       this.mensajes.update(list => [...list, mensajeLocal]);
-      this.chatSocketService.enviarMensaje(user.id, grupo.id, msg);
+      this.chatSocketService.enviarMensaje(user.id, grupo.id, msgGrupo);
       this.limpiarCajaTexto();
       return;
     }
 
-    // Caso C: Mensaje directo individual (HU-ENTR-3-004)
+    // Caso C: Mensaje directo individual (HU-ENTR-3-004).
+    // Enviamos texto puro + ubicación estructurada. NO añadimos un mensaje
+    // optimista: el gateway hace echo de 'recibirMensajePrivado' al emisor con
+    // el id REAL persistido (necesario para que el doble-check ✓✓ funcione).
     const persona = this.personaSeleccionada();
     if (persona) {
-      this.mensajes.update(list => [...list, mensajeLocal]);
-      this.chatSocketService.enviarMensajePrivado(user.id, persona.id, msg);
+      this.chatSocketService.enviarMensajePrivado(user.id, persona.id, texto, loc);
       this.limpiarCajaTexto();
+    }
+  }
+
+  // ✨ HU-ENTR-3-004: parsea Mensaje.ubicacion (texto JSON {lat,lng}) para
+  // renderizarla como link de mapa. Tolera null/JSON inválido y strings numéricos.
+  protected parseUbicacion(m: any): { lat: number; lng: number } | null {
+    if (!m?.ubicacion) return null;
+    try {
+      const u = typeof m.ubicacion === 'string' ? JSON.parse(m.ubicacion) : m.ubicacion;
+      const lat = Number(u?.lat);
+      const lng = Number(u?.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    } catch {
+      return null;
     }
   }
 
@@ -536,7 +587,7 @@ abrirMensajeDesdeBandeja(msg: any): void {
     // Limpiar y cerrar la cajita
     this.respuestaDirectaTexto.set('');
     this.mensajeRespondidoId.set(null);
-    alert('¡Mensaje respondido con éxito!');
+    this.toastService.success('Mensaje enviado');
   }
 
 }

@@ -1,16 +1,21 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MonitoreoService, BusEnRuta } from '../../core/services/monitoreo.service';
+import { NotificacionSuscripcionService } from '../../core/services/notificacion-suscripcion.service';
+import { ChatSocketService } from '../../core/services/chat-socket.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import * as L from 'leaflet';
 
 @Component({
   selector: 'app-monitoreo',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './monitoreo.component.html',
 })
 export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -23,20 +28,106 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   etaPersonalizado: number | null = null;
   cargando = true;
 
+  // HU-3-003: suscripción "bus próximo"
+  minutosAnticipacion = 10;
+  readonly opcionesAnticipacion = [5, 10, 15];
+  guardandoSuscripcion = false;
+  // Paradero al que ya estás suscrito (para deshabilitar el botón hasta que cambies de paradero)
+  paraderoSuscritoId: number | null = null;
+  // Última alerta recibida (para mostrar acciones "ver ubicación" / "preparar pago")
+  ultimaAlerta: { rutaNombre: string; etaMinutos: number; placa: string; busId: number; paraderoNombre?: string } | null = null;
+
   private mapa!: L.Map;
   private marcadores = new Map<number, L.Marker>();
+  private paraderosLayer = L.layerGroup();
   private pollingSubscription!: Subscription;
+  private alertaSubscription?: Subscription;
   private primeraCarga = true;
+  // Throttle de toast: no martillar la UI aunque el back emita de más.
+  private ultimoToastTs = 0;
+  private readonly TOAST_COOLDOWN_MS = 30000;
+
+  // ¿El botón "Avisarme" debe estar deshabilitado? (sin paradero, guardando, o ya suscrito a éste)
+  get yaSuscritoAlParadero(): boolean {
+    return this.paraderoSeleccionadoId != null && this.paraderoSeleccionadoId === this.paraderoSuscritoId;
+  }
   // Rutas/paraderos viven en back-logic (NestJS :3000), no en back-sec (:8181)
   private apiUrl = environment.apiNestUrl;
 
   private monitoreoService = inject(MonitoreoService);
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
+  private suscripcionService = inject(NotificacionSuscripcionService);
+  private chatSocket = inject(ChatSocketService);
+  private authService = inject(AuthService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
 
   ngOnInit() {
     this.rutaId = Number(this.route.snapshot.paramMap.get('rutaId'));
     this.cargarParaderos();
+
+    // HU-3-003: unirse a la sala personal y escuchar alertas de bus próximo.
+    const personaId = this.authService.currentUser()?.id;
+    if (personaId) {
+      this.chatSocket.identificarUsuario(personaId);
+    }
+    this.alertaSubscription = this.chatSocket.escucharAlertaBus().subscribe((alerta) => {
+      // El banner se actualiza siempre; el toast se limita (throttle) para no martillar.
+      this.ultimaAlerta = alerta;
+      const ahora = Date.now();
+      if (ahora - this.ultimoToastTs >= this.TOAST_COOLDOWN_MS) {
+        this.ultimoToastTs = ahora;
+        this.toast.warning(
+          `🚌 Bus ${alerta.placa} (${alerta.rutaNombre}) llega en ~${alerta.etaMinutos} min`,
+          6000,
+        );
+      }
+    });
+  }
+
+  // HU-3-003: crear suscripción para el paradero + anticipación elegidos.
+  crearSuscripcion() {
+    if (!this.paraderoSeleccionadoId) {
+      this.toast.error('Selecciona un paradero primero.');
+      return;
+    }
+    this.guardandoSuscripcion = true;
+    this.suscripcionService
+      .crear({
+        rutaId: this.rutaId,
+        paraderoId: this.paraderoSeleccionadoId,
+        minutosAnticipacion: this.minutosAnticipacion,
+      })
+      .subscribe({
+        next: () => {
+          this.guardandoSuscripcion = false;
+          this.paraderoSuscritoId = this.paraderoSeleccionadoId; // deshabilita el botón hasta cambiar de paradero
+          this.toast.success(`✅ Te avisaremos cuando el bus esté a ${this.minutosAnticipacion} min.`);
+        },
+        error: () => {
+          this.guardandoSuscripcion = false;
+          this.toast.error('No se pudo crear la suscripción.');
+        },
+      });
+  }
+
+  // HU-3-003: centrar el mapa en el bus de la alerta.
+  verUbicacionAlerta() {
+    const busId = this.ultimaAlerta?.busId;
+    if (busId == null) return;
+    const marcador = this.marcadores.get(busId);
+    if (marcador) {
+      this.mapa.setView(marcador.getLatLng(), 16);
+      marcador.openPopup();
+    } else {
+      this.toast.info('El bus aún no aparece en el mapa.');
+    }
+  }
+
+  // HU-3-003: acción rápida de pago (deep-link a recarga, sin implementar pago).
+  prepararPago() {
+    this.router.navigate(['/recarga']);
   }
 
   ngAfterViewInit() {
@@ -51,6 +142,34 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© KALA Buses - OpenStreetMap contributors',
     }).addTo(this.mapa);
+    this.paraderosLayer.addTo(this.mapa);
+    this.dibujarParaderos(); // si los paraderos ya cargaron antes del mapa
+  }
+
+  // HU-3-003 / FIX 5: dibuja los paraderos de la ruta en el mapa (patrón de
+  // features/rutas/paraderos-cercanos). Resalta el paradero seleccionado.
+  private dibujarParaderos() {
+    if (!this.mapa || !this.paraderos.length) return;
+    this.paraderosLayer.clearLayers();
+    for (const p of this.paraderos) {
+      const lat = Number(p.latitud ?? p.latitude);
+      const lon = Number(p.longitud ?? p.longitude);
+      if (Number.isNaN(lat) || Number.isNaN(lon)) continue;
+      const seleccionado = this.paraderoSeleccionadoId === p.id;
+      const icono = L.divIcon({
+        html: `<div class="flex items-center justify-center rounded-full border-2 shadow ${
+          seleccionado
+            ? 'bg-emerald-600 border-emerald-800 text-white w-7 h-7 text-base'
+            : 'bg-white border-blue-500 w-5 h-5 text-xs'
+        }">📍</div>`,
+        className: '',
+        iconSize: seleccionado ? [28, 28] : [20, 20],
+        iconAnchor: seleccionado ? [14, 14] : [10, 10],
+      });
+      L.marker([lat, lon], { icon: icono })
+        .bindPopup(`<strong>${p.nombre ?? 'Paradero'}</strong>`)
+        .addTo(this.paraderosLayer);
+    }
   }
 
   private cargarBusesInicial() {
@@ -83,6 +202,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
         this.paraderos = Array.isArray(rp)
           ? rp.map((x: any) => x?.paradero ?? x).filter(Boolean)
           : [];
+        this.dibujarParaderos(); // pintarlos en el mapa (si ya está inicializado)
       },
       error: () => { this.paraderos = []; }
     });
@@ -113,6 +233,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     const valor = (event.target as HTMLSelectElement).value;
     this.paraderoSeleccionadoId = valor ? Number(valor) : null;
     this.etaPersonalizado = null;
+    this.dibujarParaderos(); // mover el resaltado al paradero elegido
   }
 
   // --- HU-3-001: detección de señal perdida (staleness) ---

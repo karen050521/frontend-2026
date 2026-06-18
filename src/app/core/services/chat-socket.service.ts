@@ -91,6 +91,14 @@ export class ChatSocketService {
     }
   }
 
+  // ✨ HU-ENTR-3-003: une el socket a su sala personal 'user_{personaId}' para
+  // recibir alertas dirigidas (bus próximo) sin depender de estar en un grupo.
+  identificarUsuario(personaId: string): void {
+    if (personaId) {
+      this.socket.emit('identificarUsuario', { personaId });
+    }
+  }
+
   // ✨ NUEVO: Escuchar cuando el backend avisa que el bus está llegando
   escucharAlertaBus(): Observable<any> {
     return new Observable(observer => {

@@ -120,6 +120,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'monitoreo/:rutaId', // 🚌 HU-3-001: seguimiento de buses en tiempo real
+    loadComponent: () =>
+      import('./features/monitoreo/monitoreo.component').then((m) => m.MonitoreoComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'rutas',
     loadComponent: () =>
       import('./features/rutas/consulta-rutas.component').then((m) => m.ConsultaRutasComponent),

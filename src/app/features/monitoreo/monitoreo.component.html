@@ -9,7 +9,7 @@
         @for (bus of busesConIncidente; track bus.busId) {
           <li>
             Vehículo <span class="underline font-bold">{{ bus.placa }}</span>: 
-            {{ bus.estaRetrasado ? 'Presenta un retraso de ' + bus.minutosRetraso + ' min.' : 'Reporte de incidente activo por central técnica.' }}
+            {{ bus.estaRetrasado ? 'Presenta un retraso de ' + formatearRetraso(bus.minutosRetraso) + '.' : 'Reporte de incidente activo por central técnica.' }}
           </li>
         }
       </ul>
@@ -67,8 +67,8 @@
         </span>
         <span class="font-bold text-blue-700 w-16 text-right">{{ bus.tiempoEstimadoLlegada }} min</span>
         
-        <span class="w-28 text-right text-xs font-semibold" [class]="bus.estado === 'incidente' ? 'text-red-600' : 'text-green-600'">
-          {{ bus.estado === 'incidente' ? '⚠️ Alerta / Retraso' : '✅ En horario' }}
+        <span class="w-32 text-right text-xs font-semibold" [class]="claseEstado(bus)">
+          {{ textoEstado(bus) }}
         </span>
 
         @if (paraderoSeleccionadoId) {

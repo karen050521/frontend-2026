@@ -27,7 +27,8 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   private marcadores = new Map<number, L.Marker>();
   private pollingSubscription!: Subscription;
   private primeraCarga = true;
-  private apiUrl = environment.apiBaseUrl;
+  // Rutas/paraderos viven en back-logic (NestJS :3000), no en back-sec (:8181)
+  private apiUrl = environment.apiNestUrl;
 
   private monitoreoService = inject(MonitoreoService);
   private route = inject(ActivatedRoute);
@@ -75,12 +76,25 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private cargarParaderos() {
+    // GET /ruta/:id/paraderos devuelve una Ruta con rutaParaderos[].paradero (no un array plano)
     this.http.get<any>(`${this.apiUrl}/ruta/${this.rutaId}/paraderos`).subscribe({
       next: (resp: any) => {
-        this.paraderos = resp.data ?? resp ?? [];
+        const rp = resp?.rutaParaderos ?? resp?.data?.rutaParaderos ?? [];
+        this.paraderos = Array.isArray(rp)
+          ? rp.map((x: any) => x?.paradero ?? x).filter(Boolean)
+          : [];
       },
       error: () => { this.paraderos = []; }
     });
+  }
+
+  /** Formatea minutos de retraso a "Xh Ym" legible (p.ej. 867 → "14 h 27 min"). */
+  formatearRetraso(minutos: number): string {
+    const min = Math.max(0, Math.round(minutos ?? 0));
+    const horas = Math.floor(min / 60);
+    const mins = min % 60;
+    if (horas === 0) return `${mins} min`;
+    return mins === 0 ? `${horas} h` : `${horas} h ${mins} min`;
   }
 
   consultarEtaPersonal(busId: number) {
@@ -145,7 +159,15 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     if (this.primeraCarga && buses.length > 0) {
-      this.mapa.setView([buses[0].latitude, buses[0].longitude], 14);
+      if (buses.length === 1) {
+        this.mapa.setView([buses[0].latitude, buses[0].longitude], 15);
+      } else {
+        // Encuadra TODOS los buses activos para que ninguno quede fuera de cuadro
+        const bounds = L.latLngBounds(
+          buses.map(b => [b.latitude, b.longitude] as [number, number]),
+        );
+        this.mapa.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+      }
       this.primeraCarga = false;
     }
   }
@@ -165,7 +187,7 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
           </span>
         </div>
         📍 <b>Próximo paradero:</b> ${nombreParadero}<br>
-        Hex <b>Distancia:</b> ${distancia}m<br>
+        📏 <b>Distancia:</b> ${distancia} m<br>
         ⏱️ <b>Arribo estimado:</b> <strong>${bus.tiempoEstimadoLlegada} min</strong><br>
         🚦 <b>Velocidad:</b> ${bus.velocidad} km/h<br>
         <hr style="margin: 6px 0; border: 0; border-top: 1px solid #E5E7EB;">

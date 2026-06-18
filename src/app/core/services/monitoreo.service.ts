@@ -26,7 +26,8 @@ export interface BusEnRuta {
 @Injectable({ providedIn: 'root' })
 export class MonitoreoService {
 
-  private apiUrl = environment.apiBaseUrl;
+  // Monitoreo vive en back-logic (NestJS :3000), no en back-sec (:8181)
+  private apiUrl = environment.apiNestUrl;
 
   constructor(private http: HttpClient) {}
 

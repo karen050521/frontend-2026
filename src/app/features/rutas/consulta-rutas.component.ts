@@ -1,5 +1,6 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { RutaLista, RutaDetalle, RutaRecorrido } from '../../core/models/ruta.model';
 import { RutaService } from '../../core/services/ruta.service';
 import { FiltroRutasComponent } from './components/filtro-rutas.component';
@@ -14,6 +15,7 @@ import { forkJoin } from 'rxjs';
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     FiltroRutasComponent,
     ListadoRutasComponent,
     DetalleRutaComponent,
@@ -36,7 +38,7 @@ import { forkJoin } from 'rxjs';
           <!-- Listado de rutas (1 columna) -->
           <div class="lg:col-span-1">
             <div class="bg-white rounded-lg shadow p-4">
-              <h2 class="text-lg font-semibold mb-4">Rutas Disponibles</h2>
+              <h2 class="text-lg font-semibold mb-4 text-gray-900">Rutas Disponibles</h2>
               <app-listado-rutas
                 [rutas]="rutas()"
                 [loading]="loading()"
@@ -49,6 +51,13 @@ import { forkJoin } from 'rxjs';
           <!-- Detalle + Mapa (2 columnas) -->
           <div class="lg:col-span-2 space-y-6" *ngIf="rutaSeleccionada()">
             <app-detalle-ruta [ruta]="rutaSeleccionada()!" />
+            <!-- HU-3-001: seguimiento en tiempo real de los buses de esta ruta -->
+            <a
+              [routerLink]="['/monitoreo', rutaSeleccionada()!.id]"
+              class="flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg shadow transition-colors"
+            >
+              🚌 Ver buses en vivo
+            </a>
             <app-mapa-rutas [ruta]="rutaSeleccionada()!" [recorrido]="recorridoMapa()" />
           </div>
 

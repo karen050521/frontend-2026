@@ -8,9 +8,9 @@ import { RutaLista } from '../../../core/models/ruta.model';
   imports: [CommonModule],
   template: `
     <div class="space-y-2">
-      <div *ngIf="loading()" class="text-center text-gray-500">Cargando...</div>
+      <div *ngIf="loading()" class="text-center text-gray-500 dark:text-[#a3a3a3]">Cargando...</div>
 
-      <div *ngIf="!loading() && rutas().length === 0" class="text-center text-gray-500">
+      <div *ngIf="!loading() && rutas().length === 0" class="text-center text-gray-500 dark:text-[#a3a3a3]">
         No hay rutas disponibles
       </div>
 
@@ -19,11 +19,11 @@ import { RutaLista } from '../../../core/models/ruta.model';
         (click)="seleccionar.emit(ruta.id)"
         [class.ring-2]="esSeleccionada(ruta)"
         [class.ring-pink-500]="esSeleccionada(ruta)"
-        [class.bg-pink-50]="esSeleccionada(ruta)"
-        class="w-full text-left p-3 border border-gray-300 rounded-lg hover:border-pink-500 transition cursor-pointer"
+        [ngClass]="esSeleccionada(ruta) ? 'bg-pink-50 dark:bg-pink-500/15' : ''"
+        class="w-full text-left p-3 border border-gray-300 rounded-lg hover:border-pink-500 transition cursor-pointer dark:border-[#404040] text-gray-900 dark:text-[#fafafa]"
       >
         <div class="font-semibold">{{ ruta.nombre }}</div>
-        <div *ngIf="ruta.origen || ruta.destino" class="text-sm text-gray-600">
+        <div *ngIf="ruta.origen || ruta.destino" class="text-sm text-gray-600 dark:text-[#a3a3a3]">
           {{ ruta.origen }} → {{ ruta.destino }}
         </div>
         <div class="flex justify-between items-center mt-2">

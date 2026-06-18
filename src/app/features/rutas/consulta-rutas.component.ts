@@ -22,12 +22,12 @@ import { forkJoin } from 'rxjs';
     MapaRutasComponent
   ],
   template: `
-    <div class="min-h-screen bg-gray-50 p-6">
+    <div class="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] p-6">
       <div class="max-w-7xl mx-auto">
         <!-- Encabezado -->
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-900">Consulta de Rutas Disponibles</h1>
-          <p class="text-gray-600 mt-1">Busca rutas disponibles y visualiza los paraderos en el mapa</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-[#fafafa]">Consulta de Rutas Disponibles</h1>
+          <p class="text-gray-600 dark:text-[#a3a3a3] mt-1">Busca rutas disponibles y visualiza los paraderos en el mapa</p>
         </div>
 
         <!-- Filtro -->
@@ -37,8 +37,8 @@ import { forkJoin } from 'rxjs';
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Listado de rutas (1 columna) -->
           <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow p-4">
-              <h2 class="text-lg font-semibold mb-4 text-gray-900">Rutas Disponibles</h2>
+            <div class="bg-white dark:bg-[#262626] rounded-lg shadow p-4">
+              <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-[#fafafa]">Rutas Disponibles</h2>
               <app-listado-rutas
                 [rutas]="rutas()"
                 [loading]="loading()"
@@ -64,7 +64,7 @@ import { forkJoin } from 'rxjs';
           <!-- Placeholder cuando no hay ruta seleccionada -->
           <div 
             *ngIf="!rutaSeleccionada() && !loading()"
-            class="lg:col-span-2 bg-white rounded-lg shadow p-8 flex items-center justify-center text-gray-500"
+            class="lg:col-span-2 bg-white dark:bg-[#262626] rounded-lg shadow p-8 flex items-center justify-center text-gray-500 dark:text-[#a3a3a3]"
           >
             <p>👈 Selecciona una ruta para ver los detalles y el mapa</p>
           </div>

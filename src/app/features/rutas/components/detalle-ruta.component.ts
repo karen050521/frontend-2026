@@ -7,7 +7,7 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-white p-4 rounded-lg border border-gray-200">
+    <div class="bg-white p-4 rounded-lg border border-gray-200 text-gray-900 dark:bg-[#262626] dark:border-[#404040] dark:text-[#fafafa]">
       <h3 class="text-lg font-bold mb-2">{{ ruta().nombre }}</h3>
       <p class="text-gray-600 text-sm mb-3">
         <strong>{{ ruta().origen }}</strong> → <strong>{{ ruta().destino }}</strong>
@@ -15,17 +15,17 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <span class="text-gray-600 text-sm">Tarifa</span>
+          <span class="text-gray-600 dark:text-[#a3a3a3] text-sm">Tarifa</span>
           <p class="text-xl font-bold text-green-600">{{ formatTarifa(+ruta().tarifa) }}</p>
         </div>
         <div>
-          <span class="text-gray-600 text-sm">Duración</span>
+          <span class="text-gray-600 dark:text-[#a3a3a3] text-sm">Duración</span>
           <p class="text-xl font-bold text-pink-600">{{ ruta().duracionEstimadoFormato }}</p>
         </div>
       </div>
 
       <div class="mt-3">
-        <span class="text-gray-600 text-sm">Estado</span>
+        <span class="text-gray-600 dark:text-[#a3a3a3] text-sm">Estado</span>
         <p>
           <span
             [class.bg-green-100]="ruta().estado === 'activa'"
@@ -48,7 +48,7 @@ import { RutaDetalle } from '../../../core/models/ruta.model';
             >
               {{ rp.ordenSecuencial }}
             </span>
-            <span class="text-gray-700">{{ rp.paradero.nombre }}</span>
+            <span class="text-gray-700 dark:text-[#e5e5e5]">{{ rp.paradero.nombre }}</span>
             <span class="text-gray-400 text-xs">{{ rp.horaLlegadaEstimada || '—' }}</span>
           </div>
         </div>

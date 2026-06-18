@@ -14,7 +14,7 @@ import { debounceTime, Subject } from 'rxjs';
         [(ngModel)]="termino"
         (ngModelChange)="onBuscar($event)"
         placeholder="Buscar ruta por nombre..."
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-[#262626] dark:border-[#404040] dark:text-[#fafafa] dark:placeholder-[#a3a3a3]"
       />
     </div>
   `,

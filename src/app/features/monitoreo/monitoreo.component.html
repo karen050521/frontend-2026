@@ -1,25 +1,25 @@
 <div class="flex flex-col h-full">
 
   @if (busesConIncidente.length > 0) {
-    <div class="bg-red-50 border-l-4 border-red-500 text-red-900 px-4 py-3 text-sm flex flex-col gap-1">
-      <div class="flex items-center gap-1.5 font-bold text-red-700">
+    <div class="bg-red-50 dark:bg-red-950/40 border-l-4 border-red-500 text-red-900 dark:text-red-200 px-4 py-3 text-sm flex flex-col gap-1">
+      <div class="flex items-center gap-1.5 font-bold text-red-700 dark:text-red-300">
         <span>⚠️ Alertas operacionales en la ruta:</span>
       </div>
-      <ul class="list-disc list-inside text-xs text-red-700 font-medium pl-1">
+      <ul class="list-disc list-inside text-xs text-red-700 dark:text-red-300 font-medium pl-1">
         @for (bus of busesConIncidente; track bus.busId) {
           <li>
             Vehículo <span class="underline font-bold">{{ bus.placa }}</span>: 
-            {{ bus.estaRetrasado ? 'Presenta un retraso de ' + bus.minutosRetraso + ' min.' : 'Reporte de incidente activo por central técnica.' }}
+            {{ bus.estaRetrasado ? 'Presenta un retraso de ' + formatearRetraso(bus.minutosRetraso) + '.' : 'Reporte de incidente activo por central técnica.' }}
           </li>
         }
       </ul>
     </div>
   }
 
-  <div class="bg-blue-50 border-b border-blue-200 px-4 py-3 flex flex-wrap items-center gap-3">
-    <label class="text-sm font-semibold text-blue-900">📍 ¿En qué paradero te encuentras?</label>
+  <div class="bg-blue-50 dark:bg-[#262626] border-b border-blue-200 dark:border-[#404040] px-4 py-3 flex flex-wrap items-center gap-3">
+    <label class="text-sm font-semibold text-blue-900 dark:text-blue-300">📍 ¿En qué paradero te encuentras?</label>
     <select
-      class="border border-blue-300 rounded px-3 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="border border-blue-300 dark:border-[#404040] rounded px-3 py-1 text-sm bg-white dark:bg-[#262626] text-gray-700 dark:text-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-blue-500"
       (change)="seleccionarParadero($event)">
       <option value="">Selecciona tu paradero actual</option>
       @for (p of paraderos; track p.id) {
@@ -43,12 +43,12 @@
 
   <div id="mapa-monitoreo" class="w-full flex-grow z-0" style="min-height: 480px;"></div>
 
-  <div class="bg-white border-t overflow-y-auto" style="max-height: 220px;">
-    <div class="px-4 py-2.5 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10">
-      <h3 class="font-bold text-sm text-gray-800 flex items-center gap-1.5">
+  <div class="bg-white dark:bg-[#262626] border-t dark:border-[#404040] overflow-y-auto" style="max-height: 220px;">
+    <div class="px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border-b dark:border-[#404040] flex justify-between items-center sticky top-0 z-10">
+      <h3 class="font-bold text-sm text-gray-800 dark:text-[#fafafa] flex items-center gap-1.5">
         🚌 Flota en Operación Activa
       </h3>
-      <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-bold">
+      <span class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2.5 py-0.5 rounded-full font-bold">
         {{ buses.length }} {{ buses.length === 1 ? 'bus detectado' : 'buses detectados' }}
       </span>
     </div>
@@ -60,15 +60,15 @@
     }
 
     @for (bus of buses; track bus.busId) {
-      <div class="flex justify-between items-center px-4 py-2.5 border-b text-sm hover:bg-gray-50 transition-colors">
-        <span class="font-bold text-gray-800 w-24">🚌 {{ bus.placa }}</span>
-        <span class="text-gray-500 flex-1 mx-2 truncate text-xs">
+      <div class="flex justify-between items-center px-4 py-2.5 border-b dark:border-[#404040] text-sm hover:bg-gray-50 dark:hover:bg-[#2f2f2f] transition-colors">
+        <span class="font-bold text-gray-800 dark:text-[#fafafa] w-24">🚌 {{ bus.placa }}</span>
+        <span class="text-gray-500 dark:text-[#a3a3a3] flex-1 mx-2 truncate text-xs">
           Próximo a: {{ bus.paraderoMasCercano.nombre || 'En tránsito' }}
         </span>
-        <span class="font-bold text-blue-700 w-16 text-right">{{ bus.tiempoEstimadoLlegada }} min</span>
+        <span class="font-bold text-blue-700 dark:text-blue-300 w-16 text-right">{{ bus.tiempoEstimadoLlegada }} min</span>
         
-        <span class="w-28 text-right text-xs font-semibold" [class]="bus.estado === 'incidente' ? 'text-red-600' : 'text-green-600'">
-          {{ bus.estado === 'incidente' ? '⚠️ Alerta / Retraso' : '✅ En horario' }}
+        <span class="w-32 text-right text-xs font-semibold" [class]="claseEstado(bus)">
+          {{ textoEstado(bus) }}
         </span>
 
         @if (paraderoSeleccionadoId) {

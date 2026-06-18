@@ -27,7 +27,8 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   private marcadores = new Map<number, L.Marker>();
   private pollingSubscription!: Subscription;
   private primeraCarga = true;
-  private apiUrl = environment.apiBaseUrl;
+  // Rutas/paraderos viven en back-logic (NestJS :3000), no en back-sec (:8181)
+  private apiUrl = environment.apiNestUrl;
 
   private monitoreoService = inject(MonitoreoService);
   private route = inject(ActivatedRoute);
@@ -75,12 +76,25 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private cargarParaderos() {
+    // GET /ruta/:id/paraderos devuelve una Ruta con rutaParaderos[].paradero (no un array plano)
     this.http.get<any>(`${this.apiUrl}/ruta/${this.rutaId}/paraderos`).subscribe({
       next: (resp: any) => {
-        this.paraderos = resp.data ?? resp ?? [];
+        const rp = resp?.rutaParaderos ?? resp?.data?.rutaParaderos ?? [];
+        this.paraderos = Array.isArray(rp)
+          ? rp.map((x: any) => x?.paradero ?? x).filter(Boolean)
+          : [];
       },
       error: () => { this.paraderos = []; }
     });
+  }
+
+  /** Formatea minutos de retraso a "Xh Ym" legible (p.ej. 867 → "14 h 27 min"). */
+  formatearRetraso(minutos: number): string {
+    const min = Math.max(0, Math.round(minutos ?? 0));
+    const horas = Math.floor(min / 60);
+    const mins = min % 60;
+    if (horas === 0) return `${mins} min`;
+    return mins === 0 ? `${horas} h` : `${horas} h ${mins} min`;
   }
 
   consultarEtaPersonal(busId: number) {
@@ -101,6 +115,37 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     this.etaPersonalizado = null;
   }
 
+  // --- HU-3-001: detección de señal perdida (staleness) ---
+  private readonly UMBRAL_SIN_SENAL_MIN = 5;
+
+  /** Minutos desde el último reporte de posición; null si no hay timestamp válido. */
+  minutosSinReportar(bus: BusEnRuta): number | null {
+    if (!bus.ultimaActualizacion) return null;
+    const t = new Date(bus.ultimaActualizacion).getTime();
+    if (Number.isNaN(t)) return null;
+    return Math.max(0, Math.floor((Date.now() - t) / 60000));
+  }
+
+  /** El bus no reporta hace demasiado (o nunca) → no se confía en su posición. */
+  estaSinSenal(bus: BusEnRuta): boolean {
+    const m = this.minutosSinReportar(bus);
+    return m === null || m >= this.UMBRAL_SIN_SENAL_MIN;
+  }
+
+  /** Texto de estado para el listado (sin señal tiene prioridad visual). */
+  textoEstado(bus: BusEnRuta): string {
+    if (this.estaSinSenal(bus)) {
+      const m = this.minutosSinReportar(bus);
+      return m === null ? '📡 Sin señal' : `📡 Sin señal · ${this.formatearRetraso(m)}`;
+    }
+    return bus.estado === 'incidente' ? '⚠️ Alerta / Retraso' : '✅ En horario';
+  }
+
+  claseEstado(bus: BusEnRuta): string {
+    if (this.estaSinSenal(bus)) return 'text-gray-500 dark:text-gray-400';
+    return bus.estado === 'incidente' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+  }
+
   private actualizarMapa(buses: BusEnRuta[]) {
     this.buses = buses;
     this.busesConIncidente = buses.filter(b => b.estado === 'incidente' || b.estaRetrasado);
@@ -116,18 +161,21 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Renderizado e inserción de marcadores activos
     buses.forEach(bus => {
+      const sinSenal = this.estaSinSenal(bus);
       const esIncidente = bus.estado === 'incidente';
-      
+      // Prioridad visual: sin señal (gris) > incidente/retraso (rojo) > en horario (verde)
+      const colorClase = sinSenal
+        ? 'bg-gray-400 border-gray-600 text-white opacity-90'
+        : esIncidente
+          ? 'bg-red-500 border-red-700 text-white animate-bounce'
+          : 'bg-green-600 border-green-800 text-white';
+
       const icono = L.divIcon({
         html: `
-          <div class="flex flex-col items-center justify-center rounded-lg px-2 py-1 border shadow-md font-bold text-xs transition-all duration-300 ${
-            esIncidente 
-              ? 'bg-red-500 border-red-700 text-white animate-bounce' 
-              : 'bg-green-600 border-green-800 text-white'
-          }">
-            <span>🚌 ${bus.placa}</span>
+          <div class="flex flex-col items-center justify-center rounded-lg px-2 py-1 border shadow-md font-bold text-xs transition-all duration-300 ${colorClase}">
+            <span>${sinSenal ? '📡' : '🚌'} ${bus.placa}</span>
           </div>`,
-        className: '', 
+        className: '',
         iconSize: [85, 32],
       });
 
@@ -145,33 +193,49 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     if (this.primeraCarga && buses.length > 0) {
-      this.mapa.setView([buses[0].latitude, buses[0].longitude], 14);
+      if (buses.length === 1) {
+        this.mapa.setView([buses[0].latitude, buses[0].longitude], 15);
+      } else {
+        // Encuadra TODOS los buses activos para que ninguno quede fuera de cuadro
+        const bounds = L.latLngBounds(
+          buses.map(b => [b.latitude, b.longitude] as [number, number]),
+        );
+        this.mapa.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+      }
       this.primeraCarga = false;
     }
   }
 
   private construirPopup(bus: BusEnRuta): string {
+    const sinSenal = this.estaSinSenal(bus);
+    const minSin = this.minutosSinReportar(bus);
     const esIncidente = bus.estado === 'incidente';
     // Se asegura de desplegar el nombre por defecto de manera limpia ante fallas de red
     const nombreParadero = bus.paraderoMasCercano.nombre || 'En tránsito';
     const distancia = bus.paraderoMasCercano.distanciaMetros || 0;
 
+    const badgeColor = sinSenal ? '#9CA3AF' : esIncidente ? '#EF4444' : '#10B981';
+    const badgeText = sinSenal ? 'SIN SEÑAL' : esIncidente ? 'INCIDENTE' : 'OPERANDO';
+    const footer = sinSenal
+      ? `<span style="color:#6B7280; font-weight: bold;">📡 Sin señal${minSin !== null ? ' hace ' + this.formatearRetraso(minSin) : ''} — posición no confiable</span>`
+      : esIncidente
+        ? `<span style="color:#DC2626; font-weight: bold;">⚠️ Alerta / Retraso en Operación</span>`
+        : '<span style="color:#16A34A; font-weight: medium;">✅ Horario Regulado Activo</span>';
+
     return `
       <div style="min-width:210px; font-size:13px; font-family: sans-serif; line-height: 1.4;">
         <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
           <strong>🚌 Placa: ${bus.placa}</strong>
-          <span style="padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; background-color: ${esIncidente ? '#EF4444' : '#10B981'}">
-            ${esIncidente ? 'INCIDENTE' : 'OPERANDO'}
+          <span style="padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; background-color: ${badgeColor}">
+            ${badgeText}
           </span>
         </div>
         📍 <b>Próximo paradero:</b> ${nombreParadero}<br>
-        Hex <b>Distancia:</b> ${distancia}m<br>
+        📏 <b>Distancia:</b> ${distancia} m<br>
         ⏱️ <b>Arribo estimado:</b> <strong>${bus.tiempoEstimadoLlegada} min</strong><br>
         🚦 <b>Velocidad:</b> ${bus.velocidad} km/h<br>
         <hr style="margin: 6px 0; border: 0; border-top: 1px solid #E5E7EB;">
-        ${esIncidente
-          ? `<span style="color:#DC2626; font-weight: bold;">⚠️ Alerta / Retraso en Operación</span>`
-          : '<span style="color:#16A34A; font-weight: medium;">✅ Horario Regulado Activo</span>'}
+        ${footer}
       </div>`;
   }
 

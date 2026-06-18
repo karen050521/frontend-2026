@@ -37,7 +37,7 @@ export class SearchBarComponent implements OnInit, OnDestroy {
         const userId = user.id || user._id;
         this.cargarNotificaciones(userId);
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   ngOnInit(): void {

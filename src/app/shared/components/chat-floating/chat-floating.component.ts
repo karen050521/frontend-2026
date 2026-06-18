@@ -125,7 +125,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
       if (user && user.id && this.tabActiva() === 'bandeja') {
         this.cargarBandejaDeEntrada(user.id);
       }
-    }, { allowSignalWrites: true });
+    });
   
   }
 

@@ -142,8 +142,8 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   claseEstado(bus: BusEnRuta): string {
-    if (this.estaSinSenal(bus)) return 'text-gray-500';
-    return bus.estado === 'incidente' ? 'text-red-600' : 'text-green-600';
+    if (this.estaSinSenal(bus)) return 'text-gray-500 dark:text-gray-400';
+    return bus.estado === 'incidente' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
   }
 
   private actualizarMapa(buses: BusEnRuta[]) {

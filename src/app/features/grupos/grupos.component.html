@@ -118,8 +118,9 @@
           <div class="p-4 bg-[#262626] border border-gray-800 rounded-xl hover:border-pink-500/50 transition-all group">
             <div class="flex items-center gap-4">
 <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center text-xl shadow-lg overflow-hidden flex-shrink-0">
-  @if (grupo.imagenUrl && (grupo.imagenUrl.shadows?.includes('.') || grupo.imagenUrl.endsWith('.jpg') || grupo.imagenUrl.endsWith('.png'))) {
-<img [src]="srvUrl + '/uploads/' + grupo.imagenUrl" class="w-full h-full object-cover" alt="Foto">  } @else {
+  @if (grupo.imagenUrl) {
+    <img [src]="srvUrl + '/uploads/' + grupo.imagenUrl" class="w-full h-full object-cover" alt="Foto del grupo">
+  } @else {
     {{ grupo.nombre.charAt(0).toUpperCase() }}
   }
 </div>

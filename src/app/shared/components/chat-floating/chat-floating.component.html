@@ -146,8 +146,8 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border border-gray-600 flex items-center justify-center">
-                      @if (g.imagenUrl && (g.imagenUrl.includes('.') || g.imagenUrl.endsWith('.jpg') || g.imagenUrl.endsWith('.png'))) {
-                        <img [src]="srvUrl + '/uploads/' + g.imagenUrl" class="w-full h-full object-cover" alt="Grupo">  
+                      @if (g.imagenUrl) {
+                        <img [src]="srvUrl + '/uploads/' + g.imagenUrl" class="w-full h-full object-cover" alt="Grupo">
                       } @else {
                         <div class="text-lg">👥</div>
                       }

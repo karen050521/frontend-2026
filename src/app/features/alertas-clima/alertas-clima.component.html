@@ -67,7 +67,7 @@
       </button>
     </div>
     <p class="text-xs text-gray-500 mb-3">
-      "Probar ahora" ejecuta el grafo de inmediato (sin esperar el cron). Solo notifica alertas cuyo horario de viaje está dentro de las próximas 2 horas y no se hayan enviado hoy.
+      "Probar ahora" ejecuta el grafo de inmediato y notifica a TODAS tus alertas activas (ignora la ventana de 2h, solo para prueba). El envío automático diario sí respeta el horario.
     </p>
 
     <p *ngIf="alertas.length === 0" class="text-gray-500 text-sm">Aún no tienes alertas configuradas.</p>

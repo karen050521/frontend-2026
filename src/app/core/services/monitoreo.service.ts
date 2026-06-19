@@ -21,6 +21,8 @@ export interface BusEnRuta {
   estaRetrasado: boolean;
   minutosRetraso: number;
   estado: 'normal' | 'incidente'; // 👈 AGREGADO: Crucial para que el mapa pinte el marcador de color dinámico
+  pasajerosActuales?: number;       // 👈 boletos 'activo' a bordo
+  capacidadMaxima?: number | null;  // 👈 capacidad de referencia para alerta de ocupación
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,7 +44,9 @@ export class MonitoreoService {
           data: (Array.isArray(datos) ? datos : []).map(bus => ({
             ...bus,
             // Si el backend no envía el campo 'estado', le asignamos por defecto 'normal'
-            estado: bus.estado || 'normal' 
+            estado: bus.estado || 'normal',
+            pasajerosActuales: bus.pasajerosActuales ?? 0,
+            capacidadMaxima: bus.capacidadMaxima ?? null,
           }))
         };
       })

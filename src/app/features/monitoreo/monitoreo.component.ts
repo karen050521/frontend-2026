@@ -335,6 +335,11 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
     const nombreParadero = bus.paraderoMasCercano.nombre || 'En tránsito';
     const distancia = bus.paraderoMasCercano.distanciaMetros || 0;
 
+    // Ocupación (mismo patrón que company-dashboard): pasajeros a bordo vs capacidad
+    const pasajeros = bus.pasajerosActuales ?? 0;
+    const capacidad = bus.capacidadMaxima ?? 0;
+    const ocupacionMaxima = capacidad > 0 && pasajeros >= capacidad;
+
     const badgeColor = sinSenal ? '#9CA3AF' : esIncidente ? '#EF4444' : '#10B981';
     const badgeText = sinSenal ? 'SIN SEÑAL' : esIncidente ? 'INCIDENTE' : 'OPERANDO';
     const footer = sinSenal
@@ -355,8 +360,10 @@ export class MonitoreoComponent implements OnInit, AfterViewInit, OnDestroy {
         📏 <b>Distancia:</b> ${distancia} m<br>
         ⏱️ <b>Arribo estimado:</b> <strong>${bus.tiempoEstimadoLlegada} min</strong><br>
         🚦 <b>Velocidad:</b> ${bus.velocidad} km/h<br>
+        👥 <b>Pasajeros:</b> ${pasajeros}${capacidad > 0 ? ' / ' + capacidad : ''}<br>
         <hr style="margin: 6px 0; border: 0; border-top: 1px solid #E5E7EB;">
         ${footer}
+        ${ocupacionMaxima ? '<div style="color:#ea580c; font-weight:bold; margin-top:4px;">⚠️ Ocupación Máxima</div>' : ''}
       </div>`;
   }
 

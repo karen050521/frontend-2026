@@ -44,17 +44,18 @@ export class AlertaService {
     return this.http.get<any>(`${this.apiUrl}/${mensajeId}/estadisticas`);
   }
 
-  /**
-   * 🚌 NUEVO: Obtener el listado de rutas disponibles desde el backend
+ /**
+   * 🚌 Obtener el listado de rutas disponibles desde el backend (Corregido a /ruta)
    */
   obtenerRutasDisponibles(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiNestUrl}/rutas`);
+    return this.http.get<any[]>(`${environment.apiNestUrl}/ruta`);
   }
 
   /**
-   * 🗺️ NUEVO: Obtener el listado de zonas geográficas disponibles desde el backend
+   * 🗺️ Obtener el listado de zonas geográficas disponibles desde el backend (Corregido a /zona)
    */
-  obtenerZonasDisponibles(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiNestUrl}/zonas`);
+obtenerZonasDisponibles(): Observable<any[]> {
+    // Cambiamos la URL vieja por la ruta real del controlador de rutas
+    return this.http.get<any[]>(`${environment.apiNestUrl}/ruta/zonas/disponibles`);
   }
 }

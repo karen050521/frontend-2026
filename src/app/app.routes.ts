@@ -215,6 +215,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/alerta-masiva/alerta-masiva.component').then(m => m.AlertaMasivaComponent)
   },
+  {
+    path: 'alertas-clima',
+    loadComponent: () =>
+      import('./features/alertas-clima/alertas-clima.component').then(m => m.AlertasClimaComponent),
+    canActivate: [AuthGuard],
+  },
   //COMODIN VA AL FINAL SIEMPRE
   {
     path: '**',

@@ -64,6 +64,14 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected readonly srvUrl = environment.apiNestUrl;
   protected isAdminModalOpen = signal(false);
 
+  // ✨ HU-3-005: ¿soy admin del grupo abierto? Habilita borrar y ver lecturas ajenas.
+  protected esAdminGrupo = computed(() => this.grupoSeleccionado()?.rol === 'administrador');
+
+  // Cache de lecturas por mensaje { mensajeId -> [{personaId,nombre,fechaLeida}] }.
+  // Se carga perezosamente al hacer hover sobre "Leído por N".
+  protected lecturasPorMensaje = signal<Record<number, any[]>>({});
+  private mensajeEliminadoSub?: Subscription;
+
   // 🔐 CONTROL DE ROLES ALINEADO A TU DASHBOARD
   protected userRole = computed(() => {
     const role = this.authService.activeRole() || localStorage.getItem('user_role') || '';
@@ -172,7 +180,8 @@ ngOnInit(): void {
         }
 
         if (!esMio && this.isOpen() && !this.estaAbandonado()) {
-          this.chatSocketService.emitirMensajeLeido(nuevoMsg.id, nuevoMsg.emisorId);
+          // lectorId = quién lee → registra lectura POR MIEMBRO (HU-3-005).
+          this.chatSocketService.emitirMensajeLeido(nuevoMsg.id, nuevoMsg.emisorId, user?.id);
         }
       }
     });
@@ -197,9 +206,17 @@ ngOnInit(): void {
 
     // Confirmación de marcas de lectura (Doble check)
     this.confirmacionLecturaSub = this.chatSocketService.escucharConfirmacionLectura().subscribe((data: any) => {
-      this.mensajes.update(list => list.map(m => 
+      this.mensajes.update(list => list.map(m =>
         m.id === data.mensajeId ? { ...m, leidoAt: data.leidoAt } : m
       ));
+    });
+
+    // ✨ HU-3-005: refresco tras borrado por admin → quitar el mensaje en vivo.
+    this.mensajeEliminadoSub = this.chatSocketService.escucharMensajeEliminado().subscribe((data) => {
+      const grupoActual = this.grupoSeleccionado();
+      if (grupoActual && Number(data.grupoId) === Number(grupoActual.id)) {
+        this.mensajes.update(list => list.filter(m => m.id !== data.mensajeId));
+      }
     });
 
     // Escuchar bloqueos en vivo
@@ -232,6 +249,7 @@ ngOnInit(): void {
     this.confirmacionLecturaSub?.unsubscribe();
     this.socketPrivadoSub?.unsubscribe();
     this.socketExpulsadoSub?.unsubscribe();
+    this.mensajeEliminadoSub?.unsubscribe();
     const grupo = this.grupoSeleccionado();
     if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
   }
@@ -473,7 +491,8 @@ enviarMensaje(): void {
         const esMio = m.emisorId === user?.id || m.emisor?.id === user?.id;
         if (!esMio && !m.leidoAt && !this.estaAbandonado()) {
           setTimeout(() => {
-            this.chatSocketService.emitirMensajeLeido(m.id, m.emisorId);
+            // lectorId = quién lee → registra lectura POR MIEMBRO (HU-3-005).
+            this.chatSocketService.emitirMensajeLeido(m.id, m.emisorId, user?.id);
           }, 50);
         }
         return { ...m, esMio };
@@ -588,6 +607,38 @@ abrirMensajeDesdeBandeja(msg: any): void {
     this.respuestaDirectaTexto.set('');
     this.mensajeRespondidoId.set(null);
     this.toastService.success('Mensaje enviado');
+  }
+
+  // ✨ HU-3-005: ¿mostrar "Leído por N" en este mensaje? Solo en grupos, y solo
+  // al emisor del mensaje o a un admin del grupo (visibilidad emisor + admins).
+  protected puedeVerLecturas(m: any): boolean {
+    if (!this.grupoSeleccionado()) return false;
+    return m.esMio || this.esAdminGrupo();
+  }
+
+  // Carga perezosa de lecturas al hacer hover sobre el indicador. Cachea por id.
+  protected cargarLecturas(mensajeId: number): void {
+    if (!mensajeId || this.lecturasPorMensaje()[mensajeId]) return;
+    this.mensajeService.getLecturas(mensajeId).subscribe({
+      next: (lecturas) => this.lecturasPorMensaje.update(c => ({ ...c, [mensajeId]: lecturas })),
+      error: (err) => console.error('Error al cargar lecturas:', err),
+    });
+  }
+
+  // ✨ HU-3-005: borrado por admin. El refresco del hilo lo hace el evento socket
+  // 'mensajeEliminado' (también para este cliente, que está en la sala del grupo).
+  protected eliminarMensajeAdmin(mensajeId: number): void {
+    const user = this.authService.currentUser();
+    if (!user?.id || !this.esAdminGrupo()) return;
+    if (!window.confirm('¿Eliminar este mensaje para todos los miembros?')) return;
+
+    this.mensajeService.eliminarMensaje(mensajeId, user.id).subscribe({
+      next: () => this.toastService.success('Mensaje eliminado'),
+      error: (err) => {
+        console.error('Error al eliminar mensaje:', err);
+        this.toastService.error('No se pudo eliminar el mensaje');
+      },
+    });
   }
 
 }

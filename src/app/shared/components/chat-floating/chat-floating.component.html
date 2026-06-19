@@ -214,15 +214,46 @@
                   </a>
                 }
 
-                <div class="flex justify-end items-center gap-1 mt-1.5 opacity-80">
-                  <span class="text-[9px] text-gray-400">{{ (m.fechaEnvio || m.createdAt) | date:'shortTime' }}</span>
-                  @if (m.esMio) {
-                    <span class="text-[13px] transition-colors duration-300" 
-                          [ngClass]="m.leidoAt ? 'text-blue-400' : 'text-gray-500'"
-                          [title]="m.leidoAt ? 'Leído: ' + (m.leidoAt | date:'short') : 'Enviado'">
-                      ✓✓
-                    </span>
+                <div class="flex justify-between items-center gap-1 mt-1.5">
+                  <!-- HU-3-005: borrar (solo admin del grupo) -->
+                  @if (esAdminGrupo() && grupoSeleccionado()) {
+                    <button (click)="eliminarMensajeAdmin(m.id)"
+                            class="text-[12px] text-gray-500 hover:text-red-400 transition-colors bg-transparent border-none cursor-pointer p-0 leading-none"
+                            title="Eliminar mensaje (admin)">🗑</button>
+                  } @else {
+                    <span></span>
                   }
+
+                  <div class="flex items-center gap-2 opacity-80">
+                    <!-- HU-3-005: "Leído por N" con tooltip de nombres al hover -->
+                    @if (puedeVerLecturas(m) && m.lecturasCount > 0) {
+                      <span class="relative group text-[9px] text-fuchsia-300 cursor-default"
+                            (mouseenter)="cargarLecturas(m.id)">
+                        Leído por {{ m.lecturasCount }}
+                        <span class="invisible group-hover:visible absolute bottom-full right-0 mb-1 z-50 min-w-[140px] rounded-lg border border-gray-700 bg-[#262626] p-2 text-left shadow-xl">
+                          @if (lecturasPorMensaje()[m.id]; as lecturas) {
+                            @for (l of lecturas; track l.personaId) {
+                              <span class="flex justify-between gap-2 text-[10px] text-gray-200 py-0.5">
+                                <span class="font-semibold text-fuchsia-200">{{ l.nombre || 'Miembro' }}</span>
+                                <span class="text-gray-400">{{ l.fechaLeida | date:'short' }}</span>
+                              </span>
+                            }
+                          } @else {
+                            <span class="text-[10px] text-gray-400 italic">Cargando…</span>
+                          }
+                        </span>
+                      </span>
+                    }
+
+                    <span class="text-[9px] text-gray-400">{{ (m.fechaEnvio || m.createdAt) | date:'shortTime' }}</span>
+                    @if (m.esMio) {
+                      <span class="text-[13px] transition-colors duration-300"
+                            [ngClass]="m.leidoAt ? 'text-blue-400' : 'text-gray-500'"
+                            [title]="m.leidoAt ? 'Leído: ' + (m.leidoAt | date:'short') : 'Enviado'">
+                        ✓✓
+                      </span>
+                    }
+                  </div>
                 </div>
               </div>
             }

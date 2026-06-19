@@ -47,5 +47,17 @@ getHistorialGrupo(grupoId: number, personaId?: string): Observable<any[]> {
   marcarComoLeido(mensajeId: number): Observable<any> {
     return this.http.post(`${this.apiUrl}/${mensajeId}/invertir-o-leer` ? `${this.apiUrl}/${mensajeId}/leer` : `${this.apiUrl}/${mensajeId}/leer`, {});
   }
-  
+
+  // ✨ HU-3-005: lista de quién leyó un mensaje de grupo (emisor/admin)
+  getLecturas(mensajeId: number): Observable<{ personaId: string; nombre: string; fechaLeida: string }[]> {
+    return this.http.get<{ personaId: string; nombre: string; fechaLeida: string }[]>(
+      `${this.apiUrl}/${mensajeId}/lecturas`
+    );
+  }
+
+  // ✨ HU-3-005: borrado por admin (soft-delete). personaId valida rol en back.
+  eliminarMensaje(mensajeId: number, personaId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${mensajeId}?personaId=${personaId}`);
+  }
+
 }

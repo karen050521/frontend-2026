@@ -169,12 +169,15 @@ export class ChatSocketService {
   // ✨ NUEVA SECCIÓN: PERSISTENCIA Y LECTURA DE MENSAJES (SPRINT 1)
   // =========================================================
 
-  // Emitir al backend que acabamos de leer un mensaje
-  emitirMensajeLeido(mensajeId: number, emisorOriginalId: string): void {
-    this.socket.emit('marcarMensajeLeido', { 
-      mensajeId, 
-      emisorOriginalId, 
-      fechaLeido: new Date() 
+  // Emitir al backend que acabamos de leer un mensaje.
+  // lectorId (HU-3-005): quién lee → registra lectura POR MIEMBRO en grupos.
+  // En DM se omite y sólo se marca el leidoAt binario.
+  emitirMensajeLeido(mensajeId: number, emisorOriginalId: string, lectorId?: string): void {
+    this.socket.emit('marcarMensajeLeido', {
+      mensajeId,
+      emisorOriginalId,
+      lectorId,
+      fechaLeido: new Date()
     });
   }
 
@@ -182,6 +185,16 @@ export class ChatSocketService {
   escucharConfirmacionLectura(): Observable<any> {
     return new Observable(observer => {
       this.socket.on('mensajeLeidoConfirmado', (data: any) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  // ✨ HU-3-005: refresco tras borrado por admin → { mensajeId, grupoId }.
+  // Nombre de evento EXACTO ↔ gateway.notificarMensajeEliminado.
+  escucharMensajeEliminado(): Observable<{ mensajeId: number; grupoId: number }> {
+    return new Observable(observer => {
+      this.socket.on('mensajeEliminado', (data: any) => {
         observer.next(data);
       });
     });

@@ -90,6 +90,10 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
     return role.includes('conductor');
   });
 
+  protected debeVerChat = computed(() =>
+    this.authService.isAuthenticated() && (this.isCitizen() || this.isConductor())
+  );
+
   // Actualizamos el tipo de tabActiva para incluir 'bandeja'
   protected tabActiva = signal<'mis-grupos' | 'descubrir' | 'personas' | 'bandeja'>('bandeja'); // Ponemos 'bandeja' por defecto o la que prefieras
   

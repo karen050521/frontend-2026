@@ -1,3 +1,4 @@
+@if (debeVerChat()) {
 <div class="chat-container font-sans">
   
   @if (isOpen()) {
@@ -314,4 +315,5 @@
 
 @if (isAdminModalOpen() && grupoSeleccionado()) {
   <app-grupo-admin-modal [grupoId]="grupoSeleccionado().id" (closeModal)="isAdminModalOpen.set(false)"></app-grupo-admin-modal>
+}
 }

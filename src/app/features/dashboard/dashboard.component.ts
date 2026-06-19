@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CitizenDashboardComponent } from './citizen-dashboard/citizen-dashboard.component';
@@ -18,6 +18,7 @@ import { AnalyticsDashboardComponent } from './analytics-dashboard/analytics-das
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     CitizenDashboardComponent,
     ConductorDashboardComponent,
     CompanyDashboardComponent,

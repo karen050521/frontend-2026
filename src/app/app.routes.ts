@@ -3,6 +3,8 @@ import { HomeComponent } from './features/home/home.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { BusRegistroComponent } from './features/buses/bus-registro.component';
 import { PqrsFormComponent } from './features/pqrs-form/pqrs-form.component';
+
+
 export const routes: Routes = [
   {
     path: '',
@@ -207,10 +209,6 @@ export const routes: Routes = [
   },
   
   {
-    path: 'pqrs',
-    component: PqrsFormComponent
-  },
-  {
     path: 'alertas-masivas',
     loadComponent: () =>
       import('./features/alerta-masiva/alerta-masiva.component').then(m => m.AlertaMasivaComponent)
@@ -220,6 +218,26 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/alertas-clima/alertas-clima.component').then(m => m.AlertasClimaComponent),
     canActivate: [AuthGuard],
+  },
+  {
+    path: 'pqrs',
+    component: PqrsFormComponent
+  },
+  {
+    // Seguimiento sin radicado (búsqueda manual desde el sidebar)
+    path: 'pqrs-seguimiento',
+    loadComponent: () =>
+      import('./features/pqrs-seguimiento/pqrs-seguimiento.component').then(
+        (m) => m.PqrsSeguimientoComponent
+      ),
+  },
+  {
+    // Seguimiento por radicado (enlace de los correos de n8n: /pqrs/:radicado)
+    path: 'pqrs/:radicado',
+    loadComponent: () =>
+      import('./features/pqrs-seguimiento/pqrs-seguimiento.component').then(
+        (m) => m.PqrsSeguimientoComponent
+      ),
   },
   //COMODIN VA AL FINAL SIEMPRE
   {

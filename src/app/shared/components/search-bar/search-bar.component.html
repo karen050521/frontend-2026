@@ -31,8 +31,9 @@
     </div>
   </div>
 
+  @if (puedeVerNotificaciones()) {
   <div class="relative flex-shrink-0">
-    <button (click)="toggleNotificaciones()" 
+    <button (click)="toggleNotificaciones()"
       class="relative p-2 theme-text-tertiary hover:text-pink-500 transition-all cursor-pointer outline-none">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -74,4 +75,5 @@
       </div>
     }
   </div>
+  }
 </div>

@@ -1,4 +1,4 @@
-import { Component, signal, output, inject, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, output, inject, effect, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificacionService } from '../../../core/services/notificacion.service';
@@ -27,6 +27,11 @@ export class SearchBarComponent implements OnInit, OnDestroy {
   protected readonly showDropdown = signal(false);
   
   public readonly search = output<string>();
+
+  protected readonly puedeVerNotificaciones = computed(() => {
+    const role = (this.authService.activeRole() || localStorage.getItem('user_role') || '').toLowerCase().trim();
+    return role.includes('ciudadano') || role.includes('conductor') || role === '';
+  });
 
   constructor() {
     // Efecto para carga inicial o cambios de usuario

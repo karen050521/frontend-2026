@@ -80,4 +80,9 @@ export class MonitoreoService {
       shareReplay(1)
     );
   }
+
+  marcarAlertaComoLeida(mensajeId: number, personaId: string): void {
+  this.http.patch(`${this.apiUrl}/alerta/${mensajeId}/leer?personaId=${personaId}`, {}).subscribe();
+  }
+  
 }

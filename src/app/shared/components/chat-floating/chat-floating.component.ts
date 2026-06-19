@@ -66,11 +66,13 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
 
   // ✨ HU-3-005: ¿soy admin del grupo abierto? Habilita borrar y ver lecturas ajenas.
   protected esAdminGrupo = computed(() => this.grupoSeleccionado()?.rol === 'administrador');
-
+  protected mensajeExpandidoId = signal<number | null>(null);
   // Cache de lecturas por mensaje { mensajeId -> [{personaId,nombre,fechaLeida}] }.
   // Se carga perezosamente al hacer hover sobre "Leído por N".
   protected lecturasPorMensaje = signal<Record<number, any[]>>({});
   private mensajeEliminadoSub?: Subscription;
+
+  private alertaMasivaSub?: Subscription;
 
   // 🔐 CONTROL DE ROLES ALINEADO A TU DASHBOARD
   protected userRole = computed(() => {
@@ -107,6 +109,7 @@ export class ChatFloatingComponent implements OnInit, OnDestroy {
   protected filtroTipoBandeja = signal<'todos' | 'individual' | 'grupal'>('todos');
   protected filtroEstadoBandeja = signal<'todos' | 'leidos' | 'no_leidos'>('todos');
   protected filtroFechaBandeja = signal<string>('');
+  
   
   
   constructor() {
@@ -249,7 +252,48 @@ ngOnInit(): void {
         this.volverAListado();
       }
     });
+  
+this.alertaMasivaSub = this.chatSocketService.escucharAlertaMasiva().subscribe((data: any) => {
+  const mensajeAlerta = {
+    id: data.id,
+    tipo: 'alerta',
+    emisor: 'Sistema',
+    emisorId: data.emisorId,
+    fechaEnvio: data.fechaEnvio,
+    preview: data.contenido?.substring(0, 60) ?? '',
+    contenidoCompleto: data.contenido,
+    leido: false,
+    esUrgente: data.esUrgente,
+    alcanceTipo: data.alcanceTipo,
+    grupoId: null,
+    grupoNombre: null
+  };
+
+  this.mensajesBandeja.update(list => [mensajeAlerta, ...list]);
+  this.notiService.triggerRefresh(); 
+});
   }
+
+protected toggleExpansionBandeja(msg: any): void {
+  const yaExpandido = this.mensajeExpandidoId() === msg.id;
+  this.mensajeExpandidoId.set(yaExpandido ? null : msg.id);
+
+  if (!msg.leido) {
+    this.mensajesBandeja.update(list =>
+      list.map(m => m.id === msg.id ? { ...m, leido: true } : m)
+    );
+    if (msg.id) {
+      this.chatSocketService.emitirMensajeLeido(msg.id, msg.emisorId);
+
+      if (msg.tipo === 'alerta') {
+        const personaId = this.authService.currentUser()?.id;
+        if (personaId) {
+          this.notiService.marcarAlertaComoLeida(msg.id, personaId);
+        }
+      }
+    }
+  }
+}
 
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
@@ -258,8 +302,10 @@ ngOnInit(): void {
     this.socketPrivadoSub?.unsubscribe();
     this.socketExpulsadoSub?.unsubscribe();
     this.mensajeEliminadoSub?.unsubscribe();
+    this.alertaMasivaSub?.unsubscribe();
     const grupo = this.grupoSeleccionado();
     if (grupo) this.chatSocketService.salirDeGrupo(grupo.id);
+    
   }
 
   cargarMisGrupos(userId: string): void {
@@ -540,22 +586,20 @@ abandonarGrupoActual(): void {
     if (this.filtroFechaBandeja()) filtros.fecha = this.filtroFechaBandeja();
 
     this.mensajeService.getBandejaEntrada(userId, filtros).subscribe({
-      next: (res) => {
-        // 🛡️ OBTENEMOS LOS IDS DE LOS GRUPOS A LOS QUE SÍ PERTENECES ACTUALMENTE
-        const misGruposIds = this.grupos().map(g => Number(g.id));
+next: (res) => {
+  const misGruposIds = this.grupos().map(g => Number(g.id));
 
-        // 🚀 FILTRO RADICAL: Si el mensaje es de tipo 'grupal', obligatoriamente el grupoId debe estar en tus grupos activos
-        const mensajesFiltrados = res.mensajes.filter((msg: any) => {
-          if (msg.tipo === 'grupal') {
-            return misGruposIds.includes(Number(msg.grupoId));
-          }
-          return true; // Los mensajes individuales (directos) pasan siempre
-        });
+  const mensajesFiltrados = res.mensajes.filter((msg: any) => {
+    if (msg.tipo === 'grupal') {
+      return misGruposIds.includes(Number(msg.grupoId));
+    }
+    return true;
+  });
 
-        // Guardamos solo los mensajes válidos en la señal de la bandeja
-        this.mensajesBandeja.set(mensajesFiltrados);
-        this.cargandoBandeja.set(false);
-      },
+  const alertasEnMemoria = this.mensajesBandeja().filter(m => m.tipo === 'alerta');
+  this.mensajesBandeja.set([...alertasEnMemoria, ...mensajesFiltrados]);
+  this.cargandoBandeja.set(false);
+},
       error: (err) => {
         console.error('Error al mapear bandeja:', err);
         this.cargandoBandeja.set(false);
@@ -564,7 +608,8 @@ abandonarGrupoActual(): void {
   }
 
   // ✨ NUEVO: Al hacer click en un mensaje de la bandeja de entrada
-abrirMensajeDesdeBandeja(msg: any): void {
+  abrirMensajeDesdeBandeja(msg: any): void {
+      if (msg.tipo === 'alerta') return; 
     // 1. Apagamos el punto rosa localmente en el Front-end para que baje el contador de inmediato
     this.mensajesBandeja.update(list => 
       list.map(m => m.id === msg.id ? { ...m, leido: true } : m)
@@ -617,6 +662,7 @@ abrirMensajeDesdeBandeja(msg: any): void {
   }
 
   enviarRespuestaDirecta(msg: any): void {
+     if (msg.tipo === 'alerta') return; 
     const texto = this.respuestaDirectaTexto().trim();
     const user = this.authService.currentUser();
     if (!texto || !user?.id) return;

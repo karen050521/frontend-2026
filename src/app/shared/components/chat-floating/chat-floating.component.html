@@ -83,47 +83,50 @@
               <div class="text-center text-gray-600 text-xs mt-4 animate-pulse">Cargando bandeja de entrada...</div>
             } @else {
 @for (msg of mensajesBandeja(); track msg.id) {
-                <div [class]="!msg.leido ? 'border-l-2 border-l-pink-500 bg-[#251820]/30' : 'bg-[#1e1e1e]'"
-                     class="p-3 border border-gray-800/60 rounded-xl flex flex-col gap-1.5 shadow-sm transition-all duration-200">
-                  
-                  <div (click)="mensajeRespondidoId() === msg.id ? mensajeRespondidoId.set(null) : mensajeRespondidoId.set(msg.id); $event.stopPropagation()" class="cursor-pointer w-full">
-                    <div class="flex justify-between items-center w-full">
-                      <span class="text-xs font-bold text-gray-200 flex items-center gap-1">
-                        {{ msg.tipo === 'grupal' ? '👥' : '👤' }} {{ msg.emisor }}
-                      </span>
-                      <span class="text-[9px] text-gray-500">{{ msg.fechaEnvio | date:'shortTime' }}</span>
-                    </div>
+  <div [class]="!msg.leido ? 'border-l-2 border-l-pink-500 bg-[#251820]/30' : 'bg-[#1e1e1e]'"
+       class="p-3 border border-gray-800/60 rounded-xl flex flex-col gap-1.5 shadow-sm transition-all duration-200">
 
-                    <p class="text-[11px] text-gray-400 line-clamp-2 pr-2 break-words mt-1">{{ msg.preview }}...</p>
-                    
-                    <div class="flex justify-between items-center mt-1 text-[9px]">
-                      <span class="px-1.5 py-0.5 rounded text-gray-400 font-medium bg-zinc-800">
-                        {{ msg.tipo === 'grupal' ? 'Grupo: ' + msg.grupoNombre : 'Mensaje Directo' }}
-                      </span>
-                      @if (!msg.leido) {
-                        <span class="w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse"></span>
-                      }
-                    </div>
-                  </div>
+    <div (click)="toggleExpansionBandeja(msg); $event.stopPropagation()" class="cursor-pointer w-full">
+      <div class="flex justify-between items-center w-full">
+        <span class="text-xs font-bold text-gray-200 flex items-center gap-1">
+          {{ msg.tipo === 'alerta' ? '🚨' : (msg.tipo === 'grupal' ? '👥' : '👤') }} {{ msg.emisor }}
+        </span>
+        <span class="text-[9px] text-gray-500">{{ msg.fechaEnvio | date:'shortTime' }}</span>
+      </div>
 
-                  @if (mensajeRespondidoId() === msg.id) {
-                    <div class="mt-2 pt-2 border-t border-gray-800 flex gap-1.5 items-center animate-in fade-in slide-in-from-top-2 duration-150">
-                      <input type="text" 
-                             [ngModel]="respuestaDirectaTexto()" 
-                             (ngModelChange)="respuestaDirectaTexto.set($event)"
-                             placeholder="Responder" 
-                             (keyup.enter)="enviarRespuestaDirecta(msg)"
-                             class="flex-1 bg-[#2a2a2a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-pink-500 transition-all" />
-                      <button (click)="enviarRespuestaDirecta(msg)" 
-                              class="bg-pink-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold border-none cursor-pointer hover:bg-pink-500 transition-colors">
-                        🚀
-                      </button>
-                    </div>
-                  }
-                </div>
-              } @empty {
-                <div class="text-center text-gray-600 text-xs mt-4">No hay mensajes en tu bandeja.</div>
-              }
+      <p class="text-[11px] text-gray-400 pr-2 break-words mt-1"
+         [class.line-clamp-2]="mensajeExpandidoId() !== msg.id">{{ mensajeExpandidoId() === msg.id ? msg.contenidoCompleto : (msg.preview + '...') }}</p>
+
+      <div class="flex justify-between items-center mt-1 text-[9px]">
+        <span class="px-1.5 py-0.5 rounded text-gray-400 font-medium bg-zinc-800">
+          {{ msg.tipo === 'alerta' ? ('📢 Alerta' + (msg.esUrgente ? ' · URGENTE' : '')) : (msg.tipo === 'grupal' ? 'Grupo: ' + msg.grupoNombre : 'Mensaje Directo') }}
+        </span>
+        @if (!msg.leido) {
+          <span class="w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse"></span>
+        }
+      </div>
+    </div>
+
+    @if (mensajeExpandidoId() === msg.id && msg.tipo !== 'alerta') {
+      <div class="mt-2 pt-2 border-t border-gray-800 flex gap-1.5 items-center animate-in fade-in slide-in-from-top-2 duration-150">
+        <input type="text"
+               [ngModel]="respuestaDirectaTexto()"
+               (ngModelChange)="respuestaDirectaTexto.set($event)"
+               placeholder="Responder"
+               (keyup.enter)="enviarRespuestaDirecta(msg)"
+               class="flex-1 bg-[#2a2a2a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-pink-500 transition-all" />
+        <button (click)="enviarRespuestaDirecta(msg)"
+                class="bg-pink-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold border-none cursor-pointer hover:bg-pink-500 transition-colors">
+          🚀
+        </button>
+      </div>
+    }
+  </div>
+} @empty {
+  <div class="text-center text-gray-600 text-xs mt-4">No hay mensajes en tu bandeja.</div>
+}
+
+
             }
           }
 

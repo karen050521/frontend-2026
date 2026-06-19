@@ -58,4 +58,9 @@ obtenerZonasDisponibles(): Observable<any[]> {
     // Cambiamos la URL vieja por la ruta real del controlador de rutas
     return this.http.get<any[]>(`${environment.apiNestUrl}/ruta/zonas/disponibles`);
   }
+
+getTodasAlertas(): Observable<any[]> {
+  return this.http.get<any[]>(`${environment.apiNestUrl}/mensajes/alertas-masivas`);
+  }
+  
 }

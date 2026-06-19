@@ -31,6 +31,7 @@ export class AlertaMasivaComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    
     this.alertaForm = this.fb.group({
       contenido: ['', [Validators.required, Validators.maxLength(500)]],
       alcanceTipo: ['TODOS', Validators.required],
@@ -46,6 +47,12 @@ export class AlertaMasivaComponent implements OnInit {
     // Cargar el contador inicial al abrir la vista
     this.actualizarContador();
 
+    // Cargar alertas previas desde la BD para que el monitor no quede vacío
+this.alertaService.getTodasAlertas().subscribe({
+  next: (alertas) => this.alertasEnviadas = alertas,
+  error: () => {}
+});
+    
     // Escuchar cambios del alcance para recalcular destinatarios automáticamente
     this.alertaForm.get('alcanceTipo')?.valueChanges.subscribe(() => {
       this.alertaForm.get('alcanceId')?.setValue('');

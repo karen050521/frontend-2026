@@ -199,4 +199,13 @@ export class ChatSocketService {
       });
     });
   }
+
+  escucharAlertaMasiva(): Observable<any> {
+  return new Observable(observer => {
+    this.socket.on('alertaMasiva', (data: any) => {
+      observer.next(data);
+    });
+  });
+  }
+  
 }

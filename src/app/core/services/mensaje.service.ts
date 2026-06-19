@@ -60,4 +60,8 @@ getHistorialGrupo(grupoId: number, personaId?: string): Observable<any[]> {
     return this.http.delete(`${this.apiUrl}/${mensajeId}?personaId=${personaId}`);
   }
 
+  getTodasAlertas(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.apiUrl}/alertas-masivas`);
+}
+
 }

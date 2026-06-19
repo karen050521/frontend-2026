@@ -12,24 +12,20 @@ export class NotificacionService {
   private readonly chatSocketService = inject(ChatSocketService);
   private readonly apiUrl = `${environment.apiNestUrl}/notificacion`;
 
-  // 🔔 Subject original para recargar la lista de la campana
   private refreshNotificationsSource = new Subject<void>();
   refreshNotifications$ = this.refreshNotificationsSource.asObservable();
 
-  // 🚌 ✨ NUEVO: Subject específico para la alerta emergente del bus
   private alertaBusSource = new Subject<any>();
   alertaBus$ = this.alertaBusSource.asObservable();
 
   constructor() {
-    // Escuchamos el socket en todo momento.
     this.chatSocketService.escucharAlertaBus().subscribe((alerta: any) => {
       console.log('🚌 ¡Alerta de bus recibida en vivo!', alerta);
-      this.alertaBusSource.next(alerta); // Dispara la tarjeta amarilla en la UI
-      this.triggerRefresh(); // Actualiza el contador de notificaciones de la campana
+      this.alertaBusSource.next(alerta);
+      this.triggerRefresh();
     });
   }
 
-  // Método único para disparar la recarga manual (Sin duplicados)
   triggerRefresh() {
     this.refreshNotificationsSource.next();
   }
@@ -44,5 +40,9 @@ export class NotificacionService {
 
   marcarComoLeida(notificacionId: string): Observable<any> {
     return this.http.patch(`${this.apiUrl}/leer/${notificacionId}`, {});
+  }
+
+  marcarAlertaComoLeida(mensajeId: number, personaId: string): void {
+    this.http.patch(`${this.apiUrl}/alerta/${mensajeId}/leer?personaId=${personaId}`, {}).subscribe();
   }
 }
